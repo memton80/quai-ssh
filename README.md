@@ -1,24 +1,100 @@
 # Quai
 
-Gestionnaire de connexions **SSH** et de transferts **SFTP** pour Windows, avec une interface native **WinUI 3** (look Windows 11).
+Gestionnaire de connexions **SSH** et de transferts **SFTP** pour Windows, avec une interface native **WinUI 3** (look Windows 11). Dans l'esprit de Termius / WinSCP / MobaXterm, en plus léger.
 
-> Statut : projet en démarrage. Le développement est piloté avec Claude Code, voir [`CLAUDE.md`](CLAUDE.md).
+[![Build](https://github.com/memton80/quai-ssh/actions/workflows/build.yml/badge.svg)](https://github.com/memton80/quai-ssh/actions/workflows/build.yml)
 
-## Objectifs
+## Fonctionnalités
 
-- Carnet de connexions (dossiers, tags, recherche)
-- Terminal SSH à onglets
-- Explorateur SFTP à double panneau (local / distant)
-- Secrets stockés dans le coffre Windows, jamais en clair
-- Compilation et releases 100 % via GitHub Actions
+**Carnet de connexions**
+- Créer, modifier, dupliquer, supprimer ; rangement par dossiers (`Prod/Web`) et par tags ; recherche instantanée (nom, hôte, utilisateur, tag, notes — sans tenir compte des accents).
+- Authentification par mot de passe ou par clé privée (OpenSSH, PEM, PuTTY ; passphrase prise en charge).
 
-## Principe
+**Terminal SSH**
+- Onglets, émulation complète par xterm.js (couleurs, UTF-8, redimensionnement), reconnexion en un clic.
+- Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+V` colle, clic droit copie ou colle.
 
-On ne réinvente pas la roue : le protocole SSH/SFTP, l'émulation de terminal et le MVVM reposent sur des bibliothèques existantes (SSH.NET, xterm.js, CommunityToolkit). Le détail est dans `CLAUDE.md`.
+**Explorateur SFTP**
+- Double panneau : cet ordinateur à gauche, le serveur à droite, séparateur redimensionnable.
+- Envoi et téléchargement de fichiers et de dossiers entiers, par boutons ou par **glisser-déposer** (entre les panneaux, ou depuis l'Explorateur Windows vers le serveur).
+- File de transferts avec progression et **annulation** ; confirmation avant tout écrasement.
+- Renommer, nouveau dossier, **droits** (cases à cocher + notation octale), supprimer — toujours avec confirmation côté serveur, via la corbeille côté local.
+- Clavier : `Entrée` ouvre, `Retour arrière` remonte, `F2` renomme, `F5` actualise, `Suppr` supprime.
 
-## Télécharger
+**Réglages**
+- Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), police et taille du terminal, appliqués immédiatement.
 
-Les builds se trouvent dans l'onglet **Actions** (artefacts) et, pour les versions taguées `vX.Y.Z`, dans **Releases**.
+## Sécurité
+
+- **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
+- **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
+- **Aucune télémétrie.** Le terminal charge xterm.js depuis des fichiers locaux, sans aucun accès réseau.
+
+## Télécharger et installer
+
+Rendez-vous dans [**Releases**](https://github.com/memton80/quai-ssh/releases) :
+
+| Fichier | Pour qui |
+|---|---|
+| `Quai-Setup-x64.exe` | **Recommandé.** Installateur pour PC Intel / AMD 64 bits. |
+| `Quai-Setup-arm64.exe` | Installateur pour PC ARM64 (Snapdragon…). |
+| `Quai-x64.zip`, `Quai-arm64.zip` | Version portable : décompressez et lancez `Quai.exe`. |
+
+L'installateur est un seul fichier qui contient tout (.NET et Windows App SDK compris). Il installe Quai pour votre compte dans `%LOCALAPPDATA%\Programs\Quai`, **sans droits administrateur**, et ajoute un raccourci au menu Démarrer.
+
+> Les exécutables ne sont pas signés : au premier lancement, Windows SmartScreen peut afficher « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires** puis **Exécuter quand même**.
+
+**Désinstaller** : Paramètres de Windows → Applications → Applications installées → Quai → Désinstaller. Le désinstallateur demande s'il faut aussi effacer vos données (connexions, réglages, hôtes connus et secrets du coffre Windows) ; par défaut elles sont conservées.
+
+**Prérequis** : Windows 10 (1809) ou Windows 11. Le terminal utilise Microsoft Edge WebView2, déjà présent sur Windows 11 et sur les Windows 10 à jour.
+
+## Où sont mes données ?
+
+Dans `%LOCALAPPDATA%\Quai` :
+
+| Fichier | Contenu |
+|---|---|
+| `connections.json` | Le carnet (aucun secret). |
+| `settings.json` | Les réglages. |
+| `known_hosts` | Les clés d'hôte acceptées (format OpenSSH). |
+| `logs\` | Journaux des 7 derniers jours. |
+
+## Développement
+
+```
+Quai.sln
+src/Quai.Core/          logique sans dépendance UI : modèles, stockage, SSH / SFTP, view-models
+src/Quai.App/           application WinUI 3 : vues, dialogues, coffre Windows, page du terminal
+tests/Quai.Core.Tests/  tests xUnit (unitaires + intégration contre un vrai OpenSSH)
+tests/integration/      script qui démarre le serveur OpenSSH de test
+installer/Quai.iss      script Inno Setup de l'installateur
+docs/DECISIONS.md       journal des choix techniques
+```
+
+Briques : .NET 10, Windows App SDK 2 (WinUI 3, non packagé, auto-contenu), [SSH.NET](https://github.com/sshnet/SSH.NET), [xterm.js](https://xtermjs.org/) dans WebView2, CommunityToolkit (MVVM et contrôles), Serilog, Inno Setup.
+
+Tests :
+
+```bash
+dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj
+```
+
+Les tests d'intégration SSH / SFTP sont ignorés tant que les variables `QUAI_TEST_SSH_*` ne sont pas définies ; `tests/integration/start-sshd.sh` démarre un serveur jetable et les fournit (Linux).
+
+Publication (sous Windows) :
+
+```bash
+dotnet publish src/Quai.App/Quai.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish/x64
+```
+
+**CI** (`.github/workflows/build.yml`) : à chaque push, build `x64` et `arm64` sur `windows-latest`, tests, construction de l'installateur, puis sur `x64` installation silencieuse, **test de fumée de l'application installée** (lancement réel, parcours de chaque écran avec captures) et désinstallation vérifiée. Un job Linux exécute les tests d'intégration contre OpenSSH. Un tag `vX.Y.Z` publie installateurs et zips dans Releases.
+
+## Limites connues
+
+- Pas encore de tunnels / redirection de ports, de rebond (jump host), d'agent OpenSSH, ni d'import `ssh_config` / PuTTY.
+- Un seul transfert à la fois par onglet SFTP, sans reprise après interruption.
+- Pas de glisser-déposer du serveur vers l'Explorateur Windows (passer par le panneau local).
+- Interface en français uniquement pour l'instant.
 
 ## Licence
 
