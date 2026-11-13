@@ -7,13 +7,63 @@
     <Thickness x:Key="PagePadding">24,16,24,24</Thickness>
     <x:Double x:Key="PageSpacing">16</x:Double>
 
-    <Style x:Key="PageTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+    <Style
+        x:Key="PageTitleStyle"
+        BasedOn="{StaticResource TitleTextBlockStyle}"
+        TargetType="TextBlock">
         <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
 
-    <Style x:Key="PageHintStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+    <Style
+        x:Key="PageHintStyle"
+        BasedOn="{StaticResource BodyTextBlockStyle}"
+        TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style
+        x:Key="SecondaryCaptionStyle"
+        BasedOn="{StaticResource CaptionTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- Carte : fond légèrement détaché du Mica, coins arrondis. -->
+    <Style x:Key="CardBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
+    </Style>
+
+    <!-- Pastille de tag. -->
+    <Style x:Key="TagChipStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="8,1,8,2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Bouton icône discret (actions en bout de ligne). -->
+    <Style
+        x:Key="RowIconButtonStyle"
+        BasedOn="{StaticResource SubtleButtonStyle}"
+        TargetType="Button">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <!-- État vide centré (icône, titre, explication). -->
+    <Style x:Key="EmptyStatePanelStyle" TargetType="StackPanel">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="MaxWidth" Value="380" />
+        <Setter Property="Spacing" Value="8" />
     </Style>
 
 </ResourceDictionary>

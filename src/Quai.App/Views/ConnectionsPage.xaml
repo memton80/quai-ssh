@@ -3,10 +3,241 @@
     x:Class="Quai.App.Views.ConnectionsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:l="using:Quai.App.Localization">
+    xmlns:l="using:Quai.App.Localization"
+    xmlns:ui="using:Quai.App"
+    xmlns:vm="using:Quai.Core.ViewModels">
 
-    <StackPanel Padding="{StaticResource PagePadding}" Spacing="{StaticResource PageSpacing}">
-        <TextBlock Style="{StaticResource PageTitleStyle}" Text="{l:Str Key=Connections_Title}" />
-        <TextBlock Style="{StaticResource PageHintStyle}" Text="{l:Str Key=Connections_Placeholder}" />
-    </StackPanel>
+    <Grid Padding="{StaticResource PagePadding}" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- En-tête : titre, recherche, nouvelle connexion -->
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                VerticalAlignment="Center"
+                Style="{StaticResource PageTitleStyle}"
+                Text="{l:Str Key=Connections_Title}" />
+            <AutoSuggestBox
+                Grid.Column="1"
+                Width="300"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="{l:Str Key=Connections_SearchPlaceholder}"
+                PlaceholderText="{l:Str Key=Connections_SearchPlaceholder}"
+                QueryIcon="Find"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" />
+            <Button
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Command="{x:Bind ViewModel.NewCommand}"
+                Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE710;" />
+                    <TextBlock Text="{l:Str Key=Connections_New}" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Filtres : toutes, dossiers, tags -->
+            <Border Padding="4" Style="{StaticResource CardBorderStyle}">
+                <ListView
+                    AutomationProperties.Name="{l:Str Key=Connections_FiltersLabel}"
+                    ItemsSource="{x:Bind ViewModel.Filters}"
+                    SelectedItem="{x:Bind ViewModel.SelectedFilter, Mode=TwoWay}"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConnectionFilterItem">
+                            <Grid Margin="{x:Bind ui:UiHelpers.IndentMargin(Depth)}" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontSize="16" Glyph="{x:Bind Glyph}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{x:Bind Label}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind CountText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <!-- Connexions -->
+            <Border
+                Grid.Column="1"
+                Padding="4"
+                Style="{StaticResource CardBorderStyle}">
+                <Grid>
+                    <ListView
+                        x:Name="ConnectionList"
+                        AutomationProperties.Name="{l:Str Key=Connections_ListLabel}"
+                        ItemsSource="{x:Bind ViewModel.Connections}"
+                        SelectionMode="Single">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ConnectionItemViewModel">
+                                <Grid
+                                    Padding="4,10"
+                                    Background="Transparent"
+                                    ColumnSpacing="16"
+                                    DoubleTapped="OnConnectionDoubleTapped">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.ContextFlyout>
+                                        <MenuFlyout Opening="OnRowMenuOpening">
+                                            <MenuFlyoutItem Click="OnEditClick" Text="{l:Str Key=Common_Edit}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE70F;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Click="OnDuplicateClick" Text="{l:Str Key=Common_Duplicate}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8C8;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Click="OnDeleteClick" Text="{l:Str Key=Common_Delete}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Grid.ContextFlyout>
+
+                                    <FontIcon
+                                        VerticalAlignment="Center"
+                                        FontSize="18"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Glyph="{x:Bind AuthenticationGlyph}" />
+
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Spacing="2">
+                                        <TextBlock
+                                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                                            Text="{x:Bind Name}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="{x:Bind Endpoint}" />
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                Spacing="4"
+                                                Visibility="{x:Bind HasFolder}">
+                                                <FontIcon
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Glyph="&#xE8B7;" />
+                                                <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="{x:Bind Folder}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <ItemsControl
+                                        Grid.Column="2"
+                                        VerticalAlignment="Center"
+                                        IsTabStop="False"
+                                        ItemsSource="{x:Bind Tags}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Border Style="{StaticResource TagChipStyle}">
+                                                    <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <StackPanel
+                                        Grid.Column="3"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="2">
+                                        <Button
+                                            AutomationProperties.Name="{l:Str Key=Common_Edit}"
+                                            Command="{x:Bind EditCommand}"
+                                            Style="{StaticResource RowIconButtonStyle}"
+                                            ToolTipService.ToolTip="{l:Str Key=Common_Edit}">
+                                            <FontIcon FontSize="14" Glyph="&#xE70F;" />
+                                        </Button>
+                                        <Button
+                                            AutomationProperties.Name="{l:Str Key=Common_Delete}"
+                                            Command="{x:Bind DeleteCommand}"
+                                            Style="{StaticResource RowIconButtonStyle}"
+                                            ToolTipService.ToolTip="{l:Str Key=Common_Delete}">
+                                            <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Carnet vide -->
+                    <StackPanel Style="{StaticResource EmptyStatePanelStyle}" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
+                        <FontIcon
+                            FontSize="40"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Glyph="&#xE8F1;" />
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            Style="{StaticResource SubtitleTextBlockStyle}"
+                            Text="{l:Str Key=Connections_EmptyTitle}" />
+                        <TextBlock
+                            HorizontalTextAlignment="Center"
+                            Style="{StaticResource PageHintStyle}"
+                            Text="{l:Str Key=Connections_EmptyHint}" />
+                        <Button
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Center"
+                            Command="{x:Bind ViewModel.NewCommand}"
+                            Content="{l:Str Key=Connections_New}" />
+                    </StackPanel>
+
+                    <!-- Aucun résultat pour le filtre / la recherche -->
+                    <StackPanel Style="{StaticResource EmptyStatePanelStyle}" Visibility="{x:Bind ViewModel.HasNoResults, Mode=OneWay}">
+                        <FontIcon
+                            FontSize="40"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Glyph="&#xE721;" />
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            Style="{StaticResource SubtitleTextBlockStyle}"
+                            Text="{l:Str Key=Connections_NoResultsTitle}" />
+                        <TextBlock
+                            HorizontalTextAlignment="Center"
+                            Style="{StaticResource PageHintStyle}"
+                            Text="{l:Str Key=Connections_NoResultsHint}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </UserControl>

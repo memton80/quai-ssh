@@ -10,16 +10,25 @@ namespace Quai.App;
 public partial class App : Application
 {
     private readonly ILogger<App> _logger;
-    private string? _smokeTestDirectory;
+    private readonly string? _smokeTestDirectory;
 
     public App()
     {
+        if (SmokeTest.TryGetOutputDirectory(out var smokeDirectory))
+        {
+            _smokeTestDirectory = smokeDirectory;
+            SmokeTest.IsolateData(smokeDirectory);
+        }
+
         Services = AppServices.Build();
         _logger = Services.GetRequiredService<ILogger<App>>();
 
         // WebView2 : données utilisateur hors du dossier d'installation (qui peut être en lecture seule).
         var paths = Services.GetRequiredService<AppPaths>();
         Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", paths.WebViewDataDirectory);
+
+        // Interface en français d'abord : force aussi les textes fournis par WinUI (boutons, menus).
+        TrySetLanguage("fr-FR");
 
         InitializeComponent();
         UnhandledException += OnUnhandledException;
@@ -38,10 +47,21 @@ public partial class App : Application
         MainWindow = new MainWindow();
         MainWindow.Activate();
 
-        if (SmokeTest.TryGetOutputDirectory(out var directory))
+        if (_smokeTestDirectory is not null)
         {
-            _smokeTestDirectory = directory;
-            _ = SmokeTest.RunAsync(MainWindow, _logger, directory);
+            _ = SmokeTest.RunAsync(MainWindow, Services, _logger, _smokeTestDirectory);
+        }
+    }
+
+    private void TrySetLanguage(string language)
+    {
+        try
+        {
+            Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = language;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Impossible de forcer la langue {Language}", language);
         }
     }
 

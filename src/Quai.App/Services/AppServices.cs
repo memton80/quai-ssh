@@ -1,6 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Quai.Core.Localization;
+using Quai.Core.Security;
+using Quai.Core.Services;
 using Quai.Core.Storage;
+using Quai.Core.ViewModels;
 using Serilog;
 
 namespace Quai.App.Services;
@@ -26,6 +30,18 @@ internal static class AppServices
         var services = new ServiceCollection();
         services.AddSingleton(paths);
         services.AddLogging(builder => builder.AddSerilog(serilog, dispose: true));
+
+        // Stockage et secrets
+        services.AddSingleton<IConnectionRepository, JsonConnectionRepository>();
+        services.AddSingleton<ISecretStore, PasswordVaultSecretStore>();
+
+        // Interface
+        services.AddSingleton<IStrings, ReswStrings>();
+        services.AddSingleton<DialogService>();
+        services.AddSingleton<IDialogService>(provider => provider.GetRequiredService<DialogService>());
+
+        // View-models
+        services.AddSingleton<ConnectionsViewModel>();
 
         return services.BuildServiceProvider();
     }

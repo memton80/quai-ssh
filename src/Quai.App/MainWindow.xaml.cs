@@ -1,6 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Quai.App.Localization;
+using Quai.App.Services;
 using Quai.App.Views;
 using Windows.Graphics;
 
@@ -34,6 +37,19 @@ public sealed partial class MainWindow : Window
         {
             AppWindow.SetIcon(icon);
         }
+
+        // Les boîtes de dialogue et sélecteurs de fichiers ont besoin de la fenêtre.
+        var dialogs = App.Current.Services.GetRequiredService<DialogService>();
+        dialogs.Root = RootGrid;
+        dialogs.WindowId = AppWindow.Id;
+
+        NavView.Loaded += (_, _) =>
+        {
+            if (NavView.SettingsItem is NavigationViewItem settings)
+            {
+                settings.Content = Loc.Get("Nav_Settings");
+            }
+        };
 
         ResizeForDpi(1240, 800);
         NavigateTo(ConnectionsTag);

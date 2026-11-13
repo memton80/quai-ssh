@@ -12,6 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Common_Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Common_Duplicate" xml:space="preserve">
+    <value>Dupliquer</value>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>Parcourir…</value>
+  </data>
   <data name="Nav_Connections" xml:space="preserve">
     <value>Connexions</value>
   </data>
@@ -21,11 +45,143 @@
   <data name="Nav_Sftp" xml:space="preserve">
     <value>Fichiers (SFTP)</value>
   </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Réglages</value>
+  </data>
   <data name="Connections_Title" xml:space="preserve">
     <value>Connexions</value>
   </data>
-  <data name="Connections_Placeholder" xml:space="preserve">
-    <value>Le carnet de connexions arrive à l'étape suivante.</value>
+  <data name="Connections_New" xml:space="preserve">
+    <value>Nouvelle connexion</value>
+  </data>
+  <data name="Connections_SearchPlaceholder" xml:space="preserve">
+    <value>Rechercher (nom, hôte, tag…)</value>
+  </data>
+  <data name="Connections_FilterAll" xml:space="preserve">
+    <value>Toutes les connexions</value>
+  </data>
+  <data name="Connections_FiltersLabel" xml:space="preserve">
+    <value>Dossiers et tags</value>
+  </data>
+  <data name="Connections_ListLabel" xml:space="preserve">
+    <value>Liste des connexions</value>
+  </data>
+  <data name="Connections_EmptyTitle" xml:space="preserve">
+    <value>Aucune connexion pour l'instant</value>
+  </data>
+  <data name="Connections_EmptyHint" xml:space="preserve">
+    <value>Ajoutez votre premier serveur pour le retrouver ici, rangé par dossier et par tag.</value>
+  </data>
+  <data name="Connections_NoResultsTitle" xml:space="preserve">
+    <value>Aucun résultat</value>
+  </data>
+  <data name="Connections_NoResultsHint" xml:space="preserve">
+    <value>Aucune connexion ne correspond à ce filtre ou à cette recherche.</value>
+  </data>
+  <data name="Connections_CopyName" xml:space="preserve">
+    <value>{0} (copie)</value>
+  </data>
+  <data name="Connections_DeleteTitle" xml:space="preserve">
+    <value>Supprimer la connexion ?</value>
+  </data>
+  <data name="Connections_DeleteMessage" xml:space="preserve">
+    <value>La connexion « {0} » et ses secrets enregistrés dans le coffre Windows seront supprimés. Le serveur lui-même n'est pas modifié.</value>
+  </data>
+  <data name="Editor_TitleNew" xml:space="preserve">
+    <value>Nouvelle connexion</value>
+  </data>
+  <data name="Editor_TitleEdit" xml:space="preserve">
+    <value>Modifier la connexion</value>
+  </data>
+  <data name="Editor_Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Editor_NamePlaceholder" xml:space="preserve">
+    <value>Facultatif, ex. Serveur web</value>
+  </data>
+  <data name="Editor_Host" xml:space="preserve">
+    <value>Hôte</value>
+  </data>
+  <data name="Editor_HostPlaceholder" xml:space="preserve">
+    <value>exemple.org ou 192.168.1.10</value>
+  </data>
+  <data name="Editor_Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Editor_Username" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="Editor_Authentication" xml:space="preserve">
+    <value>Authentification</value>
+  </data>
+  <data name="Editor_AuthPassword" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="Editor_AuthKey" xml:space="preserve">
+    <value>Clé privée</value>
+  </data>
+  <data name="Editor_Password" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="Editor_PasswordPlaceholder" xml:space="preserve">
+    <value>Demandé à la connexion si vide</value>
+  </data>
+  <data name="Editor_SecretUnchanged" xml:space="preserve">
+    <value>Inchangé (déjà dans le coffre)</value>
+  </data>
+  <data name="Editor_SavePassword" xml:space="preserve">
+    <value>Mémoriser dans le coffre Windows</value>
+  </data>
+  <data name="Editor_KeyPath" xml:space="preserve">
+    <value>Fichier de clé privée</value>
+  </data>
+  <data name="Editor_KeyPathPlaceholder" xml:space="preserve">
+    <value>C:\Users\moi\.ssh\id_ed25519</value>
+  </data>
+  <data name="Editor_Passphrase" xml:space="preserve">
+    <value>Passphrase de la clé</value>
+  </data>
+  <data name="Editor_PassphrasePlaceholder" xml:space="preserve">
+    <value>Vide si la clé n'est pas chiffrée</value>
+  </data>
+  <data name="Editor_SavePassphrase" xml:space="preserve">
+    <value>Mémoriser la passphrase dans le coffre Windows</value>
+  </data>
+  <data name="Editor_Folder" xml:space="preserve">
+    <value>Dossier</value>
+  </data>
+  <data name="Editor_FolderPlaceholder" xml:space="preserve">
+    <value>ex. Prod/Web</value>
+  </data>
+  <data name="Editor_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Editor_TagsPlaceholder" xml:space="preserve">
+    <value>Séparés par des virgules : web, prod</value>
+  </data>
+  <data name="Editor_Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Editor_ErrorHostRequired" xml:space="preserve">
+    <value>Indiquez l'hôte (nom ou adresse IP).</value>
+  </data>
+  <data name="Editor_ErrorHostInvalid" xml:space="preserve">
+    <value>L'hôte n'est pas un nom ou une adresse IP valide.</value>
+  </data>
+  <data name="Editor_ErrorUserRequired" xml:space="preserve">
+    <value>Indiquez le nom d'utilisateur.</value>
+  </data>
+  <data name="Editor_ErrorPortRange" xml:space="preserve">
+    <value>Le port doit être un entier entre 1 et 65535.</value>
+  </data>
+  <data name="Editor_ErrorKeyRequired" xml:space="preserve">
+    <value>Choisissez le fichier de clé privée.</value>
+  </data>
+  <data name="Vault_ErrorTitle" xml:space="preserve">
+    <value>Coffre Windows indisponible</value>
+  </data>
+  <data name="Vault_ErrorMessage" xml:space="preserve">
+    <value>La connexion est enregistrée, mais le secret n'a pas pu être mémorisé dans le coffre Windows. Il vous sera demandé à la connexion.</value>
   </data>
   <data name="Terminals_Title" xml:space="preserve">
     <value>Terminaux</value>
