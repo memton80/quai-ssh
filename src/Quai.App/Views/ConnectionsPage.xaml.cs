@@ -28,7 +28,9 @@ public sealed partial class ConnectionsPage : UserControl
         (sender as FrameworkElement)?.DataContext as ConnectionItemViewModel ?? _menuTarget;
 
     private void OnConnectionDoubleTapped(object sender, DoubleTappedRoutedEventArgs e) =>
-        ItemOf(sender)?.EditCommand.Execute(null);
+        ItemOf(sender)?.OpenTerminalCommand.Execute(null);
+
+    private void OnOpenTerminalClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.OpenTerminalCommand.Execute(null);
 
     private void OnEditClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.EditCommand.Execute(null);
 

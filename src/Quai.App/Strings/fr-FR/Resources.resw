@@ -183,11 +183,119 @@
   <data name="Vault_ErrorMessage" xml:space="preserve">
     <value>La connexion est enregistrée, mais le secret n'a pas pu être mémorisé dans le coffre Windows. Il vous sera demandé à la connexion.</value>
   </data>
+  <data name="Connections_OpenTerminal" xml:space="preserve">
+    <value>Ouvrir un terminal</value>
+  </data>
   <data name="Terminals_Title" xml:space="preserve">
     <value>Terminaux</value>
   </data>
-  <data name="Terminals_Placeholder" xml:space="preserve">
-    <value>Les terminaux SSH à onglets arrivent bientôt.</value>
+  <data name="Terminals_EmptyTitle" xml:space="preserve">
+    <value>Aucun terminal ouvert</value>
+  </data>
+  <data name="Terminals_EmptyHint" xml:space="preserve">
+    <value>Double-cliquez sur une connexion du carnet pour ouvrir un terminal SSH dans un onglet.</value>
+  </data>
+  <data name="Terminals_OpenConnections" xml:space="preserve">
+    <value>Ouvrir le carnet de connexions</value>
+  </data>
+  <data name="Terminal_AutomationName" xml:space="preserve">
+    <value>Terminal SSH</value>
+  </data>
+  <data name="Terminal_Reconnect" xml:space="preserve">
+    <value>Reconnecter</value>
+  </data>
+  <data name="Terminal_Connecting" xml:space="preserve">
+    <value>Connexion à {0}…</value>
+  </data>
+  <data name="Terminal_Cancelled" xml:space="preserve">
+    <value>Connexion annulée.</value>
+  </data>
+  <data name="Terminal_Closed" xml:space="preserve">
+    <value>Session terminée.</value>
+  </data>
+  <data name="Terminal_ConnectionLost" xml:space="preserve">
+    <value>Connexion perdue : {0}</value>
+  </data>
+  <data name="Terminal_ConnectFailed" xml:space="preserve">
+    <value>Connexion impossible : {0}</value>
+  </data>
+  <data name="Terminal_HostKeyRejected" xml:space="preserve">
+    <value>Connexion abandonnée : la clé de l'hôte n'a pas été acceptée.</value>
+  </data>
+  <data name="Terminal_AuthenticationFailed" xml:space="preserve">
+    <value>Authentification refusée par le serveur.</value>
+  </data>
+  <data name="Terminal_KeyUnavailable" xml:space="preserve">
+    <value>Clé privée introuvable ou illisible : {0}</value>
+  </data>
+  <data name="Terminal_WebViewErrorTitle" xml:space="preserve">
+    <value>Terminal indisponible</value>
+  </data>
+  <data name="Terminal_WebViewErrorMessage" xml:space="preserve">
+    <value>Le composant Microsoft Edge WebView2 est requis pour afficher le terminal. Détail : {0}</value>
+  </data>
+  <data name="HostKey_UnknownTitle" xml:space="preserve">
+    <value>Premier contact avec cet hôte</value>
+  </data>
+  <data name="HostKey_UnknownMessage" xml:space="preserve">
+    <value>Quai ne connaît pas encore « {0} » et ne peut donc pas garantir que vous parlez au bon serveur.</value>
+  </data>
+  <data name="HostKey_UnknownAdvice" xml:space="preserve">
+    <value>Si l'empreinte correspond à celle fournie par l'administrateur du serveur, faites confiance : elle sera enregistrée et vérifiée à chaque connexion.</value>
+  </data>
+  <data name="HostKey_Trust" xml:space="preserve">
+    <value>Faire confiance</value>
+  </data>
+  <data name="HostKey_PresentedFingerprint" xml:space="preserve">
+    <value>Empreinte présentée par le serveur ({0})</value>
+  </data>
+  <data name="HostKey_KnownFingerprint" xml:space="preserve">
+    <value>Empreinte enregistrée</value>
+  </data>
+  <data name="HostKey_ChangedTitle" xml:space="preserve">
+    <value>L'empreinte de l'hôte a changé</value>
+  </data>
+  <data name="HostKey_ChangedAlertTitle" xml:space="preserve">
+    <value>Risque d'interception</value>
+  </data>
+  <data name="HostKey_ChangedAlertMessage" xml:space="preserve">
+    <value>La clé du serveur n'est plus celle que vous aviez acceptée.</value>
+  </data>
+  <data name="HostKey_ChangedMessage" xml:space="preserve">
+    <value>« {0} » présente une clé différente de celle enregistrée lors d'une connexion précédente. Soit le serveur a été réinstallé, soit quelqu'un intercepte la connexion (attaque de l'homme du milieu).</value>
+  </data>
+  <data name="HostKey_ChangedAdvice" xml:space="preserve">
+    <value>Dans le doute, annulez et vérifiez auprès de l'administrateur du serveur. Aucun mot de passe n'a été envoyé.</value>
+  </data>
+  <data name="HostKey_Replace" xml:space="preserve">
+    <value>Remplacer la clé enregistrée</value>
+  </data>
+  <data name="HostKey_Abort" xml:space="preserve">
+    <value>Annuler la connexion</value>
+  </data>
+  <data name="Secret_PasswordTitle" xml:space="preserve">
+    <value>Mot de passe requis</value>
+  </data>
+  <data name="Secret_PassphraseTitle" xml:space="preserve">
+    <value>Passphrase requise</value>
+  </data>
+  <data name="Secret_PasswordMessage" xml:space="preserve">
+    <value>Mot de passe pour {0}</value>
+  </data>
+  <data name="Secret_PassphraseMessage" xml:space="preserve">
+    <value>Passphrase de la clé privée {0}</value>
+  </data>
+  <data name="Secret_PasswordRejected" xml:space="preserve">
+    <value>Le serveur a refusé ce mot de passe. Réessayez.</value>
+  </data>
+  <data name="Secret_PassphraseRejected" xml:space="preserve">
+    <value>Cette passphrase ne déchiffre pas la clé. Réessayez.</value>
+  </data>
+  <data name="Secret_Remember" xml:space="preserve">
+    <value>Mémoriser dans le coffre Windows</value>
+  </data>
+  <data name="Secret_Connect" xml:space="preserve">
+    <value>Se connecter</value>
   </data>
   <data name="Sftp_Title" xml:space="preserve">
     <value>Fichiers (SFTP)</value>

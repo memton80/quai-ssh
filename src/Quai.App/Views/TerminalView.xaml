@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Quai.App.Views.TerminalView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:Quai.App.Localization">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <!-- Session fermée ou en échec : explication + reconnexion. -->
+            <InfoBar
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.CanReconnect, Mode=OneWay}"
+                Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button Command="{x:Bind ViewModel.ReconnectCommand}" Content="{l:Str Key=Terminal_Reconnect}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <!-- Composant WebView2 manquant ou inutilisable. -->
+            <InfoBar
+                x:Name="WebViewError"
+                Title="{l:Str Key=Terminal_WebViewErrorTitle}"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Error" />
+        </StackPanel>
+
+        <WebView2
+            x:Name="WebView"
+            Grid.Row="1"
+            AutomationProperties.Name="{l:Str Key=Terminal_AutomationName}" />
+    </Grid>
+</UserControl>

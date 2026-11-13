@@ -108,6 +108,12 @@
                                     </Grid.ColumnDefinitions>
                                     <Grid.ContextFlyout>
                                         <MenuFlyout Opening="OnRowMenuOpening">
+                                            <MenuFlyoutItem Click="OnOpenTerminalClick" Text="{l:Str Key=Connections_OpenTerminal}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE756;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
                                             <MenuFlyoutItem Click="OnEditClick" Text="{l:Str Key=Common_Edit}">
                                                 <MenuFlyoutItem.Icon>
                                                     <FontIcon Glyph="&#xE70F;" />
@@ -180,6 +186,13 @@
                                         VerticalAlignment="Center"
                                         Orientation="Horizontal"
                                         Spacing="2">
+                                        <Button
+                                            AutomationProperties.Name="{l:Str Key=Connections_OpenTerminal}"
+                                            Command="{x:Bind OpenTerminalCommand}"
+                                            Style="{StaticResource RowIconButtonStyle}"
+                                            ToolTipService.ToolTip="{l:Str Key=Connections_OpenTerminal}">
+                                            <FontIcon FontSize="14" Glyph="&#xE756;" />
+                                        </Button>
                                         <Button
                                             AutomationProperties.Name="{l:Str Key=Common_Edit}"
                                             Command="{x:Bind EditCommand}"

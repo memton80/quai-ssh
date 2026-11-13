@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Quai.App.Localization;
 using Quai.App.Services;
 using Quai.App.Views;
+using Quai.Core.Services;
 using Windows.Graphics;
 
 namespace Quai.App;
@@ -43,6 +44,14 @@ public sealed partial class MainWindow : Window
         dialogs.Root = RootGrid;
         dialogs.WindowId = AppWindow.Id;
 
+        App.Current.Services.GetRequiredService<ShellNavigator>().Handler = page => NavigateTo(page switch
+        {
+            AppPage.Terminals => TerminalsTag,
+            AppPage.Sftp => SftpTag,
+            AppPage.Settings => SettingsTag,
+            _ => ConnectionsTag,
+        });
+
         NavView.Loaded += (_, _) =>
         {
             if (NavView.SettingsItem is NavigationViewItem settings)
@@ -57,6 +66,9 @@ public sealed partial class MainWindow : Window
 
     /// <summary>Contenu racine de la fenêtre (thème, capture d'écran des tests de fumée).</summary>
     public FrameworkElement Root => RootGrid;
+
+    /// <summary>Page déjà créée pour cette étiquette, ou <c>null</c> (test de fumée).</summary>
+    internal FrameworkElement? FindPage(string tag) => _pages.GetValueOrDefault(tag);
 
     public void NavigateTo(string tag)
     {

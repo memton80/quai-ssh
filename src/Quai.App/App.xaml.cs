@@ -20,7 +20,7 @@ public partial class App : Application
             SmokeTest.IsolateData(smokeDirectory);
         }
 
-        Services = AppServices.Build();
+        Services = AppServices.Build(smokeTest: _smokeTestDirectory is not null);
         _logger = Services.GetRequiredService<ILogger<App>>();
 
         // WebView2 : données utilisateur hors du dossier d'installation (qui peut être en lecture seule).

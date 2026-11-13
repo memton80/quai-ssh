@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Quai.App.Views.HostKeyDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:Quai.App.Localization"
+    Style="{StaticResource DefaultContentDialogStyle}">
+
+    <StackPanel Width="460" Spacing="12">
+        <!-- Alerte rouge : uniquement quand l'empreinte ne correspond plus à celle enregistrée. -->
+        <InfoBar
+            x:Name="ChangedAlert"
+            Title="{l:Str Key=HostKey_ChangedAlertTitle}"
+            IsClosable="False"
+            IsOpen="True"
+            Message="{l:Str Key=HostKey_ChangedAlertMessage}"
+            Severity="Error"
+            Visibility="Collapsed" />
+
+        <TextBlock x:Name="MessageText" TextWrapping="Wrap" />
+
+        <StackPanel
+            x:Name="KnownPanel"
+            Spacing="2"
+            Visibility="Collapsed">
+            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="{l:Str Key=HostKey_KnownFingerprint}" />
+            <TextBlock
+                x:Name="KnownFingerprintText"
+                FontFamily="Consolas"
+                IsTextSelectionEnabled="True"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="2">
+            <TextBlock x:Name="PresentedLabel" Style="{StaticResource SecondaryCaptionStyle}" />
+            <TextBlock
+                x:Name="PresentedFingerprintText"
+                FontFamily="Consolas"
+                IsTextSelectionEnabled="True"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <TextBlock x:Name="AdviceText" Style="{StaticResource PageHintStyle}" />
+    </StackPanel>
+</ContentDialog>

@@ -3,10 +3,39 @@
     x:Class="Quai.App.Views.TerminalsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:l="using:Quai.App.Localization">
+    xmlns:l="using:Quai.App.Localization"
+    xmlns:ui="using:Quai.App">
 
-    <StackPanel Padding="{StaticResource PagePadding}" Spacing="{StaticResource PageSpacing}">
-        <TextBlock Style="{StaticResource PageTitleStyle}" Text="{l:Str Key=Terminals_Title}" />
-        <TextBlock Style="{StaticResource PageHintStyle}" Text="{l:Str Key=Terminals_Placeholder}" />
-    </StackPanel>
+    <Grid>
+        <TabView
+            x:Name="Tabs"
+            VerticalAlignment="Stretch"
+            AddTabButtonClick="OnAddTabClick"
+            AutomationProperties.Name="{l:Str Key=Terminals_Title}"
+            SelectionChanged="OnSelectionChanged"
+            TabCloseRequested="OnTabCloseRequested"
+            TabWidthMode="SizeToContent"
+            Visibility="{x:Bind ui:UiHelpers.CollapsedIf(ViewModel.IsEmpty), Mode=OneWay}" />
+
+        <!-- Aucun terminal ouvert -->
+        <StackPanel Style="{StaticResource EmptyStatePanelStyle}" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
+            <FontIcon
+                FontSize="40"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Glyph="&#xE756;" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="{l:Str Key=Terminals_EmptyTitle}" />
+            <TextBlock
+                HorizontalTextAlignment="Center"
+                Style="{StaticResource PageHintStyle}"
+                Text="{l:Str Key=Terminals_EmptyHint}" />
+            <Button
+                Margin="0,8,0,0"
+                HorizontalAlignment="Center"
+                Click="OnOpenConnectionsClick"
+                Content="{l:Str Key=Terminals_OpenConnections}" />
+        </StackPanel>
+    </Grid>
 </UserControl>

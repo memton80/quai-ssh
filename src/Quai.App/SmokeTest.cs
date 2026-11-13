@@ -7,6 +7,8 @@ using Quai.App.Services;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Security;
+using Quai.Core.Services;
+using Quai.Core.Ssh;
 using Quai.Core.Storage;
 using Quai.Core.ViewModels;
 using Windows.Graphics.Imaging;
@@ -62,6 +64,8 @@ internal static class SmokeTest
             }
 
             await ConnectionBookAsync(window, services, directory, report);
+            await TerminalAsync(window, services, directory, report);
+            await SshDialogsAsync(services, directory, report);
             CheckVault(services, report);
 
             File.WriteAllLines(Path.Combine(directory, "smoke-report.txt"), report);
@@ -132,6 +136,86 @@ internal static class SmokeTest
         dialog.Hide();
         await pending;
         report.Add("fiche de connexion : OK");
+    }
+
+    /// <summary>
+    /// Onglet de terminal relié à une session de démonstration : valide WebView2, le chargement local de
+    /// xterm.js, les messages dans les deux sens et l'affichage.
+    /// </summary>
+    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var terminals = services.GetRequiredService<TerminalsViewModel>();
+        services.GetRequiredService<ISessionLauncher>().OpenTerminal(
+            new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" });
+        var tab = terminals.SelectedTab ?? throw new InvalidOperationException("Aucun onglet de terminal n'a été créé.");
+
+        // La connexion ne démarre qu'à l'annonce « ready » de la page : l'état connecté prouve le dialogue page -> app.
+        await WaitUntilAsync(
+            () => Task.FromResult(tab.IsConnected),
+            TimeSpan.FromSeconds(60),
+            "Le terminal ne s'est pas initialisé (WebView2 / xterm.js).");
+
+        var page = window.FindPage(MainWindow.TerminalsTag) as Views.TerminalsPage
+            ?? throw new InvalidOperationException("Page des terminaux introuvable.");
+        var view = page.SelectedTerminal ?? throw new InvalidOperationException("Vue du terminal introuvable.");
+
+        tab.SendInput("echo quai\r");
+        var screen = string.Empty;
+        await WaitUntilAsync(
+            async () => (screen = await view.ReadScreenTextAsync()).Contains(SmokeSessionFactory.Banner, StringComparison.Ordinal)
+                && screen.Contains("echo quai", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(20),
+            "La sortie de la session n'apparaît pas dans xterm.js.");
+
+        await Task.Delay(500);
+        await CaptureAsync(window.Root, Path.Combine(directory, "terminal-tab.png"));
+        await view.CapturePreviewAsync(Path.Combine(directory, "terminal.png"));
+        report.Add("terminal (WebView2 + xterm.js) : OK");
+
+        await terminals.CloseAsync(tab);
+        if (!terminals.IsEmpty)
+        {
+            throw new InvalidOperationException("L'onglet de terminal ne s'est pas fermé.");
+        }
+    }
+
+    /// <summary>Dialogues de connexion : premier contact, empreinte modifiée, saisie du mot de passe.</summary>
+    private static async Task SshDialogsAsync(IServiceProvider services, string directory, List<string> report)
+    {
+        var dialogs = services.GetRequiredService<DialogService>();
+        var presented = new HostKeyInfo("demo.example.org", 22, "ssh-ed25519", [.. Enumerable.Range(1, 51).Select(i => (byte)i)]);
+        var known = presented with { Key = [.. Enumerable.Range(60, 51).Select(i => (byte)i)] };
+        var profile = new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" };
+
+        await ShowAndCaptureAsync(dialogs, () => dialogs.ConfirmUnknownHostAsync(presented), Path.Combine(directory, "hostkey-unknown.png"));
+        await ShowAndCaptureAsync(dialogs, () => dialogs.ConfirmChangedHostAsync(presented, [known]), Path.Combine(directory, "hostkey-changed.png"));
+        await ShowAndCaptureAsync(dialogs, () => dialogs.PromptSecretAsync(profile, SecretKind.Password, isRetry: true), Path.Combine(directory, "secret-prompt.png"));
+        report.Add("dialogues SSH (clé d'hôte, mot de passe) : OK");
+    }
+
+    private static async Task ShowAndCaptureAsync(DialogService dialogs, Func<Task> show, string path)
+    {
+        var pending = show();
+        await WaitUntilAsync(() => Task.FromResult(dialogs.Current is not null), TimeSpan.FromSeconds(10), "Le dialogue ne s'est pas ouvert.");
+        await Task.Delay(900);
+        var dialog = dialogs.Current ?? throw new InvalidOperationException("Le dialogue s'est refermé tout seul.");
+        await CaptureAsync(dialog, path);
+        dialog.Hide();
+        await pending;
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout, string failure)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!await condition())
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException(failure);
+            }
+
+            await Task.Delay(250);
+        }
     }
 
     /// <summary>Aller-retour dans le coffre Windows (informatif : dépend de la session du runner).</summary>
