@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Nav_Connections" xml:space="preserve">
+    <value>Connexions</value>
+  </data>
+  <data name="Nav_Terminals" xml:space="preserve">
+    <value>Terminaux</value>
+  </data>
+  <data name="Nav_Sftp" xml:space="preserve">
+    <value>Fichiers (SFTP)</value>
+  </data>
+  <data name="Connections_Title" xml:space="preserve">
+    <value>Connexions</value>
+  </data>
+  <data name="Connections_Placeholder" xml:space="preserve">
+    <value>Le carnet de connexions arrive à l'étape suivante.</value>
+  </data>
+  <data name="Terminals_Title" xml:space="preserve">
+    <value>Terminaux</value>
+  </data>
+  <data name="Terminals_Placeholder" xml:space="preserve">
+    <value>Les terminaux SSH à onglets arrivent bientôt.</value>
+  </data>
+  <data name="Sftp_Title" xml:space="preserve">
+    <value>Fichiers (SFTP)</value>
+  </data>
+  <data name="Sftp_Placeholder" xml:space="preserve">
+    <value>L'explorateur SFTP à double panneau arrive bientôt.</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Réglages</value>
+  </data>
+  <data name="Settings_Placeholder" xml:space="preserve">
+    <value>Les réglages (thème, police du terminal) arrivent bientôt.</value>
+  </data>
+</root>
