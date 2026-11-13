@@ -31,6 +31,25 @@ internal sealed class PasswordVaultSecretStore : ISecretStore
     public void Set(string key, string secret) =>
         _vault.Value.Add(new PasswordCredential(Resource, key, secret));
 
+    /// <summary>Supprime tous les secrets de Quai (désinstallation avec effacement des données).</summary>
+    public static void RemoveAll(PasswordVault vault)
+    {
+        IReadOnlyList<PasswordCredential> credentials;
+        try
+        {
+            credentials = vault.FindAllByResource(Resource);
+        }
+        catch (Exception ex) when (ex.HResult == ElementNotFound)
+        {
+            return;
+        }
+
+        foreach (var credential in credentials)
+        {
+            vault.Remove(credential);
+        }
+    }
+
     public void Remove(string key)
     {
         try

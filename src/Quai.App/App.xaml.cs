@@ -14,6 +14,12 @@ public partial class App : Application
 
     public App()
     {
+        // Désinstallation : effacer les secrets du coffre puis quitter, sans créer de fenêtre ni de fichier.
+        if (SecretPurge.IsRequested())
+        {
+            Environment.Exit(SecretPurge.Run());
+        }
+
         if (SmokeTest.TryGetOutputDirectory(out var smokeDirectory))
         {
             _smokeTestDirectory = smokeDirectory;
