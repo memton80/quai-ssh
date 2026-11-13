@@ -38,6 +38,11 @@ public partial class App : Application
 
         InitializeComponent();
         UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            _logger.LogError(e.Exception, "Erreur non observée dans une tâche");
+            e.SetObserved();
+        };
     }
 
     public static new App Current => (App)Application.Current;
@@ -78,6 +83,11 @@ public partial class App : Application
         if (_smokeTestDirectory is not null)
         {
             SmokeTest.Fail(_smokeTestDirectory, e.Exception);
+            return;
         }
+
+        // Une erreur inattendue dans un gestionnaire d'interface ne doit pas fermer l'application
+        // et couper les sessions SSH ouvertes : elle est journalisée et l'exécution continue.
+        e.Handled = true;
     }
 }
