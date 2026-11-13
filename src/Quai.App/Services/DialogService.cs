@@ -61,6 +61,16 @@ internal sealed class DialogService : IDialogService, IHostKeyPrompt, ICredentia
         OnUiAsync(async () =>
             await ShowAsync(new ConnectionEditorDialog(editor, PickPrivateKeyAsync)) == ContentDialogResult.Primary);
 
+    public Task<string?> PromptTextAsync(string title, string label, string initialValue, string confirmText) =>
+        OnUiAsync(async () =>
+        {
+            var dialog = new TextPromptDialog(title, label, initialValue, confirmText);
+            return await ShowAsync(dialog) == ContentDialogResult.Primary ? dialog.Value : null;
+        });
+
+    public Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor) =>
+        OnUiAsync(async () => await ShowAsync(new PermissionsDialog(editor)) == ContentDialogResult.Primary);
+
     public Task<bool> ConfirmUnknownHostAsync(HostKeyInfo presented) =>
         OnUiAsync(async () =>
             await ShowAsync(HostKeyDialog.ForUnknownHost(presented)) == ContentDialogResult.Primary);

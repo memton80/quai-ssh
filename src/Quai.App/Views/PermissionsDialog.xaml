@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Quai.App.Views.PermissionsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:Quai.App.Localization"
+    Title="{l:Str Key=Permissions_Title}"
+    CloseButtonText="{l:Str Key=Common_Cancel}"
+    DefaultButton="Primary"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.IsValid, Mode=OneWay}"
+    PrimaryButtonText="{l:Str Key=Permissions_Apply}"
+    Style="{StaticResource DefaultContentDialogStyle}">
+
+    <StackPanel Width="420" Spacing="16">
+        <TextBlock
+            Style="{StaticResource BodyStrongTextBlockStyle}"
+            Text="{x:Bind ViewModel.Name}"
+            TextTrimming="CharacterEllipsis" />
+
+        <!-- Lignes : propriétaire, groupe, autres. Colonnes : lecture, écriture, exécution. -->
+        <Grid ColumnSpacing="8" RowSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock VerticalAlignment="Center" Text="{l:Str Key=Permissions_Owner}" />
+            <CheckBox
+                Grid.Column="1"
+                Content="{l:Str Key=Permissions_Read}"
+                IsChecked="{x:Bind ViewModel.OwnerRead, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Column="2"
+                Content="{l:Str Key=Permissions_Write}"
+                IsChecked="{x:Bind ViewModel.OwnerWrite, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Column="3"
+                Content="{l:Str Key=Permissions_Execute}"
+                IsChecked="{x:Bind ViewModel.OwnerExecute, Mode=TwoWay}" />
+
+            <TextBlock
+                Grid.Row="1"
+                VerticalAlignment="Center"
+                Text="{l:Str Key=Permissions_Group}" />
+            <CheckBox
+                Grid.Row="1"
+                Grid.Column="1"
+                Content="{l:Str Key=Permissions_Read}"
+                IsChecked="{x:Bind ViewModel.GroupRead, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Row="1"
+                Grid.Column="2"
+                Content="{l:Str Key=Permissions_Write}"
+                IsChecked="{x:Bind ViewModel.GroupWrite, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Row="1"
+                Grid.Column="3"
+                Content="{l:Str Key=Permissions_Execute}"
+                IsChecked="{x:Bind ViewModel.GroupExecute, Mode=TwoWay}" />
+
+            <TextBlock
+                Grid.Row="2"
+                VerticalAlignment="Center"
+                Text="{l:Str Key=Permissions_Others}" />
+            <CheckBox
+                Grid.Row="2"
+                Grid.Column="1"
+                Content="{l:Str Key=Permissions_Read}"
+                IsChecked="{x:Bind ViewModel.OthersRead, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Row="2"
+                Grid.Column="2"
+                Content="{l:Str Key=Permissions_Write}"
+                IsChecked="{x:Bind ViewModel.OthersWrite, Mode=TwoWay}" />
+            <CheckBox
+                Grid.Row="2"
+                Grid.Column="3"
+                Content="{l:Str Key=Permissions_Execute}"
+                IsChecked="{x:Bind ViewModel.OthersExecute, Mode=TwoWay}" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBox
+                Width="120"
+                FontFamily="Consolas"
+                Header="{l:Str Key=Permissions_Octal}"
+                IsSpellCheckEnabled="False"
+                MaxLength="4"
+                Text="{x:Bind ViewModel.Octal, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock
+                Margin="0,0,0,6"
+                VerticalAlignment="Bottom"
+                FontFamily="Consolas"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="{x:Bind ViewModel.Symbolic, Mode=OneWay}" />
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

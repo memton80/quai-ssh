@@ -113,6 +113,11 @@
                                                     <FontIcon Glyph="&#xE756;" />
                                                 </MenuFlyoutItem.Icon>
                                             </MenuFlyoutItem>
+                                            <MenuFlyoutItem Click="OnOpenSftpClick" Text="{l:Str Key=Connections_OpenSftp}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8B7;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
                                             <MenuFlyoutSeparator />
                                             <MenuFlyoutItem Click="OnEditClick" Text="{l:Str Key=Common_Edit}">
                                                 <MenuFlyoutItem.Icon>
@@ -192,6 +197,13 @@
                                             Style="{StaticResource RowIconButtonStyle}"
                                             ToolTipService.ToolTip="{l:Str Key=Connections_OpenTerminal}">
                                             <FontIcon FontSize="14" Glyph="&#xE756;" />
+                                        </Button>
+                                        <Button
+                                            AutomationProperties.Name="{l:Str Key=Connections_OpenSftp}"
+                                            Command="{x:Bind OpenSftpCommand}"
+                                            Style="{StaticResource RowIconButtonStyle}"
+                                            ToolTipService.ToolTip="{l:Str Key=Connections_OpenSftp}">
+                                            <FontIcon FontSize="14" Glyph="&#xE8B7;" />
                                         </Button>
                                         <Button
                                             AutomationProperties.Name="{l:Str Key=Common_Edit}"

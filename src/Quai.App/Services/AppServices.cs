@@ -36,6 +36,7 @@ internal static class AppServices
         // Stockage et secrets
         services.AddSingleton<IConnectionRepository, JsonConnectionRepository>();
         services.AddSingleton<ISecretStore, PasswordVaultSecretStore>();
+        services.AddSingleton<ILocalRecycler, RecycleBin>();
 
         // Interface
         services.AddSingleton<IStrings, ReswStrings>();
@@ -61,6 +62,7 @@ internal static class AppServices
 
         // View-models
         services.AddSingleton<TerminalsViewModel>();
+        services.AddSingleton<SftpSessionsViewModel>();
         services.AddSingleton<ISessionLauncher, SessionLauncher>();
         services.AddSingleton<ConnectionsViewModel>();
 

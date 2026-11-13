@@ -32,6 +32,8 @@ public sealed partial class ConnectionsPage : UserControl
 
     private void OnOpenTerminalClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.OpenTerminalCommand.Execute(null);
 
+    private void OnOpenSftpClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.OpenSftpCommand.Execute(null);
+
     private void OnEditClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.EditCommand.Execute(null);
 
     private void OnDuplicateClick(object sender, RoutedEventArgs e) => ItemOf(sender)?.DuplicateCommand.Execute(null);

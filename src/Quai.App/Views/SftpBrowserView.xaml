@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Quai.App.Views.SftpBrowserView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:Quai.App.Localization"
+    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
+    xmlns:vm="using:Quai.Core.ViewModels">
+
+    <UserControl.Resources>
+        <!-- Liste de fichiers : lignes compactes dans une carte. -->
+        <Style x:Key="FileListStyle" TargetType="ListView">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource OverlayCornerRadius}" />
+            <Setter Property="Padding" Value="0,4,0,4" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <!-- Session fermée ou en échec : explication + reconnexion. -->
+            <InfoBar
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.CanReconnect, Mode=OneWay}"
+                Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button Command="{x:Bind ViewModel.ConnectCommand}" Content="{l:Str Key=Terminal_Reconnect}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.IsConnecting, Mode=OneWay}"
+                Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                Severity="Informational" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Padding="16,12,16,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="260" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="260" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Panneau local -->
+            <Grid Grid.Column="0" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{l:Str Key=Sftp_LocalPanel}" />
+                </StackPanel>
+
+                <Grid Grid.Row="1" ColumnSpacing="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button
+                        AutomationProperties.Name="{l:Str Key=Sftp_Up}"
+                        Command="{x:Bind ViewModel.LocalUpCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Up}">
+                        <FontIcon FontSize="14" Glyph="&#xE74A;" />
+                    </Button>
+                    <Button
+                        Grid.Column="1"
+                        AutomationProperties.Name="{l:Str Key=Sftp_Refresh}"
+                        Command="{x:Bind ViewModel.RefreshLocalCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Refresh}">
+                        <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                    </Button>
+                    <Button
+                        Grid.Column="2"
+                        AutomationProperties.Name="{l:Str Key=Sftp_NewFolder}"
+                        Command="{x:Bind ViewModel.NewLocalFolderCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_NewFolder}">
+                        <FontIcon FontSize="14" Glyph="&#xE8F4;" />
+                    </Button>
+                    <TextBox
+                        x:Name="LocalPathBox"
+                        Grid.Column="3"
+                        AutomationProperties.Name="{l:Str Key=Sftp_LocalPath}"
+                        IsSpellCheckEnabled="False"
+                        KeyDown="OnLocalPathKeyDown"
+                        Text="{x:Bind ViewModel.LocalPath, Mode=OneWay}" />
+                    <Button
+                        Grid.Column="4"
+                        Click="OnLocalTransferClick"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Upload}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE898;" />
+                            <TextBlock Text="{l:Str Key=Sftp_Upload}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ListView
+                    x:Name="LocalList"
+                    Grid.Row="2"
+                    AllowDrop="True"
+                    AutomationProperties.Name="{l:Str Key=Sftp_LocalList}"
+                    CanDragItems="True"
+                    DragItemsCompleted="OnDragItemsCompleted"
+                    DragItemsStarting="OnLocalDragItemsStarting"
+                    DragOver="OnLocalDragOver"
+                    Drop="OnLocalDrop"
+                    ItemsSource="{x:Bind ViewModel.LocalItems}"
+                    KeyDown="OnLocalListKeyDown"
+                    SelectionMode="Extended"
+                    Style="{StaticResource FileListStyle}">
+                    <ListView.Header>
+                        <Grid Padding="16,4,12,6" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="124" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnName}" />
+                            <TextBlock
+                                Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnSize}" />
+                            <TextBlock
+                                Grid.Column="3"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnModified}" />
+                        </Grid>
+                    </ListView.Header>
+                    <ListView.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Click="OnLocalTransferClick" Text="{l:Str Key=Sftp_Upload}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE898;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Click="OnLocalRenameClick" Text="{l:Str Key=Sftp_Rename}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8AC;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Click="OnLocalDeleteClick" Text="{l:Str Key=Sftp_Recycle}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE74D;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Command="{x:Bind ViewModel.NewLocalFolderCommand}" Text="{l:Str Key=Sftp_NewFolder}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8F4;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Command="{x:Bind ViewModel.RefreshLocalCommand}" Text="{l:Str Key=Sftp_Refresh}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE72C;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </ListView.ContextFlyout>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FileItemViewModel">
+                            <Grid
+                                Background="Transparent"
+                                ColumnSpacing="12"
+                                DoubleTapped="OnLocalItemDoubleTapped"
+                                RightTapped="OnLocalItemRightTapped">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="124" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Glyph="{x:Bind Glyph}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind SizeText}" />
+                                <TextBlock
+                                    Grid.Column="3"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind ModifiedText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+
+            <tk:GridSplitter
+                Grid.Column="1"
+                Width="16"
+                ResizeBehavior="PreviousAndNext"
+                ResizeDirection="Columns" />
+
+            <!-- Panneau distant -->
+            <Grid Grid.Column="2" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{l:Str Key=Sftp_RemotePanel}" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource SecondaryCaptionStyle}"
+                        Text="{x:Bind ViewModel.Endpoint}" />
+                </StackPanel>
+
+                <Grid Grid.Row="1" ColumnSpacing="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button
+                        AutomationProperties.Name="{l:Str Key=Sftp_Up}"
+                        Command="{x:Bind ViewModel.RemoteUpCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Up}">
+                        <FontIcon FontSize="14" Glyph="&#xE74A;" />
+                    </Button>
+                    <Button
+                        Grid.Column="1"
+                        AutomationProperties.Name="{l:Str Key=Sftp_Refresh}"
+                        Command="{x:Bind ViewModel.RefreshRemoteCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Refresh}">
+                        <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                    </Button>
+                    <Button
+                        Grid.Column="2"
+                        AutomationProperties.Name="{l:Str Key=Sftp_NewFolder}"
+                        Command="{x:Bind ViewModel.NewRemoteFolderCommand}"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_NewFolder}">
+                        <FontIcon FontSize="14" Glyph="&#xE8F4;" />
+                    </Button>
+                    <TextBox
+                        x:Name="RemotePathBox"
+                        Grid.Column="3"
+                        AutomationProperties.Name="{l:Str Key=Sftp_RemotePath}"
+                        IsSpellCheckEnabled="False"
+                        KeyDown="OnRemotePathKeyDown"
+                        Text="{x:Bind ViewModel.RemotePath, Mode=OneWay}" />
+                    <Button
+                        Grid.Column="4"
+                        Click="OnRemoteTransferClick"
+                        ToolTipService.ToolTip="{l:Str Key=Sftp_Download}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE896;" />
+                            <TextBlock Text="{l:Str Key=Sftp_Download}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ListView
+                    x:Name="RemoteList"
+                    Grid.Row="2"
+                    AllowDrop="True"
+                    AutomationProperties.Name="{l:Str Key=Sftp_RemoteList}"
+                    CanDragItems="True"
+                    DragItemsCompleted="OnDragItemsCompleted"
+                    DragItemsStarting="OnRemoteDragItemsStarting"
+                    DragOver="OnRemoteDragOver"
+                    Drop="OnRemoteDrop"
+                    ItemsSource="{x:Bind ViewModel.RemoteItems}"
+                    KeyDown="OnRemoteListKeyDown"
+                    SelectionMode="Extended"
+                    Style="{StaticResource FileListStyle}">
+                    <ListView.Header>
+                        <Grid Padding="16,4,12,6" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="124" />
+                                <ColumnDefinition Width="96" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnName}" />
+                            <TextBlock
+                                Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnSize}" />
+                            <TextBlock
+                                Grid.Column="3"
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="{l:Str Key=Sftp_ColumnModified}" />
+                        <TextBlock
+                            Grid.Column="4"
+                            Style="{StaticResource SecondaryCaptionStyle}"
+                            Text="{l:Str Key=Sftp_ColumnPermissions}" />
+                        </Grid>
+                    </ListView.Header>
+                    <ListView.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Click="OnRemoteTransferClick" Text="{l:Str Key=Sftp_Download}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE896;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Click="OnRemoteRenameClick" Text="{l:Str Key=Sftp_Rename}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8AC;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        <MenuFlyoutItem Click="OnRemotePermissionsClick" Text="{l:Str Key=Sftp_Permissions}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8D7;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                            <MenuFlyoutItem Click="OnRemoteDeleteClick" Text="{l:Str Key=Common_Delete}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE74D;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Command="{x:Bind ViewModel.NewRemoteFolderCommand}" Text="{l:Str Key=Sftp_NewFolder}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8F4;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Command="{x:Bind ViewModel.RefreshRemoteCommand}" Text="{l:Str Key=Sftp_Refresh}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE72C;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </ListView.ContextFlyout>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FileItemViewModel">
+                            <Grid
+                                Background="Transparent"
+                                ColumnSpacing="12"
+                                DoubleTapped="OnRemoteItemDoubleTapped"
+                                RightTapped="OnRemoteItemRightTapped">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="124" />
+                                    <ColumnDefinition Width="96" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Glyph="{x:Bind Glyph}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind SizeText}" />
+                                <TextBlock
+                                    Grid.Column="3"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind ModifiedText}" />
+                                <TextBlock
+                                    Grid.Column="4"
+                                    VerticalAlignment="Center"
+                                    FontFamily="Consolas"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind PermissionsText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <ProgressBar
+                    Grid.Row="1"
+                    VerticalAlignment="Bottom"
+                    IsIndeterminate="True"
+                    Visibility="{x:Bind ViewModel.IsRemoteLoading, Mode=OneWay}" />
+            </Grid>
+        </Grid>
+
+        <!-- File de transferts -->
+        <Border
+            Grid.Row="2"
+            Padding="16,8,16,12"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            Visibility="{x:Bind ViewModel.HasTransfers, Mode=OneWay}">
+            <Grid RowSpacing="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{l:Str Key=Transfer_Title}" />
+                    <Button
+                        HorizontalAlignment="Right"
+                        Command="{x:Bind ViewModel.ClearFinishedTransfersCommand}"
+                        Content="{l:Str Key=Transfer_ClearFinished}"
+                        Style="{StaticResource SubtleButtonStyle}" />
+                </Grid>
+                <ListView
+                    Grid.Row="1"
+                    MaxHeight="170"
+                    AutomationProperties.Name="{l:Str Key=Transfer_Title}"
+                    ItemsSource="{x:Bind ViewModel.Transfers}"
+                    SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TransferItemViewModel">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="36" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="14"
+                                    Glyph="{x:Bind Glyph}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTipService.ToolTip="{x:Bind Source}" />
+                                <ProgressBar
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Maximum="100"
+                                    Value="{x:Bind Percent, Mode=OneWay}" />
+                                <TextBlock
+                                    Grid.Column="3"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource SecondaryCaptionStyle}"
+                                    Text="{x:Bind Detail, Mode=OneWay}" />
+                                <Button
+                                    Grid.Column="4"
+                                    AutomationProperties.Name="{l:Str Key=Transfer_Cancel}"
+                                    Command="{x:Bind CancelCommand}"
+                                    Style="{StaticResource RowIconButtonStyle}"
+                                    ToolTipService.ToolTip="{l:Str Key=Transfer_Cancel}"
+                                    Visibility="{x:Bind IsActive, Mode=OneWay}">
+                                    <FontIcon FontSize="12" Glyph="&#xE711;" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

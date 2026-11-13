@@ -65,6 +65,7 @@ internal static class SmokeTest
 
             await ConnectionBookAsync(window, services, directory, report);
             await TerminalAsync(window, services, directory, report);
+            await SftpAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
             CheckVault(services, report);
 
@@ -177,6 +178,61 @@ internal static class SmokeTest
         {
             throw new InvalidOperationException("L'onglet de terminal ne s'est pas fermé.");
         }
+    }
+
+    /// <summary>
+    /// Explorateur SFTP relié à un serveur de démonstration en mémoire : double panneau, envoi d'un fichier
+    /// avec progression, éditeur de droits et saisie d'un nom.
+    /// </summary>
+    private static async Task SftpAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        // Dossier local d'exemple, pour un panneau de gauche reproductible.
+        var local = Path.Combine(directory, "data", "exemple");
+        Directory.CreateDirectory(Path.Combine(local, "photos"));
+        Directory.CreateDirectory(Path.Combine(local, "site"));
+        File.WriteAllText(Path.Combine(local, "rapport.txt"), new string('r', 48_000));
+        File.WriteAllText(Path.Combine(local, "todo.md"), "- tester Quai\n");
+
+        var sessions = services.GetRequiredService<SftpSessionsViewModel>();
+        services.GetRequiredService<ISessionLauncher>().OpenSftp(
+            new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" });
+        var tab = sessions.SelectedTab ?? throw new InvalidOperationException("Aucun onglet SFTP n'a été créé.");
+        await WaitUntilAsync(() => Task.FromResult(tab.IsConnected), TimeSpan.FromSeconds(20), "La session SFTP de démonstration ne s'est pas ouverte.");
+
+        tab.NavigateLocal(local);
+        if (tab.RemoteItems.Count < 6 || tab.LocalItems.Count < 4)
+        {
+            throw new InvalidOperationException("Les panneaux de l'explorateur SFTP sont incomplets.");
+        }
+
+        await tab.UploadAsync([Path.Combine(local, "rapport.txt")]);
+        await Task.Delay(350);
+        await CaptureAsync(window.Root, Path.Combine(directory, "sftp-transfer.png"));
+        await WaitUntilAsync(
+            () => Task.FromResult(tab.Transfers.Count == 1 && tab.Transfers[0].Status == TransferStatus.Completed),
+            TimeSpan.FromSeconds(20),
+            "Le transfert de démonstration ne s'est pas terminé.");
+        await Task.Delay(400);
+        await CaptureAsync(window.Root, Path.Combine(directory, "sftp-browser.png"));
+        if (!tab.RemoteItems.Any(i => i.Name == "rapport.txt"))
+        {
+            throw new InvalidOperationException("Le fichier envoyé n'apparaît pas dans le panneau distant.");
+        }
+
+        report.Add("explorateur SFTP (double panneau, transfert) : OK");
+
+        var dialogs = services.GetRequiredService<DialogService>();
+        await ShowAndCaptureAsync(
+            dialogs,
+            () => dialogs.EditPermissionsAsync(new PermissionsEditorViewModel("deploy.sh", 0b111_101_000)),
+            Path.Combine(directory, "sftp-permissions.png"));
+        await ShowAndCaptureAsync(
+            dialogs,
+            () => dialogs.PromptTextAsync("Renommer", "Nom", "rapport.txt", "OK"),
+            Path.Combine(directory, "sftp-rename.png"));
+        report.Add("dialogues SFTP (droits, renommer) : OK");
+
+        await sessions.CloseAsync(tab);
     }
 
     /// <summary>Dialogues de connexion : premier contact, empreinte modifiée, saisie du mot de passe.</summary>

@@ -297,11 +297,194 @@
   <data name="Secret_Connect" xml:space="preserve">
     <value>Se connecter</value>
   </data>
+  <data name="Connections_OpenSftp" xml:space="preserve">
+    <value>Parcourir les fichiers (SFTP)</value>
+  </data>
   <data name="Sftp_Title" xml:space="preserve">
     <value>Fichiers (SFTP)</value>
   </data>
-  <data name="Sftp_Placeholder" xml:space="preserve">
-    <value>L'explorateur SFTP à double panneau arrive bientôt.</value>
+  <data name="Sftp_EmptyTitle" xml:space="preserve">
+    <value>Aucun explorateur ouvert</value>
+  </data>
+  <data name="Sftp_EmptyHint" xml:space="preserve">
+    <value>Depuis le carnet, ouvrez une connexion en mode fichiers pour échanger avec le serveur par glisser-déposer.</value>
+  </data>
+  <data name="Sftp_Connecting" xml:space="preserve">
+    <value>Connexion à {0}…</value>
+  </data>
+  <data name="Sftp_NotConnected" xml:space="preserve">
+    <value>Session déconnectée.</value>
+  </data>
+  <data name="Sftp_LocalPanel" xml:space="preserve">
+    <value>Cet ordinateur</value>
+  </data>
+  <data name="Sftp_RemotePanel" xml:space="preserve">
+    <value>Serveur</value>
+  </data>
+  <data name="Sftp_LocalList" xml:space="preserve">
+    <value>Fichiers locaux</value>
+  </data>
+  <data name="Sftp_RemoteList" xml:space="preserve">
+    <value>Fichiers distants</value>
+  </data>
+  <data name="Sftp_LocalPath" xml:space="preserve">
+    <value>Dossier local</value>
+  </data>
+  <data name="Sftp_RemotePath" xml:space="preserve">
+    <value>Dossier distant</value>
+  </data>
+  <data name="Sftp_Up" xml:space="preserve">
+    <value>Dossier parent</value>
+  </data>
+  <data name="Sftp_Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Sftp_NewFolder" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="Sftp_Upload" xml:space="preserve">
+    <value>Envoyer</value>
+  </data>
+  <data name="Sftp_Download" xml:space="preserve">
+    <value>Télécharger</value>
+  </data>
+  <data name="Sftp_Rename" xml:space="preserve">
+    <value>Renommer</value>
+  </data>
+  <data name="Sftp_Permissions" xml:space="preserve">
+    <value>Droits…</value>
+  </data>
+  <data name="Sftp_Recycle" xml:space="preserve">
+    <value>Mettre à la corbeille</value>
+  </data>
+  <data name="Sftp_ColumnName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Sftp_ColumnSize" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="Sftp_ColumnModified" xml:space="preserve">
+    <value>Modifié le</value>
+  </data>
+  <data name="Sftp_ColumnPermissions" xml:space="preserve">
+    <value>Droits</value>
+  </data>
+  <data name="Sftp_DropUpload" xml:space="preserve">
+    <value>Envoyer vers le serveur</value>
+  </data>
+  <data name="Sftp_DropDownload" xml:space="preserve">
+    <value>Télécharger ici</value>
+  </data>
+  <data name="Sftp_NewFolderTitle" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="Sftp_NewFolderDefault" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="Sftp_RenameTitle" xml:space="preserve">
+    <value>Renommer</value>
+  </data>
+  <data name="Sftp_NameLabel" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Sftp_InvalidName" xml:space="preserve">
+    <value>« {0} » n'est pas un nom valide.</value>
+  </data>
+  <data name="Sftp_ErrorTitle" xml:space="preserve">
+    <value>Opération impossible</value>
+  </data>
+  <data name="Sftp_LocalError" xml:space="preserve">
+    <value>Sur cet ordinateur : {0}</value>
+  </data>
+  <data name="Sftp_RemoteError" xml:space="preserve">
+    <value>Sur le serveur : {0}</value>
+  </data>
+  <data name="Sftp_PermissionDenied" xml:space="preserve">
+    <value>permission refusée.</value>
+  </data>
+  <data name="Sftp_PathNotFound" xml:space="preserve">
+    <value>chemin introuvable.</value>
+  </data>
+  <data name="Sftp_DeleteRemoteTitle" xml:space="preserve">
+    <value>Supprimer sur le serveur ?</value>
+  </data>
+  <data name="Sftp_DeleteRemoteOne" xml:space="preserve">
+    <value>« {0} » sera supprimé définitivement du serveur (avec tout son contenu s'il s'agit d'un dossier).</value>
+  </data>
+  <data name="Sftp_DeleteRemoteMany" xml:space="preserve">
+    <value>{0} éléments seront supprimés définitivement du serveur, avec leur contenu : {1}…</value>
+  </data>
+  <data name="Sftp_DeleteLocalTitle" xml:space="preserve">
+    <value>Mettre à la corbeille ?</value>
+  </data>
+  <data name="Sftp_DeleteLocalOne" xml:space="preserve">
+    <value>« {0} » sera envoyé à la corbeille de Windows.</value>
+  </data>
+  <data name="Sftp_DeleteLocalMany" xml:space="preserve">
+    <value>{0} éléments seront envoyés à la corbeille de Windows : {1}…</value>
+  </data>
+  <data name="Sftp_OverwriteTitle" xml:space="preserve">
+    <value>Remplacer les fichiers existants ?</value>
+  </data>
+  <data name="Sftp_OverwriteOne" xml:space="preserve">
+    <value>« {0} » existe déjà dans la destination et sera remplacé.</value>
+  </data>
+  <data name="Sftp_OverwriteMany" xml:space="preserve">
+    <value>{0} éléments existent déjà dans la destination et seront remplacés : {1}…</value>
+  </data>
+  <data name="Sftp_Overwrite" xml:space="preserve">
+    <value>Remplacer</value>
+  </data>
+  <data name="Transfer_Title" xml:space="preserve">
+    <value>Transferts</value>
+  </data>
+  <data name="Transfer_ClearFinished" xml:space="preserve">
+    <value>Effacer les transferts terminés</value>
+  </data>
+  <data name="Transfer_Cancel" xml:space="preserve">
+    <value>Annuler le transfert</value>
+  </data>
+  <data name="Transfer_Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Transfer_Completed" xml:space="preserve">
+    <value>Terminé — {0}</value>
+  </data>
+  <data name="Transfer_Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="Transfer_Failed" xml:space="preserve">
+    <value>Échec : {0}</value>
+  </data>
+  <data name="Size_Units" xml:space="preserve">
+    <value>o;Ko;Mo;Go;To</value>
+  </data>
+  <data name="Permissions_Title" xml:space="preserve">
+    <value>Droits d'accès</value>
+  </data>
+  <data name="Permissions_Owner" xml:space="preserve">
+    <value>Propriétaire</value>
+  </data>
+  <data name="Permissions_Group" xml:space="preserve">
+    <value>Groupe</value>
+  </data>
+  <data name="Permissions_Others" xml:space="preserve">
+    <value>Autres</value>
+  </data>
+  <data name="Permissions_Read" xml:space="preserve">
+    <value>Lecture</value>
+  </data>
+  <data name="Permissions_Write" xml:space="preserve">
+    <value>Écriture</value>
+  </data>
+  <data name="Permissions_Execute" xml:space="preserve">
+    <value>Exécution</value>
+  </data>
+  <data name="Permissions_Octal" xml:space="preserve">
+    <value>Notation octale</value>
+  </data>
+  <data name="Permissions_Apply" xml:space="preserve">
+    <value>Appliquer</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
     <value>Réglages</value>
