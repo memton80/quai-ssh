@@ -129,9 +129,9 @@
                         <Grid Padding="16,4,12,6" ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" MinWidth="150" />
-                                <ColumnDefinition Width="72" />
-                                <ColumnDefinition Width="118" />
+                                <ColumnDefinition Width="*" MinWidth="130" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="100" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
                                 Grid.Column="1"
@@ -188,9 +188,9 @@
                                 RightTapped="OnLocalItemRightTapped">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="*" MinWidth="150" />
-                                    <ColumnDefinition Width="72" />
-                                    <ColumnDefinition Width="118" />
+                                    <ColumnDefinition Width="*" MinWidth="130" />
+                                    <ColumnDefinition Width="64" />
+                                    <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
                                 <FontIcon
                                     VerticalAlignment="Center"
@@ -308,9 +308,9 @@
                         <Grid Padding="16,4,12,6" ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" MinWidth="150" />
-                                <ColumnDefinition Width="72" />
-                                <ColumnDefinition Width="118" />
+                                <ColumnDefinition Width="*" MinWidth="130" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="100" />
                                 <ColumnDefinition Width="84" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
@@ -377,9 +377,9 @@
                                 RightTapped="OnRemoteItemRightTapped">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="20" />
-                                    <ColumnDefinition Width="*" MinWidth="150" />
-                                    <ColumnDefinition Width="72" />
-                                    <ColumnDefinition Width="118" />
+                                    <ColumnDefinition Width="*" MinWidth="130" />
+                                    <ColumnDefinition Width="64" />
+                                    <ColumnDefinition Width="100" />
                                     <ColumnDefinition Width="84" />
                                 </Grid.ColumnDefinitions>
                                 <FontIcon

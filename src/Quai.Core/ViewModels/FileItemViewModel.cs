@@ -64,6 +64,27 @@ public sealed class FileItemViewModel
             Remote = entry,
         };
 
-    private static string FormatDate(DateTime value) =>
-        value == default ? string.Empty : value.ToString("g", CultureInfo.CurrentCulture);
+    private static string FormatDate(DateTime value) => FormatDate(value, DateTime.Now);
+
+    /// <summary>
+    /// Date compacte, à la manière de <c>ls -l</c> : l'heure pour aujourd'hui, « 13 nov. 21:49 » pour l'année
+    /// en cours, la date seule au-delà.
+    /// </summary>
+    internal static string FormatDate(DateTime value, DateTime now)
+    {
+        if (value == default)
+        {
+            return string.Empty;
+        }
+
+        var culture = CultureInfo.CurrentCulture;
+        if (value.Date == now.Date)
+        {
+            return value.ToString("t", culture);
+        }
+
+        return value.Year == now.Year
+            ? $"{value.ToString("d MMM", culture)} {value.ToString("t", culture)}"
+            : value.ToString("d", culture);
+    }
 }

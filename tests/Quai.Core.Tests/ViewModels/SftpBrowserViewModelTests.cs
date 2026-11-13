@@ -588,6 +588,21 @@ public class SftpSupportTests
         Assert.Equal(expected, LocalFileSystem.IsValidName(name));
 
     [Fact]
+    public void Dates_are_compact_like_ls()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var now = new DateTime(2026, 11, 13, 22, 0, 0);
+        var today = new DateTime(2026, 11, 13, 9, 41, 0);
+        var thisYear = new DateTime(2026, 3, 2, 18, 5, 0);
+        var older = new DateTime(2024, 12, 31, 23, 59, 0);
+
+        Assert.Equal(today.ToString("t", culture), FileItemViewModel.FormatDate(today, now));
+        Assert.Equal($"{thisYear.ToString("d MMM", culture)} {thisYear.ToString("t", culture)}", FileItemViewModel.FormatDate(thisYear, now));
+        Assert.Equal(older.ToString("d", culture), FileItemViewModel.FormatDate(older, now));
+        Assert.Equal(string.Empty, FileItemViewModel.FormatDate(default, now));
+    }
+
+    [Fact]
     public void Transfer_progress_is_a_percentage()
     {
         var transfer = new TransferItemViewModel(TransferDirection.Download, "f", "/f", "C:\\");
