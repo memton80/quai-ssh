@@ -31,8 +31,15 @@ body.theme-light {
     cursor: text;
 }
 
-/* xterm.css peint le fond de la zone de défilement en noir : il dépasse sous la dernière ligne
-   quand la hauteur n'est pas un multiple de la hauteur de ligne. On laisse voir le fond de la page. */
+/* Zone de défilement héritée de xterm.css :
+   - son fond noir dépasse sous la dernière ligne quand la hauteur n'est pas un multiple de la hauteur
+     de ligne : on laisse voir le fond de la page ;
+   - sa barre de défilement native (une flèche isolée sous Windows) fait doublon avec celle de xterm.js. */
 #terminal .xterm .xterm-viewport {
     background-color: transparent;
+    scrollbar-width: none;
+}
+
+#terminal .xterm .xterm-viewport::-webkit-scrollbar {
+    display: none;
 }
