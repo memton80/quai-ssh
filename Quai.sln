@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quai.Core", "src\Quai.Core\Quai.Core.csproj", "{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quai.App", "src\Quai.App\Quai.App.csproj", "{A1F8FED0-1824-4F44-8367-7E06EDD33659}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quai.Core.Tests", "tests\Quai.Core.Tests\Quai.Core.Tests.csproj", "{7074080C-394B-4750-9CB3-F6930DB41391}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Release|ARM64.Build.0 = Release|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79}.Release|x64.Build.0 = Release|Any CPU
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Debug|ARM64.Build.0 = Debug|ARM64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Debug|x64.ActiveCfg = Debug|x64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Debug|x64.Build.0 = Debug|x64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Release|ARM64.ActiveCfg = Release|ARM64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Release|ARM64.Build.0 = Release|ARM64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Release|x64.ActiveCfg = Release|x64
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659}.Release|x64.Build.0 = Release|x64
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Debug|x64.Build.0 = Debug|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Release|ARM64.Build.0 = Release|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Release|x64.ActiveCfg = Release|Any CPU
+		{7074080C-394B-4750-9CB3-F6930DB41391}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DB8AD817-B0E8-4BE9-91C7-4328A37C4C79} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{A1F8FED0-1824-4F44-8367-7E06EDD33659} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{7074080C-394B-4750-9CB3-F6930DB41391} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+	EndGlobalSection
+EndGlobal
