@@ -6,4 +6,6 @@ namespace Quai.Core.Services;
 public interface ISessionLauncher
 {
     void OpenTerminal(ConnectionProfile profile);
+
+    void OpenSftp(ConnectionProfile profile);
 }

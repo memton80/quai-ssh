@@ -7,11 +7,13 @@ namespace Quai.Core.Services;
 public sealed class SessionLauncher : ISessionLauncher
 {
     private readonly TerminalsViewModel _terminals;
+    private readonly SftpSessionsViewModel _sftp;
     private readonly IShellNavigator _navigator;
 
-    public SessionLauncher(TerminalsViewModel terminals, IShellNavigator navigator)
+    public SessionLauncher(TerminalsViewModel terminals, SftpSessionsViewModel sftp, IShellNavigator navigator)
     {
         _terminals = terminals;
+        _sftp = sftp;
         _navigator = navigator;
     }
 
@@ -19,5 +21,11 @@ public sealed class SessionLauncher : ISessionLauncher
     {
         _terminals.Open(profile);
         _navigator.NavigateTo(AppPage.Terminals);
+    }
+
+    public void OpenSftp(ConnectionProfile profile)
+    {
+        _sftp.Open(profile);
+        _navigator.NavigateTo(AppPage.Sftp);
     }
 }

@@ -10,6 +10,7 @@ public sealed class ConnectionItemViewModel
     {
         Profile = profile;
         OpenTerminalCommand = new RelayCommand(() => owner.OpenTerminal(this));
+        OpenSftpCommand = new RelayCommand(() => owner.OpenSftp(this));
         EditCommand = new AsyncRelayCommand(() => owner.EditAsync(this));
         DuplicateCommand = new RelayCommand(() => owner.Duplicate(this));
         DeleteCommand = new AsyncRelayCommand(() => owner.DeleteAsync(this));
@@ -37,6 +38,8 @@ public sealed class ConnectionItemViewModel
     public string AuthenticationGlyph => UsesPrivateKey ? "" : "";
 
     public IRelayCommand OpenTerminalCommand { get; }
+
+    public IRelayCommand OpenSftpCommand { get; }
 
     public IAsyncRelayCommand EditCommand { get; }
 

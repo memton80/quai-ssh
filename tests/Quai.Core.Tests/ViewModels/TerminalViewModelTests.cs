@@ -173,7 +173,8 @@ public class TerminalViewModelTests
     {
         var terminals = new TerminalsViewModel(_factory, new KeyStrings(), new ImmediateDispatcher());
         var navigator = new RecordingNavigator();
-        var launcher = new SessionLauncher(terminals, navigator);
+        var sftp = new SftpSessionsViewModel(_factory, new FakeDialogService(), new KeyStrings(), new ImmediateDispatcher());
+        var launcher = new SessionLauncher(terminals, sftp, navigator);
 
         launcher.OpenTerminal(_profile);
 

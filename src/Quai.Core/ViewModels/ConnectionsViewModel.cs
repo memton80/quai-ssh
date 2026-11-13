@@ -158,6 +158,16 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         }
     }
 
+    /// <summary>Ouvre l'explorateur de fichiers SFTP sur la connexion.</summary>
+    public void OpenSftp(ConnectionItemViewModel? item)
+    {
+        var profile = item is null ? null : _repository.Find(item.Id);
+        if (profile is not null)
+        {
+            _launcher?.OpenSftp(profile);
+        }
+    }
+
     public void Duplicate(ConnectionItemViewModel? item)
     {
         var source = item is null ? null : _repository.Find(item.Id);

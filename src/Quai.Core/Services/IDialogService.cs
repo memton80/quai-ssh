@@ -12,4 +12,10 @@ public interface IDialogService
 
     /// <summary>Ouvre la fiche d'une connexion ; retourne vrai si l'utilisateur a validé.</summary>
     Task<bool> EditConnectionAsync(ConnectionEditorViewModel editor);
+
+    /// <summary>Demande un texte court (nom de fichier ou de dossier) ; <c>null</c> si l'utilisateur annule.</summary>
+    Task<string?> PromptTextAsync(string title, string label, string initialValue, string confirmText);
+
+    /// <summary>Ouvre l'éditeur de droits ; retourne vrai si l'utilisateur a validé.</summary>
+    Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor);
 }

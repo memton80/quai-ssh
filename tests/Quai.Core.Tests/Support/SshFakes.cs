@@ -1,5 +1,6 @@
 using Quai.Core.Models;
 using Quai.Core.Services;
+using Quai.Core.Sftp;
 using Quai.Core.Ssh;
 
 namespace Quai.Core.Tests.Support;
@@ -89,7 +90,11 @@ public sealed class FakeSessionFactory : ISshSessionFactory
 {
     public Queue<Func<ITerminalSession>> Terminals { get; } = new();
 
+    public Queue<Func<ISftpSession>> SftpSessions { get; } = new();
+
     public List<(ConnectionProfile Profile, int Columns, int Rows)> TerminalRequests { get; } = [];
+
+    public List<ConnectionProfile> SftpRequests { get; } = [];
 
     public Task<ITerminalSession> OpenTerminalAsync(
         ConnectionProfile profile,
@@ -105,6 +110,19 @@ public sealed class FakeSessionFactory : ISshSessionFactory
         catch (Exception ex)
         {
             return Task.FromException<ITerminalSession>(ex);
+        }
+    }
+
+    public Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default)
+    {
+        SftpRequests.Add(profile);
+        try
+        {
+            return Task.FromResult(SftpSessions.Dequeue()());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<ISftpSession>(ex);
         }
     }
 }

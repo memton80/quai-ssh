@@ -55,9 +55,17 @@ public sealed class FakeDialogService : IDialogService
     /// <summary>Appelé à l'ouverture de la fiche : remplit l'éditeur et retourne vrai pour « Enregistrer ».</summary>
     public Func<ConnectionEditorViewModel, bool>? OnEdit { get; set; }
 
+    /// <summary>Réponses successives aux demandes de texte ; <c>null</c> = annulation.</summary>
+    public Queue<string?> TextAnswers { get; } = new();
+
+    /// <summary>Appelé à l'ouverture de l'éditeur de droits ; retourne vrai pour « Appliquer ».</summary>
+    public Func<PermissionsEditorViewModel, bool>? OnEditPermissions { get; set; }
+
     public List<string> Confirmations { get; } = [];
 
     public List<string> Errors { get; } = [];
+
+    public List<(string Title, string Initial)> TextRequests { get; } = [];
 
     public Task<bool> ConfirmAsync(string title, string message, string confirmText, bool isDestructive = false)
     {
@@ -73,4 +81,13 @@ public sealed class FakeDialogService : IDialogService
 
     public Task<bool> EditConnectionAsync(ConnectionEditorViewModel editor) =>
         Task.FromResult(OnEdit?.Invoke(editor) ?? false);
+
+    public Task<string?> PromptTextAsync(string title, string label, string initialValue, string confirmText)
+    {
+        TextRequests.Add((title, initialValue));
+        return Task.FromResult(TextAnswers.Count > 0 ? TextAnswers.Dequeue() : null);
+    }
+
+    public Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor) =>
+        Task.FromResult(OnEditPermissions?.Invoke(editor) ?? false);
 }
