@@ -31,3 +31,7 @@ Une ligne par décision : date, choix, raison.
 - 2026-11-13 : écrasement = une confirmation par lot (noms en conflit listés), suppression distante = toujours une confirmation, suppression locale = corbeille Windows (`Microsoft.VisualBasic.FileIO`, fourni avec .NET) plutôt qu'une suppression définitive.
 - 2026-11-13 : glisser-déposer entre les deux panneaux et depuis l'Explorateur Windows vers le serveur ; pas de glisser du serveur vers l'Explorateur (demanderait des fichiers virtuels COM) — utiliser le panneau local ou le bouton « Télécharger ».
 - 2026-11-13 : séparateur redimensionnable des panneaux = `GridSplitter` de `CommunityToolkit.WinUI.Controls.Sizers` — composant existant plutôt qu'un séparateur maison.
+- 2026-11-13 : réglages dans `settings.json` (`ISettingsService`), appliqués et enregistrés à chaque modification, sans bouton « Enregistrer » — comportement des Paramètres de Windows ; le terminal suit le thème de l'application (pas de thème de terminal séparé pour l'instant).
+- 2026-11-13 : police du terminal = champ libre avec suggestions (pas d'énumération des polices installées) — WinUI n'expose pas la liste des polices sans Win2D ; un aperçu montre aussitôt si la police existe.
+- 2026-11-13 : page des réglages avec `SettingsCard` (`CommunityToolkit.WinUI.Controls.SettingsControls`) — rendu Windows 11 sans style maison.
+- 2026-11-13 : volet de navigation compact sous 1400 px de large — l'explorateur à double panneau a besoin de la largeur ; le volet s'ouvre toujours par le bouton menu.
