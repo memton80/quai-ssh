@@ -67,9 +67,11 @@ public sealed class SshConnector
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (askSecret && !usesKey && !hostVerified)
+            if (askSecret && !usesKey && !hostVerified && _knownHosts.Find(profile.Host, profile.Port).Count == 0)
             {
-                // Sonde sans authentification : la clé d'hôte est vérifiée avant de demander le mot de passe.
+                // Premier contact : une sonde sans authentification fait valider la clé d'hôte avant de
+                // demander le mot de passe. Pour un hôte déjà connu c'est inutile : la connexion réelle
+                // compare la clé et s'interrompt avant d'envoyer quoi que ce soit si elle a changé.
                 var probe = await AttemptAsync(profile, create, BuildProbeInfo(profile), cancellationToken);
                 if (probe.Outcome == AttemptOutcome.Connected)
                 {

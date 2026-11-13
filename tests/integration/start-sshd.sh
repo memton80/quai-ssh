@@ -50,16 +50,24 @@ PubkeyAuthentication yes
 UsePAM no
 PermitRootLogin no
 AllowUsers $USER_NAME
+MaxStartups 100:30:200
+MaxAuthTries 10
 Subsystem sftp internal-sftp
 LogLevel ERROR
 CONF
+  # OpenSSH >= 9.8 pénalise les adresses qui échouent à s'authentifier ; les tests provoquent
+  # volontairement des échecs (mauvais mot de passe, clé inconnue), on désactive donc ce mécanisme ici.
+  if $SUDO "$SSHD" -t -f "$1" -o PerSourcePenalties=no >/dev/null 2>&1; then
+    echo "PerSourcePenalties no" >> "$1"
+  fi
 }
 
 # Deux serveurs : le second présente une autre clé d'hôte (même machine, autre port).
 ALT_PORT=$((PORT + 1))
+$SUDO mkdir -p /run/sshd
 write_config "$WORK/sshd_config" "$PORT" "$WORK/host_ed25519"
 write_config "$WORK/sshd_config_alt" "$ALT_PORT" "$WORK/host_ed25519_alt"
-$SUDO mkdir -p /run/sshd
+ssh -V 2>&1 | sed 's/^/Serveur de test : /' >&2
 $SUDO "$SSHD" -f "$WORK/sshd_config"
 $SUDO "$SSHD" -f "$WORK/sshd_config_alt"
 
