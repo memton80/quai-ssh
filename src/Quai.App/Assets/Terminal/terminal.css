@@ -1,0 +1,32 @@
+/* Page hôte du terminal (xterm.js dans WebView2). Les couleurs du terminal lui-même sont dans terminal.js. */
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body.theme-dark {
+    background-color: #0c0c0c;
+    color-scheme: dark;
+}
+
+body.theme-light {
+    background-color: #fafafa;
+    color-scheme: light;
+}
+
+#terminal {
+    position: absolute;
+    top: 8px;
+    right: 4px;
+    bottom: 8px;
+    left: 12px;
+}
+
+/* Le terminal occupe toute la zone ; le curseur texte signale qu'on peut sélectionner. */
+#terminal .xterm {
+    height: 100%;
+    cursor: text;
+}
