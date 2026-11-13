@@ -12,3 +12,7 @@ Une ligne par décision : date, choix, raison.
 - 2026-11-13 : les pages sont créées une fois et masquées/affichées (pas de `Frame.Navigate`) — les terminaux et sessions SFTP ouverts survivent au changement de page.
 - 2026-11-13 : mode `Quai.exe --smoke-test <dossier>` exécuté par le CI (x64) — seule façon de vérifier que l'app publiée démarre réellement et que chaque page se charge, faute de pouvoir la lancer à la main.
 - 2026-11-13 : pas de trimming ni de fichier unique à la publication — WinUI 3 et les liaisons XAML s'appuient sur la réflexion ; un zip à décompresser suffit.
+- 2026-11-13 : `ISecretStore` défini dans `Quai.Core`, implémenté dans l'app avec `PasswordVault` (ressource « Quai ») — `PasswordVault` est une API WinRT, la garder hors de Core laisse Core portable et testable ; le modèle `ConnectionProfile` n'a aucun champ secret, le JSON ne peut donc pas en contenir.
+- 2026-11-13 : view-models dans `Quai.Core` (CommunityToolkit.Mvvm ne dépend pas de WinUI) avec `IDialogService` / `IStrings` implémentés par l'app — toute la logique du carnet est couverte par des tests xUnit sans interface graphique.
+- 2026-11-13 : dossiers = simple chemin « A/B » porté par chaque connexion, filtres dossiers / tags dans un volet à gauche (pas d'arborescence glisser-déposer) — sobre, et un dossier disparaît tout seul quand il est vide.
+- 2026-11-13 : interface forcée en `fr-FR` (`ApplicationLanguages.PrimaryLanguageOverride`) tant que seul le français existe — sinon les textes fournis par WinUI (boutons, menus) restent dans la langue de Windows.

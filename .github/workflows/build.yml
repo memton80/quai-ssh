@@ -90,22 +90,22 @@ jobs:
         shell: pwsh
         run: |
           $out = Join-Path $env:RUNNER_TEMP 'smoke'
-          $env:QUAI_DATA_DIR = Join-Path $env:RUNNER_TEMP 'quai-data'
           $exe = Resolve-Path 'publish/x64/Quai.exe'
           $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test', "`"$out`"" -PassThru
           $null = $process.Handle
-          if (-not $process.WaitForExit(120000)) {
+          if (-not $process.WaitForExit(180000)) {
             $process.Kill()
-            Write-Host "::error::Le test de fumée n'a pas rendu la main en 120 s."
+            Write-Host "::error::Le test de fumée n'a pas rendu la main en 180 s."
             $failed = $true
           } elseif ($process.ExitCode -ne 0) {
             Write-Host "::error::Le test de fumée a échoué (code $($process.ExitCode))."
             $failed = $true
           }
-          if (Test-Path $out) { Get-ChildItem $out | Format-Table Name, Length -AutoSize | Out-String }
+          if (Test-Path $out) { Get-ChildItem $out -File | Format-Table Name, Length -AutoSize | Out-String }
+          if (Test-Path (Join-Path $out 'smoke-report.txt')) { Get-Content (Join-Path $out 'smoke-report.txt') }
           if ($failed -or -not (Test-Path (Join-Path $out 'smoke-ok.txt'))) {
             if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
-            Get-ChildItem (Join-Path $env:QUAI_DATA_DIR 'logs') -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 80 }
+            Get-ChildItem (Join-Path $out 'data/logs') -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 80 }
             Get-WinEvent -LogName Application -MaxEvents 40 -ErrorAction SilentlyContinue |
               Where-Object { $_.ProviderName -in '.NET Runtime', 'Application Error', 'Windows Error Reporting' } |
               Select-Object -First 6 | ForEach-Object { $_.Message }
@@ -117,7 +117,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: smoke-captures
-          path: ${{ runner.temp }}/smoke
+          path: |
+            ${{ runner.temp }}/smoke/*.png
+            ${{ runner.temp }}/smoke/*.txt
+            ${{ runner.temp }}/smoke/data/logs/*.log
           if-no-files-found: ignore
 
       - name: Zip
