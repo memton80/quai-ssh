@@ -9,6 +9,7 @@ public sealed class ConnectionItemViewModel
     public ConnectionItemViewModel(ConnectionProfile profile, ConnectionsViewModel owner)
     {
         Profile = profile;
+        OpenTerminalCommand = new RelayCommand(() => owner.OpenTerminal(this));
         EditCommand = new AsyncRelayCommand(() => owner.EditAsync(this));
         DuplicateCommand = new RelayCommand(() => owner.Duplicate(this));
         DeleteCommand = new AsyncRelayCommand(() => owner.DeleteAsync(this));
@@ -34,6 +35,8 @@ public sealed class ConnectionItemViewModel
 
     /// <summary>Glyphe : clé (authentification par clé) ou cadenas (mot de passe).</summary>
     public string AuthenticationGlyph => UsesPrivateKey ? "" : "";
+
+    public IRelayCommand OpenTerminalCommand { get; }
 
     public IAsyncRelayCommand EditCommand { get; }
 

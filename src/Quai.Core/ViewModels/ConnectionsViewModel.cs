@@ -18,6 +18,7 @@ public sealed partial class ConnectionsViewModel : ObservableObject
     private readonly ISecretStore _secrets;
     private readonly IDialogService _dialogs;
     private readonly IStrings _strings;
+    private readonly ISessionLauncher? _launcher;
     private readonly ILogger _logger;
     private bool _reloading;
 
@@ -26,12 +27,14 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         ISecretStore secrets,
         IDialogService dialogs,
         IStrings strings,
+        ISessionLauncher? launcher = null,
         ILogger<ConnectionsViewModel>? logger = null)
     {
         _repository = repository;
         _secrets = secrets;
         _dialogs = dialogs;
         _strings = strings;
+        _launcher = launcher;
         _logger = logger ?? NullLogger<ConnectionsViewModel>.Instance;
         SearchText = string.Empty;
         Reload();
@@ -142,6 +145,16 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         if (await _dialogs.EditConnectionAsync(editor))
         {
             await SaveAsync(editor);
+        }
+    }
+
+    /// <summary>Ouvre un terminal SSH sur la connexion (dans sa version enregistrée la plus récente).</summary>
+    public void OpenTerminal(ConnectionItemViewModel? item)
+    {
+        var profile = item is null ? null : _repository.Find(item.Id);
+        if (profile is not null)
+        {
+            _launcher?.OpenTerminal(profile);
         }
     }
 
