@@ -1,0 +1,151 @@
+using Renci.SshNet;
+
+namespace Quai.Core.Ssh;
+
+/// <summary>Un shell distant interactif (pseudo-terminal).</summary>
+public interface ITerminalSession : IAsyncDisposable
+{
+    /// <summary>Octets émis par le shell (déclenché hors du fil d'interface).</summary>
+    event Action<byte[]>? DataReceived;
+
+    /// <summary>Fin de session ; l'exception est nulle pour une fermeture normale.</summary>
+    event Action<Exception?>? Closed;
+
+    bool IsOpen { get; }
+
+    /// <summary>Démarre la réception ; à appeler une fois abonné aux événements.</summary>
+    void Start();
+
+    void Send(byte[] data);
+
+    void Resize(int columns, int rows);
+}
+
+/// <summary>Shell interactif au-dessus d'un <see cref="ShellStream"/> SSH.NET.</summary>
+internal sealed class SshTerminalSession : ITerminalSession
+{
+    public const string TerminalName = "xterm-256color";
+
+    private readonly SshClient _client;
+    private readonly ShellStream _stream;
+    private readonly Lock _writeGate = new();
+    private readonly Thread _reader;
+    private int _closed;
+    private int _started;
+
+    public SshTerminalSession(SshClient client, ShellStream stream)
+    {
+        _client = client;
+        _stream = stream;
+        _client.ErrorOccurred += (_, e) => RaiseClosed(e.Exception);
+        _stream.ErrorOccurred += (_, e) => RaiseClosed(e.Exception);
+
+        // Lecture en boucle plutôt que par l'événement DataReceived : le tampon interne du flux est ainsi vidé.
+        _reader = new Thread(ReadLoop) { IsBackground = true, Name = "Quai SSH shell" };
+    }
+
+    public event Action<byte[]>? DataReceived;
+
+    public event Action<Exception?>? Closed;
+
+    public bool IsOpen => Volatile.Read(ref _closed) == 0;
+
+    public void Start()
+    {
+        if (Interlocked.Exchange(ref _started, 1) == 0)
+        {
+            _reader.Start();
+        }
+    }
+
+    public void Send(byte[] data)
+    {
+        if (!IsOpen || data.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            lock (_writeGate)
+            {
+                _stream.Write(data, 0, data.Length);
+                _stream.Flush();
+            }
+        }
+        catch (Exception ex) when (ex is ObjectDisposedException or Renci.SshNet.Common.SshException or IOException)
+        {
+            RaiseClosed(ex is ObjectDisposedException ? null : ex);
+        }
+    }
+
+    public void Resize(int columns, int rows)
+    {
+        if (!IsOpen || columns <= 0 || rows <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _stream.ChangeWindowSize((uint)columns, (uint)rows, 0, 0);
+        }
+        catch (Exception ex) when (ex is ObjectDisposedException or Renci.SshNet.Common.SshException or IOException)
+        {
+            // Session en cours de fermeture : rien à redimensionner.
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Interlocked.Exchange(ref _closed, 1);
+        return new ValueTask(Task.Run(() =>
+        {
+            try
+            {
+                _stream.Dispose();
+                _client.Dispose();
+            }
+            catch (Exception)
+            {
+                // Fermeture au mieux : la connexion peut déjà être rompue.
+            }
+        }));
+    }
+
+    private void ReadLoop()
+    {
+        var buffer = new byte[32 * 1024];
+        try
+        {
+            while (true)
+            {
+                var read = _stream.Read(buffer, 0, buffer.Length);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                DataReceived?.Invoke(buffer.AsSpan(0, read).ToArray());
+            }
+
+            RaiseClosed(null);
+        }
+        catch (ObjectDisposedException)
+        {
+            RaiseClosed(null);
+        }
+        catch (Exception ex)
+        {
+            RaiseClosed(ex);
+        }
+    }
+
+    private void RaiseClosed(Exception? error)
+    {
+        if (Interlocked.Exchange(ref _closed, 1) == 0)
+        {
+            Closed?.Invoke(error);
+        }
+    }
+}
