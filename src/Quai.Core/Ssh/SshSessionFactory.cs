@@ -1,4 +1,5 @@
 using Quai.Core.Models;
+using Quai.Core.Sftp;
 using Renci.SshNet;
 
 namespace Quai.Core.Ssh;
@@ -11,6 +12,8 @@ public interface ISshSessionFactory
         int columns,
         int rows,
         CancellationToken cancellationToken = default);
+
+    Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default);
 }
 
 public sealed class SshSessionFactory : ISshSessionFactory
@@ -41,6 +44,20 @@ public sealed class SshSessionFactory : ISshSessionFactory
                     64 * 1024),
                 cancellationToken);
             return new SshTerminalSession(client, stream);
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
+    }
+
+    public async Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default)
+    {
+        var client = await _connector.ConnectAsync(profile, info => new SftpClient(info), cancellationToken);
+        try
+        {
+            return new SshSftpSession(client);
         }
         catch
         {
