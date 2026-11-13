@@ -9,16 +9,28 @@ on:
       - 'tests/**'
       - 'Quai.sln'
       - 'Directory.*'
+      - 'global.json'
+      - '.github/workflows/build.yml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
       - 'Quai.sln'
       - 'Directory.*'
+      - 'global.json'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   build:
@@ -32,15 +44,26 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          # À ajuster selon la LTS supportée par le Windows App SDK utilisé
+          # .NET 10 = dernière LTS, prise en charge par le Windows App SDK 2.x (voir docs/DECISIONS.md).
           dotnet-version: 10.0.x
+
+      - name: Version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          } else {
+            $version = "0.0.0-ci.$($env:GITHUB_RUN_NUMBER)"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Restore
         run: dotnet restore Quai.sln
 
       - name: Tests (Quai.Core)
         if: matrix.platform == 'x64'
-        run: dotnet test tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
+        run: dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
 
       - name: Publish
         run: >
@@ -50,10 +73,56 @@ jobs:
           --self-contained true
           -p:Platform=${{ matrix.platform }}
           -p:WindowsPackageType=None
+          -p:Version=${{ steps.version.outputs.version }}
           -o publish/${{ matrix.platform }}
 
+      - name: Vérification du contenu publié
+        shell: pwsh
+        run: |
+          $dir = "publish/${{ matrix.platform }}"
+          Get-ChildItem $dir | Sort-Object Name | Format-Table Name, Length -AutoSize | Out-String -Width 200
+          $required = @('Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png')
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
+          if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
+
+      - name: Test de fumée (lancement réel de l'application)
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'smoke'
+          $env:QUAI_DATA_DIR = Join-Path $env:RUNNER_TEMP 'quai-data'
+          $exe = Resolve-Path 'publish/x64/Quai.exe'
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test', "`"$out`"" -PassThru
+          $null = $process.Handle
+          if (-not $process.WaitForExit(120000)) {
+            $process.Kill()
+            Write-Host "::error::Le test de fumée n'a pas rendu la main en 120 s."
+            $failed = $true
+          } elseif ($process.ExitCode -ne 0) {
+            Write-Host "::error::Le test de fumée a échoué (code $($process.ExitCode))."
+            $failed = $true
+          }
+          if (Test-Path $out) { Get-ChildItem $out | Format-Table Name, Length -AutoSize | Out-String }
+          if ($failed -or -not (Test-Path (Join-Path $out 'smoke-ok.txt'))) {
+            if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
+            Get-ChildItem (Join-Path $env:QUAI_DATA_DIR 'logs') -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 80 }
+            Get-WinEvent -LogName Application -MaxEvents 40 -ErrorAction SilentlyContinue |
+              Where-Object { $_.ProviderName -in '.NET Runtime', 'Application Error', 'Windows Error Reporting' } |
+              Select-Object -First 6 | ForEach-Object { $_.Message }
+            throw 'Test de fumée en échec.'
+          }
+
+      - name: Captures du test de fumée
+        if: always() && matrix.platform == 'x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-captures
+          path: ${{ runner.temp }}/smoke
+          if-no-files-found: ignore
+
       - name: Zip
-        run: Compress-Archive -Path publish/${{ matrix.platform }}/* -DestinationPath Quai-${{ matrix.platform }}.zip
+        shell: pwsh
+        run: 7z a -tzip -mx=7 "Quai-${{ matrix.platform }}.zip" "./publish/${{ matrix.platform }}/*"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -70,6 +139,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          pattern: Quai-*
           path: dist
           merge-multiple: true
 
