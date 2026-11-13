@@ -81,7 +81,11 @@ jobs:
         run: |
           $dir = "publish/${{ matrix.platform }}"
           Get-ChildItem $dir | Sort-Object Name | Format-Table Name, Length -AutoSize | Out-String -Width 200
-          $required = @('Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png')
+          $required = @(
+            'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll',
+            'Assets/Quai.ico', 'Assets/AppIcon.png',
+            'Assets/Terminal/terminal.html', 'Assets/Terminal/terminal.css', 'Assets/Terminal/terminal.js',
+            'Assets/Terminal/vendor/xterm.js', 'Assets/Terminal/vendor/xterm.css', 'Assets/Terminal/vendor/addon-fit.js')
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
 
@@ -133,9 +137,29 @@ jobs:
           path: Quai-${{ matrix.platform }}.zip
           if-no-files-found: error
 
+  integration:
+    name: Tests d'intégration SSH (OpenSSH réel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Serveur OpenSSH de test
+        run: |
+          tests/integration/start-sshd.sh "$RUNNER_TEMP/ssh.env"
+          # Secrets jetables générés à l'instant : masqués dans les journaux.
+          grep -E 'PASSWORD|PASSPHRASE' "$RUNNER_TEMP/ssh.env" | cut -d= -f2- | while read -r value; do echo "::add-mask::$value"; done
+          cat "$RUNNER_TEMP/ssh.env" >> "$GITHUB_ENV"
+
+      - name: Tests (Quai.Core, intégration comprise)
+        run: dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, integration]
     runs-on: ubuntu-latest
     permissions:
       contents: write
