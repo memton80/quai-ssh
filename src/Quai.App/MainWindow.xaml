@@ -36,6 +36,7 @@
         <NavigationView
             x:Name="NavView"
             Grid.Row="1"
+            ExpandedModeThresholdWidth="1400"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
             OpenPaneLength="240"
