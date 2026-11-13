@@ -489,7 +489,61 @@
   <data name="Settings_Title" xml:space="preserve">
     <value>Réglages</value>
   </data>
-  <data name="Settings_Placeholder" xml:space="preserve">
-    <value>Les réglages (thème, police du terminal) arrivent bientôt.</value>
+  <data name="Settings_Appearance" xml:space="preserve">
+    <value>Apparence</value>
+  </data>
+  <data name="Settings_Theme" xml:space="preserve">
+    <value>Thème de l'application</value>
+  </data>
+  <data name="Settings_ThemeDescription" xml:space="preserve">
+    <value>Clair, sombre, ou identique à celui de Windows. Le terminal suit ce choix.</value>
+  </data>
+  <data name="Settings_ThemeSystem" xml:space="preserve">
+    <value>Comme Windows</value>
+  </data>
+  <data name="Settings_ThemeLight" xml:space="preserve">
+    <value>Clair</value>
+  </data>
+  <data name="Settings_ThemeDark" xml:space="preserve">
+    <value>Sombre</value>
+  </data>
+  <data name="Settings_Terminal" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="Settings_Font" xml:space="preserve">
+    <value>Police</value>
+  </data>
+  <data name="Settings_FontDescription" xml:space="preserve">
+    <value>Nom d'une police à chasse fixe installée sur cet ordinateur.</value>
+  </data>
+  <data name="Settings_FontSize" xml:space="preserve">
+    <value>Taille de la police</value>
+  </data>
+  <data name="Settings_FontSizeDescription" xml:space="preserve">
+    <value>De 8 à 32 points. S'applique aussitôt aux terminaux ouverts.</value>
+  </data>
+  <data name="Settings_Preview" xml:space="preserve">
+    <value>Aperçu</value>
+  </data>
+  <data name="Settings_PreviewText" xml:space="preserve">
+    <value>quai@serveur:~$ ls -la   0O 1lI {}[] =&gt; !=</value>
+  </data>
+  <data name="Settings_ResetFont" xml:space="preserve">
+    <value>Rétablir la police par défaut</value>
+  </data>
+  <data name="Settings_About" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="Settings_Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Settings_AboutDescription" xml:space="preserve">
+    <value>Connexions SSH et transferts SFTP. Aucune télémétrie ; les secrets restent dans le coffre Windows.</value>
+  </data>
+  <data name="Settings_Data" xml:space="preserve">
+    <value>Données de l'application</value>
+  </data>
+  <data name="Settings_OpenDataFolder" xml:space="preserve">
+    <value>Ouvrir le dossier</value>
   </data>
 </root>

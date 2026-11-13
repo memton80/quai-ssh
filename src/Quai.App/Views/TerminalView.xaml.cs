@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using Quai.App.Localization;
+using Quai.Core.Storage;
 using Quai.Core.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Streams;
@@ -17,9 +19,7 @@ public sealed partial class TerminalView : UserControl
 {
     // Hôte virtuel servi depuis le dossier local ; le domaine « .example » est réservé et ne résout jamais.
     private const string HostName = "terminal.quai.example";
-    private const string DefaultFontFamily = "Cascadia Mono";
-    private const int DefaultFontSize = 14;
-
+    private readonly ISettingsService _settings;
     private readonly MemoryStream _pending = new();
     private readonly Lock _pendingGate = new();
     private bool _flushQueued;
@@ -30,9 +30,11 @@ public sealed partial class TerminalView : UserControl
     public TerminalView(TerminalTabViewModel viewModel)
     {
         ViewModel = viewModel;
+        _settings = App.Current.Services.GetRequiredService<ISettingsService>();
         InitializeComponent();
 
         ViewModel.Output += OnOutput;
+        _settings.Changed += OnSettingsChanged;
         Loaded += OnLoaded;
         ActualThemeChanged += (_, _) => SendOptions();
     }
@@ -62,6 +64,7 @@ public sealed partial class TerminalView : UserControl
 
         _closed = true;
         ViewModel.Output -= OnOutput;
+        _settings.Changed -= OnSettingsChanged;
         try
         {
             WebView.Close();
@@ -148,7 +151,8 @@ public sealed partial class TerminalView : UserControl
             Path.Combine(AppContext.BaseDirectory, "Assets", "Terminal"),
             CoreWebView2HostResourceAccessKind.DenyCors);
 
-        var query = $"theme={ThemeName(ActualTheme)}&fontSize={DefaultFontSize}&fontFamily={Uri.EscapeDataString(DefaultFontFamily)}";
+        var appearance = _settings.Current;
+        var query = $"theme={ThemeName(ActualTheme)}&fontSize={appearance.TerminalFontSize}&fontFamily={Uri.EscapeDataString(appearance.TerminalFontFamily)}";
         WebView.Source = new Uri($"https://{HostName}/terminal.html?{query}");
     }
 
@@ -224,16 +228,20 @@ public sealed partial class TerminalView : UserControl
         }
     }
 
+    /// <summary>Réglages modifiés (éventuellement depuis un autre fil) : police et taille appliquées à chaud.</summary>
+    private void OnSettingsChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(SendOptions);
+
     private void SendOptions()
     {
-        if (_ready)
+        if (_ready && !_closed)
         {
+            var appearance = _settings.Current;
             Post(JsonSerializer.Serialize(new
             {
                 type = "options",
                 theme = ThemeName(ActualTheme),
-                fontFamily = DefaultFontFamily,
-                fontSize = DefaultFontSize,
+                fontFamily = appearance.TerminalFontFamily,
+                fontSize = appearance.TerminalFontSize,
             }));
         }
     }

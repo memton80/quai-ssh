@@ -53,6 +53,7 @@ internal static class SmokeTest
         {
             Directory.CreateDirectory(directory);
             await Task.Delay(1500);
+            PaintBackground(window);
 
             foreach (var tag in MainWindow.PageTags)
             {
@@ -64,9 +65,11 @@ internal static class SmokeTest
             }
 
             await ConnectionBookAsync(window, services, directory, report);
-            await TerminalAsync(window, services, directory, report);
+            await TerminalAsync(window, services, directory, "terminal");
+            report.Add("terminal (WebView2 + xterm.js) : OK");
             await SftpAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
+            await SettingsAsync(window, services, directory, report);
             CheckVault(services, report);
 
             File.WriteAllLines(Path.Combine(directory, "smoke-report.txt"), report);
@@ -143,7 +146,7 @@ internal static class SmokeTest
     /// Onglet de terminal relié à une session de démonstration : valide WebView2, le chargement local de
     /// xterm.js, les messages dans les deux sens et l'affichage.
     /// </summary>
-    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, string captureName)
     {
         var terminals = services.GetRequiredService<TerminalsViewModel>();
         services.GetRequiredService<ISessionLauncher>().OpenTerminal(
@@ -169,9 +172,8 @@ internal static class SmokeTest
             "La sortie de la session n'apparaît pas dans xterm.js.");
 
         await Task.Delay(500);
-        await CaptureAsync(window.Root, Path.Combine(directory, "terminal-tab.png"));
-        await view.CapturePreviewAsync(Path.Combine(directory, "terminal.png"));
-        report.Add("terminal (WebView2 + xterm.js) : OK");
+        await CaptureAsync(window.Root, Path.Combine(directory, $"{captureName}-tab.png"));
+        await view.CapturePreviewAsync(Path.Combine(directory, $"{captureName}.png"));
 
         await terminals.CloseAsync(tab);
         if (!terminals.IsEmpty)
@@ -233,6 +235,60 @@ internal static class SmokeTest
         report.Add("dialogues SFTP (droits, renommer) : OK");
 
         await sessions.CloseAsync(tab);
+    }
+
+    /// <summary>Réglages : passage au thème sombre et changement de police, appliqués à chaud (terminal compris).</summary>
+    private static async Task SettingsAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var settings = services.GetRequiredService<ISettingsService>();
+        window.NavigateTo(MainWindow.SettingsTag);
+        await Task.Delay(500);
+
+        settings.Update(s =>
+        {
+            s.Theme = AppTheme.Dark;
+            s.TerminalFontFamily = "Consolas";
+            s.TerminalFontSize = 17;
+        });
+        await WaitUntilAsync(
+            () => Task.FromResult(window.Root.ActualTheme == ElementTheme.Dark),
+            TimeSpan.FromSeconds(10),
+            "Le thème sombre ne s'est pas appliqué.");
+        PaintBackground(window);
+        await Task.Delay(700);
+        await CaptureAsync(window.Root, Path.Combine(directory, "settings-dark.png"));
+
+        var reloaded = new JsonSettingsService(services.GetRequiredService<AppPaths>()).Current;
+        if (reloaded.Theme != AppTheme.Dark || reloaded.TerminalFontSize != 17)
+        {
+            throw new InvalidOperationException("Les réglages n'ont pas été enregistrés.");
+        }
+
+        await TerminalAsync(window, services, directory, "terminal-dark");
+
+        settings.Update(s =>
+        {
+            s.Theme = AppTheme.Light;
+            s.TerminalFontFamily = AppSettings.DefaultTerminalFontFamily;
+            s.TerminalFontSize = AppSettings.DefaultTerminalFontSize;
+        });
+        await WaitUntilAsync(
+            () => Task.FromResult(window.Root.ActualTheme == ElementTheme.Light),
+            TimeSpan.FromSeconds(10),
+            "Le retour au thème clair ne s'est pas appliqué.");
+        PaintBackground(window);
+        report.Add("réglages (thème, police du terminal) : OK");
+    }
+
+    /// <summary>Fond opaque derrière le contenu : le Mica n'apparaît pas dans les captures.</summary>
+    private static void PaintBackground(MainWindow window)
+    {
+        if (window.Root is Microsoft.UI.Xaml.Controls.Panel panel)
+        {
+            panel.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(window.Root.ActualTheme == ElementTheme.Dark
+                ? Windows.UI.Color.FromArgb(255, 0x20, 0x20, 0x20)
+                : Windows.UI.Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
+        }
     }
 
     /// <summary>Dialogues de connexion : premier contact, empreinte modifiée, saisie du mot de passe.</summary>

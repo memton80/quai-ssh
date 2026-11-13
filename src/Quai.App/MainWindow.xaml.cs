@@ -52,6 +52,8 @@ public sealed partial class MainWindow : Window
             _ => ConnectionsTag,
         });
 
+        App.Current.Services.GetRequiredService<ThemeService>().Attach(this, RootGrid);
+
         NavView.Loaded += (_, _) =>
         {
             if (NavView.SettingsItem is NavigationViewItem settings)

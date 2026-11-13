@@ -28,6 +28,15 @@
         TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <!-- Titre de section de la page des réglages. -->
+    <Style
+        x:Key="SettingsSectionHeaderStyle"
+        BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Margin" Value="1,20,0,4" />
     </Style>
 
     <!-- Carte : fond légèrement détaché du Mica, coins arrondis. -->
