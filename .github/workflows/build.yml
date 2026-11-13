@@ -10,6 +10,7 @@ on:
       - 'Quai.sln'
       - 'Directory.*'
       - 'global.json'
+      - 'installer/**'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - 'Quai.sln'
       - 'Directory.*'
       - 'global.json'
+      - 'installer/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -89,17 +91,62 @@ jobs:
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
 
-      - name: Test de fumée (lancement réel de l'application)
+      - name: Zip (version portable)
+        shell: pwsh
+        run: 7z a -tzip -mx=7 "Quai-${{ matrix.platform }}.zip" "./publish/${{ matrix.platform }}/*"
+
+      - name: Installateur (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y | Out-Host
+          }
+          if (-not (Test-Path $iscc)) { throw 'ISCC.exe (Inno Setup) introuvable.' }
+
+          $version = '${{ steps.version.outputs.version }}'
+          $numeric = ($version -split '-')[0]
+          $source = (Resolve-Path 'publish/${{ matrix.platform }}').Path
+          & $iscc /Qp "/DAppVersion=$version" "/DAppNumericVersion=$numeric" "/DArch=${{ matrix.platform }}" "/DSourceDir=$source" "/DOutputDir=$PWD" installer/Quai.iss
+          if ($LASTEXITCODE -ne 0) { throw "La compilation de l'installateur a échoué (code $LASTEXITCODE)." }
+          Get-Item 'Quai-Setup-${{ matrix.platform }}.exe', 'Quai-${{ matrix.platform }}.zip' |
+            Select-Object Name, @{ n = 'Mo'; e = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize | Out-String
+
+      - name: Installation silencieuse
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'install.log'
+          $setup = (Resolve-Path 'Quai-Setup-x64.exe').Path
+          $process = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=`"$log`"" -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path $log) { Get-Content $log -Tail 60 }
+            throw "Installation en échec (code $($process.ExitCode))."
+          }
+
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Quai'
+          $missing = 'Quai.exe', 'unins000.exe', 'Quai.pri', 'Assets\Terminal\terminal.html' | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
+          if ($missing) { throw "Fichiers installés manquants : $($missing -join ', ')" }
+
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F6C1C0E-5B0E-4F0B-9E57-3C7F2A9D51A4}_is1'
+          if (-not (Test-Path $key)) { throw "Entrée de désinstallation absente du registre." }
+          Get-ItemProperty $key | Select-Object DisplayName, DisplayVersion, InstallLocation, UninstallString | Format-List | Out-String
+
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai.lnk'
+          if (-not (Test-Path $shortcut)) { throw 'Raccourci du menu Démarrer absent.' }
+          "QUAI_INSTALL_DIR=$dir" >> $env:GITHUB_ENV
+
+      - name: Test de fumée (application installée, lancement réel)
         if: matrix.platform == 'x64'
         shell: pwsh
         run: |
           $out = Join-Path $env:RUNNER_TEMP 'smoke'
-          $exe = Resolve-Path 'publish/x64/Quai.exe'
+          $exe = Join-Path $env:QUAI_INSTALL_DIR 'Quai.exe'
           $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test', "`"$out`"" -PassThru
           $null = $process.Handle
-          if (-not $process.WaitForExit(180000)) {
+          if (-not $process.WaitForExit(240000)) {
             $process.Kill()
-            Write-Host "::error::Le test de fumée n'a pas rendu la main en 180 s."
+            Write-Host "::error::Le test de fumée n'a pas rendu la main en 240 s."
             $failed = $true
           } elseif ($process.ExitCode -ne 0) {
             Write-Host "::error::Le test de fumée a échoué (code $($process.ExitCode))."
@@ -125,16 +172,47 @@ jobs:
             ${{ runner.temp }}/smoke/*.png
             ${{ runner.temp }}/smoke/*.txt
             ${{ runner.temp }}/smoke/data/logs/*.log
+            ${{ runner.temp }}/install.log
           if-no-files-found: ignore
 
-      - name: Zip
+      - name: Désinstallation silencieuse (avec effacement des données)
+        if: matrix.platform == 'x64'
         shell: pwsh
-        run: 7z a -tzip -mx=7 "Quai-${{ matrix.platform }}.zip" "./publish/${{ matrix.platform }}/*"
+        run: |
+          $dir = $env:QUAI_INSTALL_DIR
+          $data = Join-Path $env:LOCALAPPDATA 'Quai'
+
+          # Données factices : elles doivent disparaître avec /PURGE=1.
+          New-Item -ItemType Directory -Force -Path (Join-Path $data 'logs') | Out-Null
+          Set-Content -Path (Join-Path $data 'connections.json') -Value '{ "version": 1, "connections": [] }'
+
+          # Le commutateur utilisé par le désinstallateur pour vider le coffre Windows doit fonctionner.
+          $purge = Start-Process -FilePath (Join-Path $dir 'Quai.exe') -ArgumentList '--purge-secrets' -PassThru -Wait
+          if ($purge.ExitCode -ne 0) { throw "--purge-secrets a échoué (code $($purge.ExitCode))." }
+
+          $uninstall = Start-Process -FilePath (Join-Path $dir 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/PURGE=1' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Désinstallation en échec (code $($uninstall.ExitCode))." }
+
+          # Le désinstallateur termine son nettoyage depuis une copie temporaire : on laisse quelques secondes.
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Test-Path $dir) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
+
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F6C1C0E-5B0E-4F0B-9E57-3C7F2A9D51A4}_is1'
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai.lnk'
+          $left = @()
+          if (Test-Path $dir) { $left += "dossier d'installation ($((Get-ChildItem $dir -Recurse -File | Select-Object -First 5).FullName -join ', '))" }
+          if (Test-Path $key) { $left += 'entrée du registre' }
+          if (Test-Path $shortcut) { $left += 'raccourci du menu Démarrer' }
+          if (Test-Path $data) { $left += 'données utilisateur' }
+          if ($left) { throw "La désinstallation a laissé : $($left -join ' ; ')" }
+          Write-Host 'Désinstallation complète : aucun fichier, raccourci ni entrée de registre restant.'
 
       - uses: actions/upload-artifact@v4
         with:
           name: Quai-${{ matrix.platform }}
-          path: Quai-${{ matrix.platform }}.zip
+          path: |
+            Quai-${{ matrix.platform }}.zip
+            Quai-Setup-${{ matrix.platform }}.exe
           if-no-files-found: error
 
   integration:
@@ -172,5 +250,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: |
+            dist/*.exe
+            dist/*.zip
           generate_release_notes: true
