@@ -84,7 +84,7 @@ jobs:
           $dir = "publish/${{ matrix.platform }}"
           Get-ChildItem $dir | Sort-Object Name | Format-Table Name, Length -AutoSize | Out-String -Width 200
           $required = @(
-            'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll',
+            'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll', 'System.IO.Ports.dll',
             'Microsoft.Terminal.Control.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png', 'Assets/Licenses/Windows-Terminal-LICENSE.txt')
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
@@ -230,7 +230,7 @@ jobs:
           if-no-files-found: error
 
   integration:
-    name: Tests d'intégration SSH (OpenSSH réel)
+    name: Tests d'intégration SSH (OpenSSH réel) et série (socat)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -245,6 +245,12 @@ jobs:
           # Secrets jetables générés à l'instant : masqués dans les journaux.
           grep -E 'PASSWORD|PASSPHRASE' "$RUNNER_TEMP/ssh.env" | cut -d= -f2- | while read -r value; do echo "::add-mask::$value"; done
           cat "$RUNNER_TEMP/ssh.env" >> "$GITHUB_ENV"
+
+      # Ports série virtuels (pseudo-terminaux) pour les tests du terminal série.
+      - name: socat
+        run: |
+          command -v socat || { sudo apt-get update -q && sudo apt-get install -y -q socat; }
+          socat -V | sed -n "1,2p"
 
       - name: Tests (Quai.Core, intégration comprise)
         run: dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
