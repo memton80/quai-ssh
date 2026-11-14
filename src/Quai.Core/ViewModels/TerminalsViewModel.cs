@@ -67,4 +67,7 @@ public sealed partial class TerminalsViewModel : ObservableObject
 
         await tab.DisposeAsync();
     }
+
+    /// <summary>Ferme tous les onglets (fermeture de l'application) : chaque session SSH est déconnectée.</summary>
+    public Task CloseAllAsync() => Task.WhenAll(Tabs.ToList().Select(CloseAsync));
 }

@@ -77,11 +77,17 @@ public sealed class FakeTerminalSession : ITerminalSession
         Closed?.Invoke(error);
     }
 
-    public ValueTask DisposeAsync()
+    /// <summary>Si renseignée, la fermeture attend ce signal (serveur qui ne répond plus).</summary>
+    public TaskCompletionSource? DisposeGate { get; set; }
+
+    public async ValueTask DisposeAsync()
     {
         Disposed = true;
         IsOpen = false;
-        return ValueTask.CompletedTask;
+        if (DisposeGate is { } gate)
+        {
+            await gate.Task;
+        }
     }
 }
 

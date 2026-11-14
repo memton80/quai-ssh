@@ -76,4 +76,7 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
 
         await tab.DisposeAsync();
     }
+
+    /// <summary>Ferme tous les onglets (fermeture de l'application) : transferts interrompus, sessions déconnectées.</summary>
+    public Task CloseAllAsync() => Task.WhenAll(Tabs.ToList().Select(CloseAsync));
 }
