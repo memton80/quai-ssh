@@ -3,16 +3,19 @@ using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Quai.App.Localization;
 using Quai.Core.Services;
 using Quai.Core.ViewModels;
 
 namespace Quai.App.Views;
 
-/// <summary>Terminaux SSH ouverts, un onglet par session.</summary>
+/// <summary>Terminaux ouverts (SSH ou port série), un onglet par session.</summary>
 public sealed partial class TerminalsPage : UserControl
 {
     private const string TerminalGlyph = "";
+    private const string SerialGlyph = "";
     private const string WarningGlyph = "";
+    private const string BreakGlyph = "";
 
     private readonly IShellNavigator _navigator;
 
@@ -38,6 +41,9 @@ public sealed partial class TerminalsPage : UserControl
     internal TerminalView? SelectedTerminal => (Tabs.SelectedItem as TabViewItem)?.Content as TerminalView;
 
     private static FontIconSource Icon(string glyph) => new() { Glyph = glyph };
+
+    private static string GlyphOf(TerminalTabViewModel tab) =>
+        tab.CanReconnect ? WarningGlyph : tab.IsSerial ? SerialGlyph : TerminalGlyph;
 
     private void OnTabsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -71,11 +77,24 @@ public sealed partial class TerminalsPage : UserControl
         var item = new TabViewItem
         {
             Header = tab.Title,
-            IconSource = Icon(TerminalGlyph),
+            IconSource = Icon(GlyphOf(tab)),
             Content = new TerminalView(tab),
             Tag = tab,
         };
         ToolTipService.SetToolTip(item, tab.Endpoint);
+        if (tab.IsSerial)
+        {
+            // Clic droit sur l'onglet (dans le terminal, le clic droit copie ou colle, comme Windows Terminal).
+            var menu = new MenuFlyout();
+            menu.Items.Add(new MenuFlyoutItem
+            {
+                Text = Loc.Get("Terminal_SendBreak"),
+                Command = tab.SendBreakCommand,
+                Icon = new FontIcon { Glyph = BreakGlyph },
+            });
+            item.ContextFlyout = menu;
+        }
+
         tab.PropertyChanged += OnTabPropertyChanged;
         Tabs.TabItems.Add(item);
     }
@@ -116,7 +135,7 @@ public sealed partial class TerminalsPage : UserControl
     {
         if (e.PropertyName == nameof(TerminalTabViewModel.Status) && sender is TerminalTabViewModel tab && FindItem(tab) is { } item)
         {
-            item.IconSource = Icon(tab.CanReconnect ? WarningGlyph : TerminalGlyph);
+            item.IconSource = Icon(GlyphOf(tab));
         }
     }
 

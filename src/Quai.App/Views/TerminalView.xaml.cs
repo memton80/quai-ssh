@@ -22,7 +22,7 @@ namespace Quai.App.Views;
 
 /// <summary>
 /// Un terminal : le moteur natif de Windows Terminal (<c>Microsoft.Terminal.Control.dll</c>), dans une fenêtre
-/// Win32 posée sur la zone que ce contrôle réserve, reliée à la session SSH. Aucun navigateur embarqué.
+/// Win32 posée sur la zone que ce contrôle réserve, reliée à la session (SSH ou port série). Aucun navigateur embarqué.
 /// </summary>
 public sealed partial class TerminalView : UserControl
 {

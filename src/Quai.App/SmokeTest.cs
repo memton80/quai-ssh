@@ -7,6 +7,7 @@ using Quai.App.Services;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Security;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
 using Quai.Core.Storage;
@@ -68,6 +69,7 @@ internal static class SmokeTest
             await ConnectionBookAsync(window, services, directory, report);
             await TerminalAsync(window, services, directory, "terminal", report);
             report.Add("terminal (moteur Windows Terminal) : OK");
+            await SerialTerminalAsync(window, services, directory, report);
             await SftpAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
             await SettingsAsync(window, services, directory, report);
@@ -118,15 +120,21 @@ internal static class SmokeTest
             Tags = ["db"],
         });
         repository.Save(new ConnectionProfile { Name = "Raspberry Pi", Host = "192.168.1.20", Username = "pi", Tags = ["maison"] });
+        repository.Save(SerialProfile());
 
         var viewModel = services.GetRequiredService<ConnectionsViewModel>();
         viewModel.Reload();
         window.NavigateTo(MainWindow.ConnectionsTag);
         await Task.Delay(800);
         await CaptureAsync(window.Root, Path.Combine(directory, "connections-filled.png"));
-        if (viewModel.Connections.Count != 3 || viewModel.Filters.Count < 5)
+        if (viewModel.Connections.Count != 4 || viewModel.Filters.Count < 5)
         {
             throw new InvalidOperationException("Le carnet n'affiche pas les connexions d'exemple.");
+        }
+
+        if (viewModel.Connections.SingleOrDefault(c => c.IsSerial) is not { SupportsSftp: false, Endpoint: "COM3 · 115200 8N1" })
+        {
+            throw new InvalidOperationException("La connexion série n'apparaît pas correctement dans le carnet.");
         }
 
         report.Add("carnet rempli : OK");
@@ -143,6 +151,80 @@ internal static class SmokeTest
         dialog.Hide();
         await pending;
         report.Add("fiche de connexion : OK");
+
+        // Fiche d'une connexion série : ports détectés proposés, paramètres de la liaison.
+        var serialEditor = new ConnectionEditorViewModel(
+            services.GetRequiredService<IStrings>(),
+            repository.GetAll().Single(p => p.IsSerial),
+            viewModel.GetKnownFolders(),
+            serialPorts: services.GetRequiredService<ISerialPortCatalog>());
+        pending = dialogs.EditConnectionAsync(serialEditor);
+        await Task.Delay(1200);
+        dialog = dialogs.Current ?? throw new InvalidOperationException("La fiche de la connexion série ne s'est pas ouverte.");
+        await CaptureAsync(dialog, Path.Combine(directory, "connection-editor-serial.png"));
+        dialog.Hide();
+        await pending;
+        if (!serialEditor.IsSerial || serialEditor.SerialPorts.Count != SmokeSessionFactory.SerialPorts.Count || serialEditor.SerialPortName != "COM3")
+        {
+            throw new InvalidOperationException("La fiche de la connexion série est incomplète (type, ports détectés ou port choisi).");
+        }
+
+        report.Add("fiche de connexion série : OK");
+    }
+
+    private static ConnectionProfile SerialProfile() => new()
+    {
+        Name = "Console du routeur",
+        Protocol = ConnectionProtocol.Serial,
+        Serial = new SerialSettings { PortName = "COM3", BaudRate = 115200 },
+        Folder = "Atelier",
+        Tags = ["console"],
+    };
+
+    /// <summary>
+    /// Onglet relié à un port série de démonstration : bannière de l'appareil, saisie renvoyée en écho,
+    /// et signal « break » (commande de l'onglet) auquel l'appareil répond.
+    /// </summary>
+    private static async Task SerialTerminalAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var terminals = services.GetRequiredService<TerminalsViewModel>();
+        services.GetRequiredService<ISessionLauncher>().OpenTerminal(SerialProfile());
+        var tab = terminals.SelectedTab ?? throw new InvalidOperationException("Aucun onglet de terminal série n'a été créé.");
+        await WaitUntilAsync(
+            () => Task.FromResult(tab.IsConnected),
+            TimeSpan.FromSeconds(60),
+            "Le terminal série ne s'est pas ouvert.");
+
+        var page = window.FindPage(MainWindow.TerminalsTag) as Views.TerminalsPage
+            ?? throw new InvalidOperationException("Page des terminaux introuvable.");
+        var view = page.SelectedTerminal ?? throw new InvalidOperationException("Vue du terminal série introuvable.");
+
+        view.TypeForTest("show version\r");
+        if (!tab.CanSendBreak || !tab.SendBreakCommand.CanExecute(null))
+        {
+            throw new InvalidOperationException("Le signal « break » n'est pas proposé sur l'onglet série.");
+        }
+
+        tab.SendBreakCommand.Execute(null);
+        var screen = string.Empty;
+        await WaitUntilAsync(
+            () => Task.FromResult((screen = view.ReadScreenText()).Contains(SmokeSessionFactory.SerialBanner, StringComparison.Ordinal)
+                && screen.Contains("show version", StringComparison.Ordinal)
+                && screen.Contains(SmokeSessionFactory.BreakAnswer, StringComparison.Ordinal)),
+            TimeSpan.FromSeconds(20),
+            "La sortie du port série (bannière, écho, réponse au break) n'apparaît pas dans le terminal.");
+        await File.WriteAllTextAsync(Path.Combine(directory, "terminal-serial-text.txt"), screen);
+
+        await Task.Delay(500);
+        await ScreenCapture.SaveAsync(WinRT.Interop.WindowNative.GetWindowHandle(window), Path.Combine(directory, "terminal-serial-tab.png"));
+
+        await terminals.CloseAsync(tab);
+        if (!terminals.IsEmpty)
+        {
+            throw new InvalidOperationException("L'onglet du terminal série ne s'est pas fermé.");
+        }
+
+        report.Add("terminal série (écho, signal break) : OK");
     }
 
     /// <summary>
