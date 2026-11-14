@@ -15,6 +15,8 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
     /// <summary>Version « publiée » du test de fumée, forcément plus récente : le bandeau doit apparaître.</summary>
     public const string ReleaseTag = "v99.0.0";
 
+    private int _liveSessions;
+
     public const string Banner = "Quai - terminal de test";
 
     public Task<ITerminalSession> OpenTerminalAsync(
@@ -22,13 +24,23 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
         int columns,
         int rows,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult<ITerminalSession>(new EchoSession(profile, columns, rows));
+        Task.FromResult<ITerminalSession>(new EchoSession(profile, columns, rows, Track()));
 
     public Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default) =>
-        Task.FromResult<ISftpSession>(new DemoSftpSession());
+        Task.FromResult<ISftpSession>(new DemoSftpSession(Track()));
+
+    /// <summary>Sessions de démonstration ouvertes et pas encore fermées (test de la fermeture de l'application).</summary>
+    public int LiveSessions => Volatile.Read(ref _liveSessions);
+
+    /// <summary>Compte une session ouverte ; l'action retournée la décompte à sa fermeture.</summary>
+    private Action Track()
+    {
+        Interlocked.Increment(ref _liveSessions);
+        return () => Interlocked.Decrement(ref _liveSessions);
+    }
 
     /// <summary>Petit serveur de fichiers en mémoire : de quoi remplir le panneau distant et simuler un transfert.</summary>
-    private sealed class DemoSftpSession : ISftpSession
+    private sealed class DemoSftpSession(Action onClosed) : ISftpSession
     {
         private const string Home = "/home/quai";
         private static readonly DateTime Stamp = new(2026, 11, 2, 9, 41, 0, DateTimeKind.Local);
@@ -92,6 +104,7 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
             if (IsConnected)
             {
                 IsConnected = false;
+                onClosed();
                 Closed?.Invoke(null);
             }
 
@@ -99,7 +112,7 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
         }
     }
 
-    private sealed class EchoSession(ConnectionProfile profile, int columns, int rows) : ITerminalSession
+    private sealed class EchoSession(ConnectionProfile profile, int columns, int rows, Action onClosed) : ITerminalSession
     {
         public event Action<byte[]>? DataReceived;
 
@@ -123,6 +136,7 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
             if (IsOpen)
             {
                 IsOpen = false;
+                onClosed();
                 Closed?.Invoke(null);
             }
 

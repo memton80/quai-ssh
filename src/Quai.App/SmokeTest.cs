@@ -344,6 +344,9 @@ internal static class SmokeTest
         var profile = new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" };
         var sftp = services.GetRequiredService<SftpSessionsViewModel>();
         var terminals = services.GetRequiredService<TerminalsViewModel>();
+        var factory = services.GetRequiredService<ISshSessionFactory>() as SmokeSessionFactory
+            ?? throw new InvalidOperationException("Le test de fumée doit utiliser les sessions de démonstration.");
+        var liveBefore = factory.LiveSessions;
 
         launcher.OpenSftp(profile);
         var browser = sftp.SelectedTab ?? throw new InvalidOperationException("Aucun onglet SFTP n'a été créé.");
@@ -367,15 +370,16 @@ internal static class SmokeTest
         dialog.Hide();
         await WaitUntilAsync(() => Task.FromResult(dialogs.Current is null), TimeSpan.FromSeconds(10), "La confirmation ne se ferme pas.");
         await Task.Delay(500);
-        if (!terminal.IsConnected || !browser.IsConnected)
+        if (!terminal.IsConnected || !browser.IsConnected || factory.LiveSessions != liveBefore + 2)
         {
             throw new InvalidOperationException("« Annuler » à la fermeture a quand même coupé des sessions.");
         }
 
         var closed = await services.GetRequiredService<AppShutdown>().CloseAllAsync(TimeSpan.FromSeconds(10));
-        if (!closed || !terminals.IsEmpty || !sftp.IsEmpty || browser.IsConnected)
+        if (!closed || !terminals.IsEmpty || !sftp.IsEmpty || factory.LiveSessions != liveBefore)
         {
-            throw new InvalidOperationException("La fermeture groupée n'a pas déconnecté toutes les sessions.");
+            throw new InvalidOperationException(
+                $"La fermeture groupée n'a pas tout fermé (délai tenu : {closed}, sessions encore ouvertes : {factory.LiveSessions - liveBefore}).");
         }
 
         report.Add("fermeture : confirmation, annulation, déconnexion de toutes les sessions : OK");
