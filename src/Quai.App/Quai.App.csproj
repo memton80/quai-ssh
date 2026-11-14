@@ -18,8 +18,19 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
-    <PublishTrimmed>false</PublishTrimmed>
     <PublishSingleFile>false</PublishSingleFile>
+
+    <!--
+      Réduction à la publication (trimming) : le code .NET jamais appelé est retiré des bibliothèques déclarées
+      compatibles (runtime .NET, projection C# du SDK Windows, WinUI, SSH.NET, Serilog…). Mode « partial » : les
+      bibliothèques non déclarées compatibles (BouncyCastle, Community Toolkit) restent entières, car la
+      cryptographie SSH n'est pas exercée par le test de fumée.
+    -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <!-- Fonctions du runtime inutiles ici : traçage EventSource, propagation d'activité HTTP. -->
+    <EventSourceSupport>false</EventSourceSupport>
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
   </PropertyGroup>
 
   <!-- Permet un simple `dotnet build` sans préciser -r : le RID suit la plateforme. -->
