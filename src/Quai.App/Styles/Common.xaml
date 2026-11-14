@@ -7,6 +7,9 @@
     <Thickness x:Key="PagePadding">24,16,24,24</Thickness>
     <x:Double x:Key="PageSpacing">16</x:Double>
 
+    <!-- Marge entre le bord de l'onglet et le texte du terminal (même couleur de fond que celui-ci). -->
+    <Thickness x:Key="TerminalPadding">8,6,4,6</Thickness>
+
     <Style
         x:Key="PageTitleStyle"
         BasedOn="{StaticResource TitleTextBlockStyle}"

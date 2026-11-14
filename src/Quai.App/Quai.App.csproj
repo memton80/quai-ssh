@@ -41,11 +41,32 @@
     <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
 
+  <!--
+    Terminal : moteur natif de Windows Terminal (Microsoft.Terminal.Control.dll, rendu DirectWrite / Direct3D).
+    Le paquet contient aussi une enveloppe WPF : il est seulement téléchargé (PackageDownload), jamais référencé,
+    sinon il ferait embarquer WPF ; seule la DLL native de l'architecture publiée est copiée à côté de Quai.exe.
+  -->
+  <ItemGroup>
+    <PackageDownload Include="CI.Microsoft.Terminal.Wpf" Version="[$(TerminalControlPackageVersion)]" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TerminalControlDll>$(NuGetPackageRoot)ci.microsoft.terminal.wpf\$(TerminalControlPackageVersion)\runtimes\$(RuntimeIdentifier)\native\Microsoft.Terminal.Control.dll</TerminalControlDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(TerminalControlDll)" Link="Microsoft.Terminal.Control.dll" Visible="false">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+  <Target Name="CheckTerminalControlDll" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(TerminalControlDll)')" Text="Moteur de terminal introuvable : $(TerminalControlDll)" />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\Quai.Core\Quai.Core.csproj" />
   </ItemGroup>
 
-  <!-- Les fichiers d'Assets sont copiés tels quels à côté de l'exécutable (icône, page du terminal). -->
+  <!-- Les fichiers d'Assets sont copiés tels quels à côté de l'exécutable (icône, licences). -->
   <PropertyGroup>
     <EnableDefaultAssets>false</EnableDefaultAssets>
   </PropertyGroup>

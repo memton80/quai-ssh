@@ -23,18 +23,41 @@
                 </InfoBar.ActionButton>
             </InfoBar>
 
-            <!-- Composant WebView2 manquant ou inutilisable. -->
+            <!-- Moteur de terminal (Microsoft.Terminal.Control.dll) absent ou inutilisable. -->
             <InfoBar
-                x:Name="WebViewError"
-                Title="{l:Str Key=Terminal_WebViewErrorTitle}"
+                x:Name="EngineError"
+                Title="{l:Str Key=Terminal_EngineErrorTitle}"
                 IsClosable="False"
                 IsOpen="False"
                 Severity="Error" />
         </StackPanel>
 
-        <WebView2
-            x:Name="WebView"
+        <!--
+            Zone du terminal : la fenêtre native du moteur de Windows Terminal est posée exactement sur
+            TerminalHost ; la marge autour prend la couleur de fond du terminal.
+        -->
+        <Grid
+            x:Name="TerminalArea"
             Grid.Row="1"
-            AutomationProperties.Name="{l:Str Key=Terminal_AutomationName}" />
+            PointerPressed="OnAreaPointerPressed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                x:Name="TerminalHost"
+                Margin="{StaticResource TerminalPadding}"
+                AutomationProperties.Name="{l:Str Key=Terminal_AutomationName}" />
+
+            <ScrollBar
+                x:Name="HistoryScrollBar"
+                Grid.Column="1"
+                AutomationProperties.Name="{l:Str Key=Terminal_ScrollBarName}"
+                IndicatorMode="MouseIndicator"
+                IsEnabled="False"
+                Orientation="Vertical"
+                Scroll="OnScrollBarScroll" />
+        </Grid>
     </Grid>
 </UserControl>

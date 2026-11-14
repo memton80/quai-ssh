@@ -7,7 +7,7 @@ namespace Quai.App.Services;
 
 /// <summary>
 /// Session de démonstration du test de fumée : aucun réseau, une bannière puis l'écho de la saisie.
-/// Permet de vérifier sur le CI toute la chaîne WebView2 / xterm.js sans serveur SSH.
+/// Permet de vérifier sur le CI toute la chaîne du terminal (moteur Windows Terminal) sans serveur SSH.
 /// </summary>
 internal sealed class SmokeSessionFactory : ISshSessionFactory
 {

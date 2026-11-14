@@ -65,8 +65,8 @@ internal static class SmokeTest
             }
 
             await ConnectionBookAsync(window, services, directory, report);
-            await TerminalAsync(window, services, directory, "terminal");
-            report.Add("terminal (WebView2 + xterm.js) : OK");
+            await TerminalAsync(window, services, directory, "terminal", report);
+            report.Add("terminal (moteur Windows Terminal) : OK");
             await SftpAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
             await SettingsAsync(window, services, directory, report);
@@ -143,37 +143,70 @@ internal static class SmokeTest
     }
 
     /// <summary>
-    /// Onglet de terminal relié à une session de démonstration : valide WebView2, le chargement local de
-    /// xterm.js, les messages dans les deux sens et l'affichage.
+    /// Onglet de terminal relié à une session de démonstration : valide le chargement du moteur natif de
+    /// Windows Terminal, la saisie au clavier, l'affichage, et l'effacement de sa fenêtre derrière un dialogue
+    /// ou quand on change de page.
     /// </summary>
-    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, string captureName)
+    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, string captureName, List<string> report)
     {
         var terminals = services.GetRequiredService<TerminalsViewModel>();
         services.GetRequiredService<ISessionLauncher>().OpenTerminal(
             new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" });
         var tab = terminals.SelectedTab ?? throw new InvalidOperationException("Aucun onglet de terminal n'a été créé.");
 
-        // La connexion ne démarre qu'à l'annonce « ready » de la page : l'état connecté prouve le dialogue page -> app.
+        // La connexion ne démarre qu'une fois le moteur créé, affiché et dimensionné.
         await WaitUntilAsync(
             () => Task.FromResult(tab.IsConnected),
             TimeSpan.FromSeconds(60),
-            "Le terminal ne s'est pas initialisé (WebView2 / xterm.js).");
+            "Le terminal ne s'est pas initialisé (moteur Windows Terminal).");
 
         var page = window.FindPage(MainWindow.TerminalsTag) as Views.TerminalsPage
             ?? throw new InvalidOperationException("Page des terminaux introuvable.");
         var view = page.SelectedTerminal ?? throw new InvalidOperationException("Vue du terminal introuvable.");
 
-        tab.SendInput("echo quai\r");
+        // Frappe comme au clavier : messages Windows -> moteur -> session -> écho -> moteur.
+        view.TypeForTest("echo quai\r");
         var screen = string.Empty;
         await WaitUntilAsync(
-            async () => (screen = await view.ReadScreenTextAsync()).Contains(SmokeSessionFactory.Banner, StringComparison.Ordinal)
-                && screen.Contains("echo quai", StringComparison.Ordinal),
+            () => Task.FromResult((screen = view.ReadScreenText()).Contains(SmokeSessionFactory.Banner, StringComparison.Ordinal)
+                && screen.Contains("echo quai", StringComparison.Ordinal)),
             TimeSpan.FromSeconds(20),
-            "La sortie de la session n'apparaît pas dans xterm.js.");
+            "La sortie de la session n'apparaît pas dans le terminal.");
+        await File.WriteAllTextAsync(Path.Combine(directory, $"{captureName}-text.txt"), screen);
 
         await Task.Delay(500);
-        await CaptureAsync(window.Root, Path.Combine(directory, $"{captureName}-tab.png"));
-        await view.CapturePreviewAsync(Path.Combine(directory, $"{captureName}.png"));
+        var windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, $"{captureName}-tab.png"));
+        var colors = await ScreenCapture.SaveAsync(view.TerminalWindowForTest, Path.Combine(directory, $"{captureName}.png"));
+        report.Add($"rendu du terminal ({captureName}) : {colors} couleur(s) à l'écran");
+
+        // La fenêtre native passe derrière les dialogues…
+        var dialogs = services.GetRequiredService<DialogService>();
+        var pending = dialogs.ShowErrorAsync("Test de fumée", "Le terminal doit s'effacer derrière ce dialogue.");
+        await WaitUntilAsync(
+            () => Task.FromResult(dialogs.Current is not null && !view.IsTerminalShown),
+            TimeSpan.FromSeconds(10),
+            "Le terminal reste affiché par-dessus un dialogue.");
+        await Task.Delay(600);
+        await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, $"{captureName}-dialog.png"));
+        dialogs.Current?.Hide();
+        await pending;
+        await WaitUntilAsync(
+            () => Task.FromResult(view.IsTerminalShown),
+            TimeSpan.FromSeconds(10),
+            "Le terminal ne réapparaît pas après la fermeture du dialogue.");
+
+        // … et disparaît avec sa page.
+        window.NavigateTo(MainWindow.ConnectionsTag);
+        await WaitUntilAsync(
+            () => Task.FromResult(!view.IsTerminalShown),
+            TimeSpan.FromSeconds(10),
+            "Le terminal reste affiché sur une autre page.");
+        window.NavigateTo(MainWindow.TerminalsTag);
+        await WaitUntilAsync(
+            () => Task.FromResult(view.IsTerminalShown),
+            TimeSpan.FromSeconds(10),
+            "Le terminal ne réapparaît pas en revenant sur sa page.");
 
         await terminals.CloseAsync(tab);
         if (!terminals.IsEmpty)
@@ -264,7 +297,7 @@ internal static class SmokeTest
             throw new InvalidOperationException("Les réglages n'ont pas été enregistrés.");
         }
 
-        await TerminalAsync(window, services, directory, "terminal-dark");
+        await TerminalAsync(window, services, directory, "terminal-dark", report);
 
         settings.Update(s =>
         {

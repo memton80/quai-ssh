@@ -89,7 +89,8 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; Cache du navigateur embarqué et journaux : jamais conservés (ce ne sont pas des données de l'utilisateur).
+; Journaux (et cache de l'ancien terminal WebView2 des premières versions de développement) :
+; jamais conservés, ce ne sont pas des données de l'utilisateur.
 Type: filesandordirs; Name: "{localappdata}\{#AppName}\WebView2"
 Type: filesandordirs; Name: "{localappdata}\{#AppName}\logs"
 Type: dirifempty; Name: "{localappdata}\{#AppName}"

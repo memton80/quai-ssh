@@ -1,60 +1,102 @@
-using System.Text.Json;
+using System.ComponentModel;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Web.WebView2.Core;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Quai.App.Localization;
+using Quai.App.Terminal;
+using Quai.Core.Models;
 using Quai.Core.Storage;
+using Quai.Core.Terminal;
 using Quai.Core.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage.Streams;
+using Windows.Foundation;
+using static Quai.App.NativeMethods;
 
 namespace Quai.App.Views;
 
 /// <summary>
-/// Un terminal : xterm.js hébergé dans WebView2 (fichiers locaux <c>Assets/Terminal</c>, aucun accès réseau),
-/// relié à la session SSH par des messages JSON.
+/// Un terminal : le moteur natif de Windows Terminal (<c>Microsoft.Terminal.Control.dll</c>), dans une fenêtre
+/// Win32 posée sur la zone que ce contrôle réserve, reliée à la session SSH. Aucun navigateur embarqué.
 /// </summary>
 public sealed partial class TerminalView : UserControl
 {
-    // Hôte virtuel servi depuis le dossier local ; le domaine « .example » est réservé et ne résout jamais.
-    private const string HostName = "terminal.quai.example";
+    // Fenêtre qui porte le contenu XAML à l'intérieur de la fenêtre principale.
+    private const string XamlBridgeClass = "Microsoft.UI.Content.DesktopChildSiteBridge";
+
+    // Polices de repli toujours ajoutées après celle des réglages.
+    private static readonly string[] FallbackFonts = [AppSettings.DefaultTerminalFontFamily, "Consolas"];
+
     private readonly ISettingsService _settings;
+    private readonly ILogger _logger;
     private readonly MemoryStream _pending = new();
     private readonly Lock _pendingGate = new();
+    private readonly Decoder _decoder = Encoding.UTF8.GetDecoder();
+    private readonly TerminalModeTracker _modes = new();
+    private readonly DispatcherQueueTimer _overlayTimer;
+    private NativeTerminal? _native;
+    private Window? _window;
+    private XamlRoot? _xamlRoot;
+    private IntPtr _windowHandle;
+    private IntPtr _bridgeHandle;
+    private int _dpi;
+    private bool _attached;
     private bool _flushQueued;
-    private bool _initializing;
-    private bool _ready;
-    private bool _closed;
+    private bool _scrollQueued;
+    private volatile bool _failed;
+    private volatile bool _closed;
+    private bool _connectRequested;
+    private bool _focusWhenShown;
+    private bool _restoreFocus;
+    private (int Top, int Height, int Size) _scroll;
 
     public TerminalView(TerminalTabViewModel viewModel)
     {
         ViewModel = viewModel;
-        _settings = App.Current.Services.GetRequiredService<ISettingsService>();
+        var services = App.Current.Services;
+        _settings = services.GetRequiredService<ISettingsService>();
+        _logger = services.GetRequiredService<ILogger<TerminalView>>();
         InitializeComponent();
 
+        // Une fois un menu ou une info-bulle ouvert, sa fermeture ne relance pas toujours la mise en page.
+        _overlayTimer = DispatcherQueue.CreateTimer();
+        _overlayTimer.Interval = TimeSpan.FromMilliseconds(150);
+        _overlayTimer.Tick += (_, _) => UpdatePlacement();
+
         ViewModel.Output += OnOutput;
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         _settings.Changed += OnSettingsChanged;
+        TerminalAirspace.Changed += UpdatePlacement;
         Loaded += OnLoaded;
-        ActualThemeChanged += (_, _) => SendOptions();
+        Unloaded += OnUnloaded;
+        ActualThemeChanged += (_, _) => ApplyAppearance();
+        UpdateBackground();
     }
 
     public TerminalTabViewModel ViewModel { get; }
 
-    /// <summary>La page xterm.js est chargée et a annoncé sa taille.</summary>
-    public bool IsReady => _ready;
+    /// <summary>La fenêtre du terminal est affichée (test de fumée).</summary>
+    internal bool IsTerminalShown => _native?.IsShown == true;
 
-    /// <summary>Donne le focus clavier au terminal.</summary>
+    /// <summary>Donne le focus clavier au terminal, dès qu'il est affiché.</summary>
     public void FocusTerminal()
     {
-        if (_ready && !_closed)
+        if (_native is { IsShown: true } native)
         {
-            WebView.Focus(FocusState.Programmatic);
-            Post("{\"type\":\"focus\"}");
+            native.Focus();
+        }
+        else
+        {
+            _focusWhenShown = true;
         }
     }
 
-    /// <summary>Libère le navigateur embarqué (onglet fermé).</summary>
+    /// <summary>Libère le moteur et sa fenêtre (onglet fermé).</summary>
     public void Close()
     {
         if (_closed)
@@ -64,146 +106,383 @@ public sealed partial class TerminalView : UserControl
 
         _closed = true;
         ViewModel.Output -= OnOutput;
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _settings.Changed -= OnSettingsChanged;
-        try
-        {
-            WebView.Close();
-        }
-        catch (Exception)
-        {
-            // Déjà fermé.
-        }
+        TerminalAirspace.Changed -= UpdatePlacement;
+        Detach();
+        _native?.Dispose();
+        _native = null;
     }
 
-    /// <summary>Capture du contenu du terminal (test de fumée).</summary>
-    internal async Task CapturePreviewAsync(string path)
-    {
-        using var stream = new InMemoryRandomAccessStream();
-        await WebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
-        stream.Seek(0);
-        await using var file = File.Create(path);
-        await stream.AsStreamForRead().CopyToAsync(file);
-    }
+    /// <summary>Test de fumée : fenêtre native du terminal (capture d'écran).</summary>
+    internal IntPtr TerminalWindowForTest => _native?.Handle ?? IntPtr.Zero;
 
-    /// <summary>Texte actuellement affiché par xterm.js (test de fumée).</summary>
-    internal async Task<string> ReadScreenTextAsync()
-    {
-        var json = await WebView.CoreWebView2.ExecuteScriptAsync(
-            "(document.querySelector('.xterm-rows') || document.body).textContent");
-        return JsonSerializer.Deserialize<string>(json) ?? string.Empty;
-    }
+    /// <summary>Test de fumée : frappe du texte comme au clavier.</summary>
+    internal void TypeForTest(string text) => _native?.TypeForTest(text);
 
-    private static string ThemeName(ElementTheme theme) => theme == ElementTheme.Light ? "light" : "dark";
+    /// <summary>Test de fumée : texte actuellement affiché par le terminal.</summary>
+    internal string ReadScreenText() => _native?.ReadVisibleTextForTest() ?? string.Empty;
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_initializing || _closed)
+        if (_closed)
         {
             return;
         }
 
-        _initializing = true;
+        EnsureTerminal();
+        if (!_attached)
+        {
+            _attached = true;
+            LayoutUpdated += OnLayoutUpdated;
+            _xamlRoot = XamlRoot;
+            if (_xamlRoot is not null)
+            {
+                _xamlRoot.Changed += OnXamlRootChanged;
+            }
+
+            _window = App.Current.MainWindow;
+            if (_window is not null)
+            {
+                _window.Activated += OnWindowActivated;
+            }
+        }
+
+        UpdatePlacement();
+    }
+
+    /// <summary>Onglet désélectionné ou retiré : le terminal est masqué, sa session et son historique restent.</summary>
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        Detach();
+        _native?.Hide();
+    }
+
+    private void Detach()
+    {
+        if (!_attached)
+        {
+            return;
+        }
+
+        _attached = false;
+        LayoutUpdated -= OnLayoutUpdated;
+        if (_xamlRoot is not null)
+        {
+            _xamlRoot.Changed -= OnXamlRootChanged;
+            _xamlRoot = null;
+        }
+
+        if (_window is not null)
+        {
+            _window.Activated -= OnWindowActivated;
+            _window = null;
+        }
+
+        _overlayTimer.Stop();
+    }
+
+    private void EnsureTerminal()
+    {
+        if (_native is not null || _failed || App.Current.MainWindow is not { } window)
+        {
+            return;
+        }
+
+        NativeTerminal native;
         try
         {
-            await InitializeAsync();
+            _windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
+            native = NativeTerminal.Create(_windowHandle, _logger);
         }
         catch (Exception ex)
         {
-            // Typiquement : WebView2 Runtime absent (Windows 10 sans Edge à jour).
-            WebViewError.Message = Loc.Format("Terminal_WebViewErrorMessage", ex.Message);
-            WebViewError.IsOpen = true;
+            // DLL absente ou incompatible, ou fenêtre impossible à créer.
+            _failed = true;
+            _logger.LogError(ex, "Le moteur de terminal n'a pas pu démarrer");
+            EngineError.Message = Loc.Format("Terminal_EngineErrorMessage", ex.Message);
+            EngineError.IsOpen = true;
+            lock (_pendingGate)
+            {
+                _pending.SetLength(0);
+            }
+
+            return;
+        }
+
+        native.IsMouseTrackingActive = () => _modes.MouseTracking;
+        native.Input += text => ViewModel.SendInput(text);
+        native.Resized += (columns, rows) => ViewModel.Resize(columns, rows);
+        native.Scrolled += OnTerminalScrolled;
+        native.CopyRequested += CopySelection;
+        native.PasteRequested += () => _ = PasteAsync();
+        native.FocusChanged += OnTerminalFocusChanged;
+        _native = native;
+        ApplyAppearance();
+    }
+
+    private void OnLayoutUpdated(object? sender, object e) => UpdatePlacement();
+
+    /// <summary>
+    /// Pose la fenêtre du terminal sur <see cref="TerminalHost"/> (pixels physiques), la masque si la zone n'est
+    /// pas visible ou si un dialogue recouvre la fenêtre, et découpe les menus et info-bulles ouverts par-dessus.
+    /// </summary>
+    private void UpdatePlacement()
+    {
+        if (_native is not { } native || _closed)
+        {
+            return;
+        }
+
+        if (!_attached || XamlRoot is not { } root || TerminalAirspace.IsModalOpen
+            || TerminalHost.ActualWidth < 1 || TerminalHost.ActualHeight < 1 || !IsEffectivelyVisible(TerminalHost))
+        {
+            _overlayTimer.Stop();
+            HideKeepingFocus(native);
+            return;
+        }
+
+        var scale = root.RasterizationScale;
+        var origin = XamlOrigin();
+        var area = ToPixels(
+            TerminalHost.TransformToVisual(null).TransformBounds(new Rect(0, 0, TerminalHost.ActualWidth, TerminalHost.ActualHeight)),
+            scale,
+            origin);
+
+        var covered = new List<RECT>();
+        var hidden = false;
+        var overlays = false;
+        foreach (var bounds in OverlayBounds(root))
+        {
+            overlays = true;
+            var rect = ToPixels(bounds, scale, origin);
+            if (rect.Left < area.Right && rect.Right > area.Left && rect.Top < area.Bottom && rect.Bottom > area.Top)
+            {
+                covered.Add(rect);
+                hidden |= rect.Left <= area.Left && rect.Top <= area.Top && rect.Right >= area.Right && rect.Bottom >= area.Bottom;
+            }
+        }
+
+        if (overlays && !_overlayTimer.IsRunning)
+        {
+            _overlayTimer.Start();
+        }
+        else if (!overlays)
+        {
+            _overlayTimer.Stop();
+        }
+
+        if (hidden)
+        {
+            HideKeepingFocus(native);
+            return;
+        }
+
+        native.Show(area.Left, area.Top, area.Right - area.Left, area.Bottom - area.Top, covered);
+
+        if (!_connectRequested && native.Columns > 0)
+        {
+            // Le terminal connaît sa taille réelle : la session peut s'ouvrir avec les bonnes dimensions.
+            _connectRequested = true;
+            FlushPending();
+            _ = ViewModel.ConnectAsync(native.Columns, native.Rows);
+        }
+
+        if (_focusWhenShown)
+        {
+            _focusWhenShown = false;
+            native.Focus();
         }
     }
 
-    private async Task InitializeAsync()
+    /// <summary>Masqué alors qu'il avait le focus (dialogue ouvert par-dessus) : il le retrouvera en réapparaissant.</summary>
+    private void HideKeepingFocus(NativeTerminal native)
     {
-        WebView.DefaultBackgroundColor = ActualTheme == ElementTheme.Light
-            ? Windows.UI.Color.FromArgb(255, 0xFA, 0xFA, 0xFA)
-            : Windows.UI.Color.FromArgb(255, 0x0C, 0x0C, 0x0C);
-
-        await WebView.EnsureCoreWebView2Async();
-        var core = WebView.CoreWebView2;
-
-        var settings = core.Settings;
-        settings.AreDevToolsEnabled = false;
-        settings.AreDefaultContextMenusEnabled = false;
-        settings.AreBrowserAcceleratorKeysEnabled = false;
-        settings.IsStatusBarEnabled = false;
-        settings.IsZoomControlEnabled = false;
-        settings.IsPasswordAutosaveEnabled = false;
-        settings.IsGeneralAutofillEnabled = false;
-        settings.AreHostObjectsAllowed = false;
-        settings.IsWebMessageEnabled = true;
-
-        // La page ne peut ni naviguer ailleurs ni ouvrir de fenêtre.
-        core.NavigationStarting += (_, args) =>
+        if (native.HasFocus)
         {
-            if (!args.Uri.StartsWith($"https://{HostName}/", StringComparison.OrdinalIgnoreCase))
-            {
-                args.Cancel = true;
-            }
-        };
-        core.NewWindowRequested += (_, args) => args.Handled = true;
-        core.WebMessageReceived += OnWebMessageReceived;
+            _focusWhenShown = true;
+        }
 
-        core.SetVirtualHostNameToFolderMapping(
-            HostName,
-            Path.Combine(AppContext.BaseDirectory, "Assets", "Terminal"),
-            CoreWebView2HostResourceAccessKind.DenyCors);
+        native.Hide();
+    }
+
+    private static IEnumerable<Rect> OverlayBounds(XamlRoot root)
+    {
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root))
+        {
+            if (popup.Child is FrameworkElement { ActualWidth: > 0, ActualHeight: > 0 } child)
+            {
+                yield return child.TransformToVisual(null).TransformBounds(new Rect(0, 0, child.ActualWidth, child.ActualHeight));
+            }
+        }
+
+        foreach (var bounds in TerminalAirspace.Overlays())
+        {
+            yield return bounds;
+        }
+    }
+
+    private static bool IsEffectivelyVisible(UIElement element)
+    {
+        for (DependencyObject? current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is UIElement { Visibility: Visibility.Collapsed } or UIElement { Opacity: <= 0 })
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Position du contenu XAML dans la zone cliente de la fenêtre principale.</summary>
+    private POINT XamlOrigin()
+    {
+        if (_bridgeHandle == IntPtr.Zero)
+        {
+            _bridgeHandle = FindWindowExW(_windowHandle, IntPtr.Zero, XamlBridgeClass, null);
+        }
+
+        var origin = default(POINT);
+        if (_bridgeHandle != IntPtr.Zero)
+        {
+            MapWindowPoints(_bridgeHandle, _windowHandle, ref origin, 1);
+        }
+
+        return origin;
+    }
+
+    private static RECT ToPixels(Rect bounds, double scale, POINT origin) => new()
+    {
+        Left = origin.X + (int)Math.Round(bounds.Left * scale),
+        Top = origin.Y + (int)Math.Round(bounds.Top * scale),
+        Right = origin.X + (int)Math.Round(bounds.Right * scale),
+        Bottom = origin.Y + (int)Math.Round(bounds.Bottom * scale),
+    };
+
+    /// <summary>Changement d'écran ou d'échelle : le moteur reçoit la nouvelle résolution.</summary>
+    private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
+    {
+        if (CurrentDpi() != _dpi)
+        {
+            ApplyAppearance();
+        }
+
+        UpdatePlacement();
+    }
+
+    private int CurrentDpi() => XamlRoot is { } root
+        ? (int)Math.Round(root.RasterizationScale * 96)
+        : (int)GetDpiForWindow(_windowHandle);
+
+    /// <summary>Thème, police et taille du terminal (réglages), appliqués à chaud.</summary>
+    private void ApplyAppearance()
+    {
+        UpdateBackground();
+        if (_native is null || _closed)
+        {
+            return;
+        }
 
         var appearance = _settings.Current;
-        var query = $"theme={ThemeName(ActualTheme)}&fontSize={appearance.TerminalFontSize}&fontFamily={Uri.EscapeDataString(appearance.TerminalFontFamily)}";
-        WebView.Source = new Uri($"https://{HostName}/terminal.html?{query}");
+        _dpi = CurrentDpi();
+        _native.SetAppearance(
+            TerminalPalette.For(ActualTheme),
+            FontList(appearance.TerminalFontFamily),
+            appearance.TerminalFontSize,
+            _dpi);
     }
 
-    private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+    /// <summary>La police choisie, puis des polices de repli à chasse fixe présentes sur Windows.</summary>
+    private static string FontList(string family)
     {
-        try
+        var fonts = family.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        foreach (var fallback in FallbackFonts)
         {
-            using var document = JsonDocument.Parse(args.WebMessageAsJson);
-            var message = document.RootElement;
-            switch (message.GetProperty("type").GetString())
+            if (!fonts.Contains(fallback, StringComparer.OrdinalIgnoreCase))
             {
-                case "ready":
-                    _ready = true;
-                    FlushPending();
-                    _ = ViewModel.ConnectAsync(message.GetProperty("cols").GetInt32(), message.GetProperty("rows").GetInt32());
-                    break;
-                case "input":
-                    ViewModel.SendInput(message.GetProperty("data").GetString());
-                    break;
-                case "binary":
-                    ViewModel.SendBinary(message.GetProperty("data").GetString());
-                    break;
-                case "resize":
-                    ViewModel.Resize(message.GetProperty("cols").GetInt32(), message.GetProperty("rows").GetInt32());
-                    break;
-                case "copy":
-                    Copy(message.GetProperty("text").GetString());
-                    break;
-                case "paste":
-                    _ = PasteAsync();
-                    break;
-                default:
-                    break;
+                fonts.Add(fallback);
             }
         }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
+
+        return string.Join(", ", fonts);
+    }
+
+    private void UpdateBackground() =>
+        TerminalArea.Background = new SolidColorBrush(TerminalPalette.Background(ActualTheme));
+
+    /// <summary>Réglages modifiés (éventuellement depuis un autre fil).</summary>
+    private void OnSettingsChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(ApplyAppearance);
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TerminalTabViewModel.Status) && ViewModel.IsConnecting)
         {
-            // Message inattendu de la page : ignoré.
+            // Nouvelle session : le serveur n'a encore activé aucun mode.
+            _modes.Reset();
         }
     }
 
-    private static void Copy(string? text)
+    private void OnAreaPointerPressed(object sender, PointerRoutedEventArgs e) => FocusTerminal();
+
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
     {
+        // Retour dans l'application : le terminal retrouve le focus qu'il avait en la quittant.
+        if (args.WindowActivationState != WindowActivationState.Deactivated && _restoreFocus && _native is { IsShown: true })
+        {
+            _restoreFocus = false;
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => _native?.Focus());
+        }
+    }
+
+    private void OnTerminalFocusChanged(bool focused, bool leftApplication) =>
+        _restoreFocus = !focused && leftApplication;
+
+    private void OnTerminalScrolled(int top, int height, int size)
+    {
+        _scroll = (top, height, size);
+        if (_scrollQueued)
+        {
+            return;
+        }
+
+        // Appelé pendant le traitement de la sortie par le moteur : la barre est mise à jour juste après.
+        _scrollQueued = true;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _scrollQueued = false;
+            var (viewTop, viewHeight, bufferSize) = _scroll;
+            var maximum = Math.Max(0, bufferSize - viewHeight);
+            HistoryScrollBar.Maximum = maximum;
+            HistoryScrollBar.ViewportSize = Math.Max(1, viewHeight);
+            HistoryScrollBar.LargeChange = Math.Max(1, viewHeight);
+            HistoryScrollBar.SmallChange = 1;
+            HistoryScrollBar.Value = Math.Clamp(viewTop, 0, maximum);
+            HistoryScrollBar.IsEnabled = maximum > 0;
+        });
+    }
+
+    private void OnScrollBarScroll(object sender, ScrollEventArgs e) => _native?.ScrollTo((int)Math.Round(e.NewValue));
+
+    private void CopySelection()
+    {
+        var text = _native?.TakeSelection();
         if (string.IsNullOrEmpty(text))
         {
             return;
         }
 
-        var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
-        package.SetText(text);
-        Clipboard.SetContent(package);
+        try
+        {
+            var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            package.SetText(text);
+            Clipboard.SetContent(package);
+        }
+        catch (Exception ex)
+        {
+            // Presse-papiers verrouillé par une autre application.
+            _logger.LogWarning("Copie impossible ({Error})", ex.GetType().Name);
+        }
     }
 
     private async Task PasteAsync()
@@ -217,38 +496,27 @@ public sealed partial class TerminalView : UserControl
             }
 
             var text = await content.GetTextAsync();
-            if (!string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text) && !_closed)
             {
-                Post(JsonSerializer.Serialize(new { type = "paste", text }));
+                _native?.ScrollTo(int.MaxValue);
+                ViewModel.SendInput(PasteFormatter.Format(text, _modes.BracketedPaste));
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Presse-papiers verrouillé par une autre application : on ne colle rien.
-        }
-    }
-
-    /// <summary>Réglages modifiés (éventuellement depuis un autre fil) : police et taille appliquées à chaud.</summary>
-    private void OnSettingsChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(SendOptions);
-
-    private void SendOptions()
-    {
-        if (_ready && !_closed)
-        {
-            var appearance = _settings.Current;
-            Post(JsonSerializer.Serialize(new
-            {
-                type = "options",
-                theme = ThemeName(ActualTheme),
-                fontFamily = appearance.TerminalFontFamily,
-                fontSize = appearance.TerminalFontSize,
-            }));
+            _logger.LogWarning("Collage impossible ({Error})", ex.GetType().Name);
         }
     }
 
     /// <summary>Sortie de la session, reçue hors du fil d'interface : mise en tampon puis envoi groupé.</summary>
     private void OnOutput(byte[] data)
     {
+        if (_failed || _closed)
+        {
+            return;
+        }
+
         lock (_pendingGate)
         {
             _pending.Write(data, 0, data.Length);
@@ -271,13 +539,14 @@ public sealed partial class TerminalView : UserControl
 
     private void FlushPending()
     {
+        var native = _native;
         byte[] data;
         lock (_pendingGate)
         {
             _flushQueued = false;
-            if (!_ready || _closed || _pending.Length == 0)
+            if (_closed || native is not { Columns: > 0 } || _pending.Length == 0)
             {
-                // Pas encore prêt : le tampon est conservé et vidé à l'annonce « ready ».
+                // Terminal pas encore dimensionné : le tampon est conservé et vidé au premier affichage.
                 return;
             }
 
@@ -285,23 +554,17 @@ public sealed partial class TerminalView : UserControl
             _pending.SetLength(0);
         }
 
-        Post($"{{\"type\":\"output\",\"data\":\"{Convert.ToBase64String(data)}\"}}");
-    }
-
-    private void Post(string json)
-    {
-        if (_closed)
+        // Décodage UTF-8 avec état : un caractère coupé entre deux paquets est recollé.
+        var characters = new char[_decoder.GetCharCount(data, 0, data.Length, flush: false)];
+        var count = _decoder.GetChars(data, 0, data.Length, characters, 0, flush: false);
+        var text = new string(characters, 0, count);
+        if (text.Contains('\0', StringComparison.Ordinal))
         {
-            return;
+            // Le moteur reçoit une chaîne C : un NUL la couperait (et les terminaux l'ignorent).
+            text = text.Replace("\0", string.Empty, StringComparison.Ordinal);
         }
 
-        try
-        {
-            WebView.CoreWebView2?.PostWebMessageAsJson(json);
-        }
-        catch (Exception)
-        {
-            // Navigateur embarqué en cours de fermeture.
-        }
+        _modes.Feed(text);
+        native.SendOutput(text);
     }
 }

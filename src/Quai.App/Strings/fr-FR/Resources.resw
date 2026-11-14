@@ -201,6 +201,9 @@
   <data name="Terminal_AutomationName" xml:space="preserve">
     <value>Terminal SSH</value>
   </data>
+  <data name="Terminal_ScrollBarName" xml:space="preserve">
+    <value>Historique du terminal</value>
+  </data>
   <data name="Terminal_Reconnect" xml:space="preserve">
     <value>Reconnecter</value>
   </data>
@@ -228,11 +231,11 @@
   <data name="Terminal_KeyUnavailable" xml:space="preserve">
     <value>Clé privée introuvable ou illisible : {0}</value>
   </data>
-  <data name="Terminal_WebViewErrorTitle" xml:space="preserve">
+  <data name="Terminal_EngineErrorTitle" xml:space="preserve">
     <value>Terminal indisponible</value>
   </data>
-  <data name="Terminal_WebViewErrorMessage" xml:space="preserve">
-    <value>Le composant Microsoft Edge WebView2 est requis pour afficher le terminal. Détail : {0}</value>
+  <data name="Terminal_EngineErrorMessage" xml:space="preserve">
+    <value>Le moteur de terminal (Microsoft.Terminal.Control.dll) n'a pas pu démarrer. Réinstallez Quai. Détail : {0}</value>
   </data>
   <data name="HostKey_UnknownTitle" xml:space="preserve">
     <value>Premier contact avec cet hôte</value>

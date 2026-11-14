@@ -4,8 +4,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Quai.App.Localization;
 using Quai.App.Services;
+using Quai.App.Terminal;
 using Quai.App.Views;
 using Quai.Core.Services;
+using Windows.Foundation;
 using Windows.Graphics;
 
 namespace Quai.App;
@@ -23,6 +25,9 @@ public sealed partial class MainWindow : Window
 
     // Les pages sont créées à la demande puis conservées : les sessions ouvertes survivent à la navigation.
     private readonly Dictionary<string, FrameworkElement> _pages = [];
+
+    // Volet de navigation déplié par-dessus le contenu (mode compact ou minimal).
+    private bool _paneOverlay;
 
     public MainWindow()
     {
@@ -61,6 +66,13 @@ public sealed partial class MainWindow : Window
                 settings.Content = Loc.Get("Nav_Settings");
             }
         };
+
+        // Le volet déplié en superposition doit passer devant les terminaux (fenêtres natives).
+        TerminalAirspace.OverlayProvider = PaneOverlay;
+        NavView.PaneOpening += (_, _) => SetPaneOverlay(NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
+        NavView.PaneClosed += (_, _) => SetPaneOverlay(false);
+        NavView.DisplayModeChanged += (_, _) =>
+            SetPaneOverlay(NavView.IsPaneOpen && NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
 
         ResizeForDpi(1240, 800);
         NavigateTo(ConnectionsTag);
@@ -114,6 +126,20 @@ public sealed partial class MainWindow : Window
         foreach (var (key, element) in _pages)
         {
             element.Visibility = key == tag ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private void SetPaneOverlay(bool value)
+    {
+        _paneOverlay = value;
+        TerminalAirspace.NotifyChanged();
+    }
+
+    private IEnumerable<Rect> PaneOverlay()
+    {
+        if (_paneOverlay && NavView.ActualHeight > 0)
+        {
+            yield return NavView.TransformToVisual(null).TransformBounds(new Rect(0, 0, NavView.OpenPaneLength, NavView.ActualHeight));
         }
     }
 

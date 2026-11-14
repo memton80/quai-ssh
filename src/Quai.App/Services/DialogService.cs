@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Quai.App.Localization;
+using Quai.App.Terminal;
 using Quai.App.Views;
 using Quai.Core.Models;
 using Quai.Core.Services;
@@ -145,8 +146,17 @@ internal sealed class DialogService : IDialogService, IHostKeyPrompt, ICredentia
                 dialog.Style = style as Style;
             }
 
+            // Les terminaux sont des fenêtres natives posées sur le XAML : ils s'effacent derrière le dialogue.
             Current = dialog;
-            return await dialog.ShowAsync();
+            TerminalAirspace.BeginModal();
+            try
+            {
+                return await dialog.ShowAsync();
+            }
+            finally
+            {
+                TerminalAirspace.EndModal();
+            }
         }
         finally
         {

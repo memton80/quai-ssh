@@ -28,8 +28,6 @@ public sealed class AppPaths
 
     public string LogsDirectory => Path.Combine(Root, "logs");
 
-    public string WebViewDataDirectory => Path.Combine(Root, "WebView2");
-
     public void EnsureCreated()
     {
         Directory.CreateDirectory(Root);

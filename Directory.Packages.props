@@ -1,6 +1,11 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      Moteur de Windows Terminal (paquet CI.Microsoft.Terminal.Wpf) : téléchargé, jamais référencé, pour n'en
+      copier que la DLL native signée Microsoft (voir Quai.App.csproj).
+    -->
+    <TerminalControlPackageVersion>1.25.260303002</TerminalControlPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Quai.Core -->

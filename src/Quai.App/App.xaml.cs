@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Quai.App.Services;
-using Quai.Core.Storage;
 
 namespace Quai.App;
 
@@ -28,10 +27,6 @@ public partial class App : Application
 
         Services = AppServices.Build(smokeTest: _smokeTestDirectory is not null);
         _logger = Services.GetRequiredService<ILogger<App>>();
-
-        // WebView2 : données utilisateur hors du dossier d'installation (qui peut être en lecture seule).
-        var paths = Services.GetRequiredService<AppPaths>();
-        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", paths.WebViewDataDirectory);
 
         // Interface en français d'abord : force aussi les textes fournis par WinUI (boutons, menus).
         TrySetLanguage("fr-FR");
