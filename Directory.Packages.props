@@ -6,6 +6,8 @@
       copier que la DLL native signée Microsoft (voir Quai.App.csproj).
     -->
     <TerminalControlPackageVersion>1.25.260303002</TerminalControlPackageVersion>
+    <!-- Windows App SDK : métapaquet et composants à la même version (voir Quai.App.csproj et docs/DECISIONS.md). -->
+    <WindowsAppSdkVersion>2.6.5</WindowsAppSdkVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Quai.Core -->
@@ -15,7 +17,16 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
     <!-- Quai.App -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="$(WindowsAppSdkVersion)" />
+    <!-- Composants du Windows App SDK neutralisés (ExcludeAssets="all" dans Quai.App.csproj). -->
+    <PackageVersion Include="Microsoft.WindowsAppSDK.AI" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.ML" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.Search" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.Widgets" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.DWrite" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.Runtime" Version="$(WindowsAppSdkVersion)" />
+    <PackageVersion Include="Microsoft.Windows.AI.MachineLearning" Version="2.4.89" />
+    <PackageVersion Include="System.Numerics.Tensors" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
     <PackageVersion Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
     <PackageVersion Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />

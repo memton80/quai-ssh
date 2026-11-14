@@ -129,12 +129,20 @@ jobs:
           Get-ChildItem $dir | Sort-Object Name | Format-Table Name, Length -AutoSize | Out-String -Width 200
           $required = @(
             'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll', 'System.IO.Ports.dll',
-            'Microsoft.Terminal.Control.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png', 'Assets/Licenses/Windows-Terminal-LICENSE.txt')
+            'Microsoft.Terminal.Control.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png', 'Assets/Licenses/Windows-Terminal-LICENSE.txt',
+            'fr-FR/Microsoft.ui.xaml.dll.mui', 'en-US/Microsoft.ui.xaml.dll.mui')
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
 
           # Le terminal est le moteur natif de Windows Terminal : ni page web, ni WPF.
-          $forbidden = 'Microsoft.Terminal.Wpf.dll', 'PresentationFramework.dll', 'Assets/Terminal' | Where-Object { Test-Path (Join-Path $dir $_) }
+          # Allègement (voir docs/DECISIONS.md) : ni IA / ML / recherche / widgets du Windows App SDK, ni WebView2,
+          # ni outils de diagnostic du runtime, ni langues de WinUI autres que le français et l'anglais.
+          $forbidden = @(
+            'Microsoft.Terminal.Wpf.dll', 'PresentationFramework.dll', 'Assets/Terminal',
+            'onnxruntime.dll', 'DirectML.dll', 'Microsoft.Windows.AI.Text.dll', 'Microsoft.Windows.Search.dll', 'Microsoft.Windows.Widgets.dll', 'DWriteCore.dll',
+            'Microsoft.Web.WebView2.Core.dll', 'WebView2Loader.dll', 'Microsoft.UI.Xaml/Assets/map.html',
+            'createdump.exe', 'mscordbi.dll', 'mscordaccore.dll',
+            'de-DE', 'ja-JP') | Where-Object { Test-Path (Join-Path $dir $_) }
           if ($forbidden) { throw "Fichiers inattendus dans la publication : $($forbidden -join ', ')" }
 
           # DLL du moteur : signature Microsoft valide et architecture de la publication.

@@ -29,7 +29,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      Windows App SDK : le métapaquet reste référencé (le Community Toolkit en dépend et tirerait sinon l'ancienne
+      version 1.6 monolithique), mais ses composants inutilisés sont neutralisés : une référence directe avec
+      ExcludeAssets="all" l'emporte sur la dépendance transitive. Restent Base, Foundation, InteractiveExperiences
+      et WinUI. Neutralisés : IA, ML (onnxruntime, DirectML), recherche sémantique, widgets, DWriteCore (~65 Mo
+      jamais chargés), et le paquet Runtime, qui ne sert qu'au mode dépendant du framework.
+    -->
     <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.AI" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.ML" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Search" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Widgets" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.Windows.AI.MachineLearning" ExcludeAssets="all" />
+    <PackageReference Include="System.Numerics.Tensors" ExcludeAssets="all" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" />
@@ -65,6 +80,51 @@
   <ItemGroup>
     <ProjectReference Include="..\Quai.Core\Quai.Core.csproj" />
   </ItemGroup>
+
+  <!--
+    Allègement de la publication : rien de ce qui suit n'est utilisé par Quai.
+    - WebView2 (dépendance de WinUI) : la projection C# reste pour la compilation de WinUI, mais ni la DLL native
+      Microsoft.Web.WebView2.Core.dll ni WebView2Loader.dll ne sont copiées (aucun contrôle WebView2 dans Quai,
+      et c'est un interdit du projet). Sans le paquet Runtime du Windows App SDK, la projection doit être demandée
+      explicitement (le paquet WebView2 la choisissait d'après ce paquet).
+    - Langues de WinUI : seuls le français et l'anglais (repli) sont gardés, l'interface est forcée en fr-FR.
+    - Carte (map.html) de WinUI : sert au contrôle MapControl, absent de Quai.
+    - Outils de diagnostic du runtime .NET (débogueur, analyse de vidages) : retirés à la publication seulement,
+      pour garder le débogage de Visual Studio sur la sortie de build.
+  -->
+  <PropertyGroup>
+    <WebView2EnableCsWinRTProjection>true</WebView2EnableCsWinRTProjection>
+    <WebView2EnableCsWinRTProjectionExcludeCoreRef>true</WebView2EnableCsWinRTProjectionExcludeCoreRef>
+  </PropertyGroup>
+
+  <Target Name="QuaiExcludeWindowsAppSdkPayload"
+          BeforeTargets="AddMicrosoftWindowsAppSDKPayloadFilesFromComponents"
+          DependsOnTargets="GetWindowsAppSDKNativePlatform">
+    <PropertyGroup>
+      <_QuaiWasdkNative>runtimes-framework\win-$(NativePlatform)\native</_QuaiWasdkNative>
+    </PropertyGroup>
+    <ItemGroup>
+      <MicrosoftWindowsAppSDKFilesExcluded Include="%(WindowsAppSdkComponentPackages.Identity)$(_QuaiWasdkNative)\**\*.mui"
+                                           Exclude="%(WindowsAppSdkComponentPackages.Identity)$(_QuaiWasdkNative)\fr-FR\**;%(WindowsAppSdkComponentPackages.Identity)$(_QuaiWasdkNative)\en-US\**;%(WindowsAppSdkComponentPackages.Identity)$(_QuaiWasdkNative)\en-us\**" />
+      <MicrosoftWindowsAppSDKFilesExcluded Include="%(WindowsAppSdkComponentPackages.Identity)$(_QuaiWasdkNative)\**\map.html" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="QuaiExcludeWebView2Loader" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <NativeCopyLocalItems Remove="@(NativeCopyLocalItems)" Condition="'%(Filename)%(Extension)' == 'WebView2Loader.dll'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="QuaiExcludeRuntimeDiagnostics" AfterTargets="ResolveRuntimePackAssets" Condition="'$(_IsPublishing)' == 'true'">
+    <ItemGroup>
+      <RuntimePackAsset Remove="@(RuntimePackAsset)"
+                        Condition="'%(Filename)%(Extension)' == 'createdump.exe'
+                                   or '%(Filename)%(Extension)' == 'mscordbi.dll'
+                                   or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
+                                   or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))" />
+    </ItemGroup>
+  </Target>
 
   <!-- Les fichiers d'Assets sont copiés tels quels à côté de l'exécutable (icône, licences). -->
   <PropertyGroup>
