@@ -265,6 +265,22 @@ public sealed class SftpBrowserViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Closing_the_tab_during_an_upload_removes_the_partial_file_before_disconnecting()
+    {
+        var vm = await ConnectedAsync();
+        _remote.TransferGate = new TaskCompletionSource();
+        await vm.UploadAsync([LocalFile("gros.bin", new string('g', 1000))]);
+        var running = vm.Transfers[0];
+        await WaitForAsync(() => running.TransferredBytes > 0);
+
+        await vm.DisposeAsync();
+
+        Assert.Equal(TransferStatus.Cancelled, running.Status);
+        Assert.True(_remote.Disposed);
+        Assert.Contains("delete /home/alice/gros.bin", _remote.OperationsAtDispose!);
+    }
+
+    [Fact]
     public async Task A_pending_transfer_can_be_cancelled_before_it_starts()
     {
         var vm = await ConnectedAsync();

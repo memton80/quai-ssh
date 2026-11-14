@@ -27,6 +27,8 @@ public enum SftpStatus
 /// </summary>
 public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDisposable
 {
+    private static readonly TimeSpan TransferCleanupTimeout = TimeSpan.FromSeconds(5);
+
     private readonly ISshSessionFactory _factory;
     private readonly IDialogService _dialogs;
     private readonly IStrings _strings;
@@ -38,6 +40,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     private SftpTransferEngine? _engine;
     private CancellationTokenSource? _connectCancellation;
     private bool _pumping;
+    private Task _pump = Task.CompletedTask;
     private bool _disposed;
 
     public SftpBrowserViewModel(
@@ -456,6 +459,10 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             transfer.Cancel();
         }
 
+        // Le transfert interrompu supprime son fichier incomplet avec la session encore ouverte :
+        // on lui laisse le temps de le faire (borné, la connexion peut ne plus répondre) avant de la fermer.
+        await Task.WhenAny(_pump, Task.Delay(TransferCleanupTimeout));
+
         var session = Detach();
         if (session is not null)
         {
@@ -473,7 +480,10 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         transfer.Detail = _strings.Get("Transfer_Pending");
         Transfers.Add(transfer);
         HasTransfers = true;
-        _ = PumpAsync();
+        if (!_pumping)
+        {
+            _pump = PumpAsync();
+        }
     }
 
     /// <summary>Exécute les transferts en attente, un par un (une seule connexion SFTP).</summary>
@@ -545,6 +555,11 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             _logger.LogWarning("Transfert en échec ({Error})", ex.GetType().Name);
             transfer.Status = TransferStatus.Failed;
             transfer.Detail = _strings.Format("Transfer_Failed", Describe(ex));
+        }
+
+        if (_disposed)
+        {
+            return;
         }
 
         // Le panneau de destination est rafraîchi s'il affiche toujours le dossier concerné.

@@ -135,8 +135,12 @@ public sealed class FakeSftpSession : ISftpSession
         return Task.CompletedTask;
     }
 
+    /// <summary>Opérations déjà effectuées au moment de la fermeture de la session.</summary>
+    public IReadOnlyList<string>? OperationsAtDispose { get; private set; }
+
     public ValueTask DisposeAsync()
     {
+        OperationsAtDispose ??= [.. Operations];
         Disposed = true;
         IsConnected = false;
         return ValueTask.CompletedTask;
