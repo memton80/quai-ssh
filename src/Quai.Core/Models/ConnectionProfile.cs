@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace Quai.Core.Models;
 
 /// <summary>
-/// Une entrée du carnet de connexions. Ne contient volontairement aucun secret :
+/// Une entrée du carnet de connexions : serveur SSH ou port série. Ne contient volontairement aucun secret :
 /// mots de passe et passphrases vivent dans le coffre Windows (<see cref="Security.ISecretStore"/>).
 /// </summary>
 public sealed class ConnectionProfile
@@ -11,6 +13,12 @@ public sealed class ConnectionProfile
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>SSH (par défaut, y compris pour les carnets enregistrés avant l'arrivée du série) ou port série.</summary>
+    public ConnectionProtocol Protocol { get; set; } = ConnectionProtocol.Ssh;
+
+    /// <summary>Paramètres de la liaison ; renseignés pour une connexion série uniquement.</summary>
+    public SerialSettings? Serial { get; set; }
 
     public string Host { get; set; } = string.Empty;
 
@@ -34,22 +42,38 @@ public sealed class ConnectionProfile
 
     public DateTimeOffset? LastConnectedAt { get; set; }
 
-    /// <summary>« utilisateur@hôte », suivi du port s'il n'est pas standard.</summary>
+    [JsonIgnore]
+    public bool IsSerial => Protocol == ConnectionProtocol.Serial;
+
+    /// <summary>
+    /// « utilisateur@hôte », suivi du port s'il n'est pas standard ; pour une connexion série,
+    /// « COM3 · 9600 8N1 » (voir <see cref="SerialSettings.Summary"/>).
+    /// </summary>
     public string Endpoint
     {
         get
         {
+            if (IsSerial)
+            {
+                return (Serial ?? new SerialSettings()).Summary;
+            }
+
             var user = string.IsNullOrEmpty(Username) ? string.Empty : Username + "@";
             return Port == DefaultPort ? $"{user}{Host}" : $"{user}{Host}:{Port}";
         }
     }
 
-    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Endpoint : Name;
+    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? DefaultName : Name;
+
+    /// <summary>Nom par défaut : l'adresse SSH, ou le seul nom du port (sa vitesse peut changer).</summary>
+    private string DefaultName => IsSerial ? Serial?.PortName ?? string.Empty : Endpoint;
 
     public ConnectionProfile Clone() => new()
     {
         Id = Id,
         Name = Name,
+        Protocol = Protocol,
+        Serial = Serial?.Clone(),
         Host = Host,
         Port = Port,
         Username = Username,
@@ -62,19 +86,42 @@ public sealed class ConnectionProfile
         LastConnectedAt = LastConnectedAt,
     };
 
-    /// <summary>Nettoie les champs saisis (espaces, dossier, tags en double).</summary>
+    /// <summary>
+    /// Nettoie les champs saisis (espaces, dossier, tags en double). Une connexion série ne garde aucun champ
+    /// SSH, une connexion SSH aucun paramètre série.
+    /// </summary>
     public void Normalize()
     {
+        if (!Enum.IsDefined(Protocol))
+        {
+            Protocol = ConnectionProtocol.Ssh;
+        }
+
         Name = Name.Trim();
-        Host = Host.Trim();
-        Username = Username.Trim();
-        PrivateKeyPath = string.IsNullOrWhiteSpace(PrivateKeyPath) ? null : PrivateKeyPath.Trim().Trim('"');
+        if (IsSerial)
+        {
+            Serial ??= new SerialSettings();
+            Serial.Normalize();
+            Host = string.Empty;
+            Port = DefaultPort;
+            Username = string.Empty;
+            Authentication = AuthenticationKind.Password;
+            PrivateKeyPath = null;
+        }
+        else
+        {
+            Serial = null;
+            Host = Host.Trim();
+            Username = Username.Trim();
+            PrivateKeyPath = string.IsNullOrWhiteSpace(PrivateKeyPath) ? null : PrivateKeyPath.Trim().Trim('"');
+        }
+
         Folder = FolderPath.Normalize(Folder);
         Tags = TagList.Normalize(Tags);
         Notes = Notes.Trim();
         if (string.IsNullOrEmpty(Name))
         {
-            Name = Endpoint;
+            Name = DefaultName;
         }
     }
 }

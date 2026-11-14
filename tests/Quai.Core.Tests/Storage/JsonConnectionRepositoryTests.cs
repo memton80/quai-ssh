@@ -140,4 +140,57 @@ public class JsonConnectionRepositoryTests
         Assert.DoesNotContain("secret", json, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(Directory.GetFiles(temp.Path, "*.tmp"));
     }
+
+    [Fact]
+    public void A_serial_connection_survives_a_reload()
+    {
+        using var temp = new TempDirectory();
+        var path = temp.File("connections.json");
+        var profile = new ConnectionProfile
+        {
+            Name = "Console",
+            Protocol = ConnectionProtocol.Serial,
+            Serial = new SerialSettings
+            {
+                PortName = "COM3",
+                BaudRate = 115200,
+                DataBits = 7,
+                Parity = SerialParity.Even,
+                StopBits = SerialStopBits.Two,
+                FlowControl = SerialFlowControl.RtsCts,
+            },
+        };
+
+        new JsonConnectionRepository(path).Save(profile);
+        var loaded = Assert.Single(new JsonConnectionRepository(path).GetAll());
+        var json = File.ReadAllText(path);
+
+        Assert.Equal(ConnectionProtocol.Serial, loaded.Protocol);
+        Assert.Equal("COM3 · 115200 7E2 · RTS/CTS", loaded.Endpoint);
+        Assert.Contains("\"protocol\": \"serial\"", json);
+        Assert.Contains("\"portName\": \"COM3\"", json);
+        Assert.Contains("\"flowControl\": \"rtsCts\"", json);
+    }
+
+    [Fact]
+    public void A_book_saved_before_serial_support_loads_as_ssh()
+    {
+        using var temp = new TempDirectory();
+        var path = temp.File("connections.json");
+        File.WriteAllText(path, """
+            {
+              "version": 1,
+              "connections": [
+                { "id": "6f0d1c3e-8a52-4a0e-9a35-1d2b3c4d5e6f", "name": "Ancien", "host": "old.example.org", "port": 22, "username": "root" }
+              ]
+            }
+            """);
+
+        var loaded = Assert.Single(new JsonConnectionRepository(path).GetAll());
+
+        Assert.Equal(ConnectionProtocol.Ssh, loaded.Protocol);
+        Assert.False(loaded.IsSerial);
+        Assert.Null(loaded.Serial);
+        Assert.Equal("root@old.example.org", loaded.Endpoint);
+    }
 }

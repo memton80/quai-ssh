@@ -11,13 +11,14 @@ public class ConnectionFilterTests
         new() { Name = "Base de données", Host = "db.example.org", Username = "postgres", Folder = "Prod", Tags = ["db"] },
         new() { Name = "Bac à sable", Host = "10.0.0.5", Username = "alex", Folder = "Tests", Notes = "machine jetable" },
         new() { Name = "Raspberry", Host = "pi.local", Username = "pi" },
+        new() { Name = "Console du routeur", Protocol = ConnectionProtocol.Serial, Serial = new SerialSettings { PortName = "COM7" } },
     ];
 
     private static string[] Names(string? query = null, string? folder = null, string? tag = null) =>
         [.. ConnectionFilter.Apply(Profiles, query, folder, tag).Select(p => p.Name)];
 
     [Fact]
-    public void No_criteria_returns_everything() => Assert.Equal(4, Names().Length);
+    public void No_criteria_returns_everything() => Assert.Equal(5, Names().Length);
 
     [Theory]
     [InlineData("web", "Frontal web")]
@@ -28,6 +29,7 @@ public class ConnectionFilterTests
     [InlineData("jetable", "Bac à sable")]
     [InlineData("10.0.0", "Bac à sable")]
     [InlineData("tests", "Bac à sable")]
+    [InlineData("com7", "Console du routeur")]
     public void Query_matches_any_field_ignoring_case_and_accents(string query, string expected) =>
         Assert.Equal([expected], Names(query));
 

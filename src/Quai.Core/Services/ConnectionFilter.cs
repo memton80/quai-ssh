@@ -11,7 +11,7 @@ public static class ConnectionFilter
 
     /// <summary>
     /// Filtre par dossier (sous-dossiers inclus), par tag, et par texte libre : chaque mot de la recherche
-    /// doit apparaître dans le nom, l'hôte, l'utilisateur, le dossier, un tag ou les notes
+    /// doit apparaître dans le nom, l'hôte, l'utilisateur, le port série, le dossier, un tag ou les notes
     /// (sans tenir compte de la casse ni des accents).
     /// </summary>
     public static IEnumerable<ConnectionProfile> Apply(
@@ -45,6 +45,7 @@ public static class ConnectionFilter
         Contains(profile.Name, term)
         || Contains(profile.Host, term)
         || Contains(profile.Username, term)
+        || Contains(profile.Serial?.PortName, term)
         || Contains(profile.Folder, term)
         || Contains(profile.Notes, term)
         || profile.Tags.Any(t => Contains(t, term));
