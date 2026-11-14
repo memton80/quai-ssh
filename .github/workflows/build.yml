@@ -85,11 +85,25 @@ jobs:
           Get-ChildItem $dir | Sort-Object Name | Format-Table Name, Length -AutoSize | Out-String -Width 200
           $required = @(
             'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll',
-            'Assets/Quai.ico', 'Assets/AppIcon.png',
-            'Assets/Terminal/terminal.html', 'Assets/Terminal/terminal.css', 'Assets/Terminal/terminal.js',
-            'Assets/Terminal/vendor/xterm.js', 'Assets/Terminal/vendor/xterm.css', 'Assets/Terminal/vendor/addon-fit.js')
+            'Microsoft.Terminal.Control.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png', 'Assets/Licenses/Windows-Terminal-LICENSE.txt')
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
+
+          # Le terminal est le moteur natif de Windows Terminal : ni page web, ni WPF.
+          $forbidden = 'Microsoft.Terminal.Wpf.dll', 'PresentationFramework.dll', 'Assets/Terminal' | Where-Object { Test-Path (Join-Path $dir $_) }
+          if ($forbidden) { throw "Fichiers inattendus dans la publication : $($forbidden -join ', ')" }
+
+          # DLL du moteur : signature Microsoft valide et architecture de la publication.
+          $engine = Join-Path $dir 'Microsoft.Terminal.Control.dll'
+          $signature = Get-AuthenticodeSignature $engine
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+            throw "Signature inattendue pour Microsoft.Terminal.Control.dll : $($signature.Status) / $($signature.SignerCertificate.Subject)"
+          }
+          $bytes = [IO.File]::ReadAllBytes($engine)
+          $machine = [BitConverter]::ToUInt16($bytes, [BitConverter]::ToInt32($bytes, 0x3C) + 4)
+          $expected = @{ x64 = 0x8664; arm64 = 0xAA64 }['${{ matrix.platform }}']
+          if ($machine -ne $expected) { throw ("Microsoft.Terminal.Control.dll : architecture 0x{0:X4}, attendu 0x{1:X4}" -f $machine, $expected) }
+          "Moteur de terminal : signé par $($signature.SignerCertificate.Subject), architecture 0x$('{0:X4}' -f $machine)"
 
       - name: Zip (version portable)
         shell: pwsh
@@ -125,7 +139,7 @@ jobs:
           }
 
           $dir = Join-Path $env:LOCALAPPDATA 'Programs\Quai'
-          $missing = 'Quai.exe', 'unins000.exe', 'Quai.pri', 'Assets\Terminal\terminal.html' | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
+          $missing = 'Quai.exe', 'unins000.exe', 'Quai.pri', 'Microsoft.Terminal.Control.dll' | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers installés manquants : $($missing -join ', ')" }
 
           $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F6C1C0E-5B0E-4F0B-9E57-3C7F2A9D51A4}_is1'
