@@ -527,6 +527,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             }
         });
 
+        TransferStatus outcome;
+        string detail;
         try
         {
             var token = transfer.CancellationToken;
@@ -542,37 +544,46 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             }
 
             transfer.TransferredBytes = transfer.TotalBytes;
-            transfer.Status = TransferStatus.Completed;
-            transfer.Detail = _strings.Format("Transfer_Completed", _sizes.Format(transfer.TotalBytes));
+            outcome = TransferStatus.Completed;
+            detail = _strings.Format("Transfer_Completed", _sizes.Format(transfer.TotalBytes));
         }
         catch (OperationCanceledException)
         {
-            transfer.Status = TransferStatus.Cancelled;
-            transfer.Detail = _strings.Get("Transfer_Cancelled");
+            outcome = TransferStatus.Cancelled;
+            detail = _strings.Get("Transfer_Cancelled");
         }
         catch (Exception ex)
         {
             _logger.LogWarning("Transfert en échec ({Error})", ex.GetType().Name);
-            transfer.Status = TransferStatus.Failed;
-            transfer.Detail = _strings.Format("Transfer_Failed", Describe(ex));
+            outcome = TransferStatus.Failed;
+            detail = _strings.Format("Transfer_Failed", Describe(ex));
         }
 
-        if (_disposed)
+        try
         {
-            return;
-        }
-
-        // Le panneau de destination est rafraîchi s'il affiche toujours le dossier concerné.
-        if (transfer.Direction == TransferDirection.Upload)
-        {
-            if (IsConnected && transfer.DestinationDirectory == RemotePath)
+            // Le panneau de destination est rafraîchi s'il affiche toujours le dossier concerné, avant d'annoncer
+            // la fin du transfert : un transfert terminé est visible dans son panneau.
+            if (_disposed)
             {
-                await LoadRemoteAsync(RemotePath, reportErrors: false);
+                return;
+            }
+
+            if (transfer.Direction == TransferDirection.Upload)
+            {
+                if (IsConnected && transfer.DestinationDirectory == RemotePath)
+                {
+                    await LoadRemoteAsync(RemotePath, reportErrors: false);
+                }
+            }
+            else if (transfer.DestinationDirectory == LocalPath)
+            {
+                LoadLocal(LocalPath, reportErrors: false);
             }
         }
-        else if (transfer.DestinationDirectory == LocalPath)
+        finally
         {
-            LoadLocal(LocalPath, reportErrors: false);
+            transfer.Status = outcome;
+            transfer.Detail = detail;
         }
     }
 
