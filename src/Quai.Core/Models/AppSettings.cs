@@ -24,6 +24,9 @@ public sealed class AppSettings
 
     public int TerminalFontSize { get; set; } = DefaultTerminalFontSize;
 
+    /// <summary>Au démarrage, demander à GitHub si une version plus récente est publiée.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 
     /// <summary>Ramène les valeurs dans leurs bornes (fichier modifié à la main, ancienne version…).</summary>

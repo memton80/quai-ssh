@@ -50,6 +50,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial string TerminalFontFamily { get; set; }
 
+    [ObservableProperty]
+    public partial bool CheckForUpdates { get; set; }
+
     /// <summary>Taille en <see cref="double"/> pour se lier directement à un <c>NumberBox</c>.</summary>
     [ObservableProperty]
     public partial double TerminalFontSize { get; set; }
@@ -66,6 +69,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading && Enum.IsDefined((AppTheme)value))
         {
             _settings.Update(s => s.Theme = (AppTheme)value);
+        }
+    }
+
+    partial void OnCheckForUpdatesChanged(bool value)
+    {
+        if (!_loading)
+        {
+            _settings.Update(s => s.CheckForUpdates = value);
         }
     }
 
@@ -96,6 +107,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             ThemeIndex = (int)current.Theme;
             TerminalFontFamily = current.TerminalFontFamily;
             TerminalFontSize = current.TerminalFontSize;
+            CheckForUpdates = current.CheckForUpdates;
         }
         finally
         {
