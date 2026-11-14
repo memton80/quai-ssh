@@ -25,6 +25,11 @@ public sealed class SessionLauncher : ISessionLauncher
 
     public void OpenSftp(ConnectionProfile profile)
     {
+        if (profile.IsSerial)
+        {
+            return;
+        }
+
         _sftp.Open(profile);
         _navigator.NavigateTo(AppPage.Sftp);
     }

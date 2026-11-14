@@ -34,6 +34,15 @@
         <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
+    <!-- Aide sous un champ de formulaire. -->
+    <Style
+        x:Key="FieldHintStyle"
+        BasedOn="{StaticResource CaptionTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
     <!-- Titre de section de la page des réglages. -->
     <Style
         x:Key="SettingsSectionHeaderStyle"

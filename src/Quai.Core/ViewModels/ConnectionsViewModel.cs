@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Security;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Storage;
 
@@ -19,6 +20,7 @@ public sealed partial class ConnectionsViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly IStrings _strings;
     private readonly ISessionLauncher? _launcher;
+    private readonly ISerialPortCatalog? _serialPorts;
     private readonly ILogger _logger;
     private bool _reloading;
 
@@ -28,13 +30,15 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         IDialogService dialogs,
         IStrings strings,
         ISessionLauncher? launcher = null,
-        ILogger<ConnectionsViewModel>? logger = null)
+        ILogger<ConnectionsViewModel>? logger = null,
+        ISerialPortCatalog? serialPorts = null)
     {
         _repository = repository;
         _secrets = secrets;
         _dialogs = dialogs;
         _strings = strings;
         _launcher = launcher;
+        _serialPorts = serialPorts;
         _logger = logger ?? NullLogger<ConnectionsViewModel>.Instance;
         SearchText = string.Empty;
         Reload();
@@ -120,7 +124,7 @@ public sealed partial class ConnectionsViewModel : ObservableObject
     public async Task NewAsync()
     {
         var folder = SelectedFilter is { Kind: ConnectionFilterKind.Folder } filter ? filter.Value : string.Empty;
-        var editor = new ConnectionEditorViewModel(_strings, null, GetKnownFolders()) { Folder = folder };
+        var editor = new ConnectionEditorViewModel(_strings, null, GetKnownFolders(), serialPorts: _serialPorts) { Folder = folder };
         if (await _dialogs.EditConnectionAsync(editor))
         {
             await SaveAsync(editor);
@@ -140,7 +144,8 @@ public sealed partial class ConnectionsViewModel : ObservableObject
             profile,
             GetKnownFolders(),
             hasStoredPassword: HasSecret(SecretKeys.Password(profile.Id)),
-            hasStoredPassphrase: HasSecret(SecretKeys.Passphrase(profile.Id)));
+            hasStoredPassphrase: HasSecret(SecretKeys.Passphrase(profile.Id)),
+            serialPorts: _serialPorts);
 
         if (await _dialogs.EditConnectionAsync(editor))
         {
@@ -148,7 +153,7 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Ouvre un terminal SSH sur la connexion (dans sa version enregistrée la plus récente).</summary>
+    /// <summary>Ouvre un terminal (SSH ou série) sur la connexion, dans sa version enregistrée la plus récente.</summary>
     public void OpenTerminal(ConnectionItemViewModel? item)
     {
         var profile = item is null ? null : _repository.Find(item.Id);
@@ -158,11 +163,11 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Ouvre l'explorateur de fichiers SFTP sur la connexion.</summary>
+    /// <summary>Ouvre l'explorateur de fichiers SFTP sur la connexion (SSH uniquement).</summary>
     public void OpenSftp(ConnectionItemViewModel? item)
     {
         var profile = item is null ? null : _repository.Find(item.Id);
-        if (profile is not null)
+        if (profile is { IsSerial: false })
         {
             _launcher?.OpenSftp(profile);
         }
@@ -251,13 +256,15 @@ public sealed partial class ConnectionsViewModel : ObservableObject
 
         try
         {
+            // Une connexion série n'a aucun secret : ceux d'une ancienne configuration SSH sont effacés.
+            var ssh = profile.Protocol == ConnectionProtocol.Ssh;
             StoreSecret(
                 SecretKeys.Password(profile.Id),
-                profile.Authentication == AuthenticationKind.Password && editor.SavePassword,
+                ssh && profile.Authentication == AuthenticationKind.Password && editor.SavePassword,
                 editor.Password);
             StoreSecret(
                 SecretKeys.Passphrase(profile.Id),
-                profile.Authentication == AuthenticationKind.PrivateKey && editor.SavePassphrase,
+                ssh && profile.Authentication == AuthenticationKind.PrivateKey && editor.SavePassphrase,
                 editor.Passphrase);
         }
         catch (Exception ex)

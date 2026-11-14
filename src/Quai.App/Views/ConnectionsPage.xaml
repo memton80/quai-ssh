@@ -113,7 +113,10 @@
                                                     <FontIcon Glyph="&#xE756;" />
                                                 </MenuFlyoutItem.Icon>
                                             </MenuFlyoutItem>
-                                            <MenuFlyoutItem Click="OnOpenSftpClick" Text="{l:Str Key=Connections_OpenSftp}">
+                                            <MenuFlyoutItem
+                                                Click="OnOpenSftpClick"
+                                                Text="{l:Str Key=Connections_OpenSftp}"
+                                                Visibility="{x:Bind SupportsSftp}">
                                                 <MenuFlyoutItem.Icon>
                                                     <FontIcon Glyph="&#xE8B7;" />
                                                 </MenuFlyoutItem.Icon>
@@ -142,7 +145,7 @@
                                         VerticalAlignment="Center"
                                         FontSize="18"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Glyph="{x:Bind AuthenticationGlyph}" />
+                                        Glyph="{x:Bind Glyph}" />
 
                                     <StackPanel
                                         Grid.Column="1"
@@ -202,7 +205,8 @@
                                             AutomationProperties.Name="{l:Str Key=Connections_OpenSftp}"
                                             Command="{x:Bind OpenSftpCommand}"
                                             Style="{StaticResource RowIconButtonStyle}"
-                                            ToolTipService.ToolTip="{l:Str Key=Connections_OpenSftp}">
+                                            ToolTipService.ToolTip="{l:Str Key=Connections_OpenSftp}"
+                                            Visibility="{x:Bind SupportsSftp}">
                                             <FontIcon FontSize="14" Glyph="&#xE8B7;" />
                                         </Button>
                                         <Button

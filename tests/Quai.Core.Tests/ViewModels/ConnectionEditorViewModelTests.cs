@@ -131,4 +131,169 @@ public class ConnectionEditorViewModelTests
         Assert.Equal("Editor_PassphrasePlaceholder", editor.PassphrasePlaceholder);
         Assert.True(editor.SavePassword);
     }
+
+    private static ConnectionEditorViewModel NewSerialEditor(FakeSerialPortCatalog? ports = null)
+    {
+        var editor = new ConnectionEditorViewModel(new KeyStrings(), serialPorts: ports);
+        editor.ProtocolIndex = (int)ConnectionProtocol.Serial;
+        return editor;
+    }
+
+    [Fact]
+    public void A_new_connection_is_ssh_and_does_not_read_the_serial_ports()
+    {
+        var ports = new FakeSerialPortCatalog { Ports = { "COM3" } };
+        var editor = new ConnectionEditorViewModel(new KeyStrings(), serialPorts: ports);
+
+        Assert.True(editor.IsSsh);
+        Assert.False(editor.IsSerial);
+        Assert.Equal(0, ports.Reads);
+        Assert.Equal("9600", editor.BaudRateText);
+        Assert.Contains("115200", editor.BaudRates);
+    }
+
+    [Fact]
+    public void Switching_to_serial_lists_the_ports_and_proposes_the_first_one()
+    {
+        var ports = new FakeSerialPortCatalog { Ports = { "COM3", "COM7" } };
+
+        var editor = NewSerialEditor(ports);
+
+        Assert.True(editor.IsSerial);
+        Assert.False(editor.IsSsh);
+        Assert.Equal(["COM3", "COM7"], editor.SerialPorts);
+        Assert.Equal("COM3", editor.SerialPortName);
+        Assert.False(editor.NoSerialPortDetected);
+    }
+
+    [Fact]
+    public void Refreshing_the_ports_keeps_the_current_choice()
+    {
+        var ports = new FakeSerialPortCatalog { Ports = { "COM3", "COM7" } };
+        var editor = NewSerialEditor(ports);
+        editor.SerialPortName = "COM7";
+
+        ports.Ports.Clear();
+        ports.Ports.AddRange(["COM1", "COM7", "COM12"]);
+        editor.RefreshSerialPortsCommand.Execute(null);
+
+        Assert.Equal(["COM1", "COM7", "COM12"], editor.SerialPorts);
+        Assert.Equal("COM7", editor.SerialPortName);
+    }
+
+    [Fact]
+    public void No_detected_port_is_reported_and_the_name_stays_typeable()
+    {
+        var editor = NewSerialEditor(new FakeSerialPortCatalog());
+        editor.SerialPortName = "com4";
+
+        Assert.True(editor.NoSerialPortDetected);
+        Assert.True(editor.Validate());
+        Assert.Equal("COM4", editor.BuildProfile().Serial!.PortName);
+    }
+
+    [Theory]
+    [InlineData("", "9600", "Editor_ErrorSerialPortRequired")]
+    [InlineData("LPT1", "9600", "Editor_ErrorSerialPortInvalid")]
+    [InlineData("COM3", "", "Editor_ErrorBaudRate")]
+    [InlineData("COM3", "rapide", "Editor_ErrorBaudRate")]
+    [InlineData("COM3", "0", "Editor_ErrorBaudRate")]
+    [InlineData("COM3", "-9600", "Editor_ErrorBaudRate")]
+    [InlineData("COM3", "9600.5", "Editor_ErrorBaudRate")]
+    [InlineData("COM3", "99000000", "Editor_ErrorBaudRate")]
+    public void Invalid_serial_input_is_reported(string port, string baud, string expectedError)
+    {
+        var editor = NewSerialEditor();
+        editor.SerialPortName = port;
+        editor.BaudRateText = baud;
+
+        Assert.False(editor.Validate());
+        Assert.Contains(expectedError, editor.ErrorMessage);
+    }
+
+    [Fact]
+    public void Ssh_fields_are_not_required_for_a_serial_connection()
+    {
+        var editor = NewSerialEditor();
+        editor.SerialPortName = "COM3";
+        editor.Host = string.Empty;
+        editor.Username = string.Empty;
+
+        Assert.True(editor.Validate());
+        Assert.False(editor.HasError);
+    }
+
+    [Fact]
+    public void A_serial_connection_is_built_with_its_link_settings_and_no_ssh_field()
+    {
+        var editor = NewSerialEditor();
+        editor.Name = "Console";
+        editor.Host = "reste.example.org";
+        editor.Username = "alice";
+        editor.Password = "ne-doit-pas-sortir";
+        editor.SerialPortName = " com5 ";
+        editor.BaudRateText = "115 200";
+        editor.DataBitsIndex = 2;
+        editor.ParityIndex = (int)SerialParity.Even;
+        editor.StopBitsIndex = (int)SerialStopBits.Two;
+        editor.FlowControlIndex = (int)SerialFlowControl.XonXoff;
+
+        Assert.True(editor.Validate());
+        var profile = editor.BuildProfile();
+
+        Assert.Equal(ConnectionProtocol.Serial, profile.Protocol);
+        Assert.Equal("Console", profile.Name);
+        Assert.Equal("COM5 · 115200 7E2 · XON/XOFF", profile.Endpoint);
+        Assert.Equal(string.Empty, profile.Host);
+        Assert.Equal(string.Empty, profile.Username);
+    }
+
+    [Fact]
+    public void Editing_a_serial_connection_restores_its_settings()
+    {
+        var existing = new ConnectionProfile
+        {
+            Name = "Routeur",
+            Protocol = ConnectionProtocol.Serial,
+            Serial = new SerialSettings
+            {
+                PortName = "COM9",
+                BaudRate = 57600,
+                DataBits = 7,
+                Parity = SerialParity.Odd,
+                StopBits = SerialStopBits.OnePointFive,
+                FlowControl = SerialFlowControl.RtsCts,
+            },
+        };
+        var ports = new FakeSerialPortCatalog { Ports = { "COM3" } };
+
+        var editor = new ConnectionEditorViewModel(new KeyStrings(), existing, serialPorts: ports);
+
+        Assert.True(editor.IsSerial);
+        Assert.Equal("COM9", editor.SerialPortName);
+        Assert.Equal(["COM3"], editor.SerialPorts);
+        Assert.Equal("57600", editor.BaudRateText);
+        Assert.Equal(2, editor.DataBitsIndex);
+        Assert.Equal((int)SerialParity.Odd, editor.ParityIndex);
+        Assert.Equal((int)SerialStopBits.OnePointFive, editor.StopBitsIndex);
+        Assert.Equal((int)SerialFlowControl.RtsCts, editor.FlowControlIndex);
+        Assert.Equal(existing.Endpoint, editor.BuildProfile().Endpoint);
+    }
+
+    [Fact]
+    public void Switching_back_to_ssh_drops_the_serial_settings()
+    {
+        var editor = NewSerialEditor();
+        editor.SerialPortName = "COM3";
+        editor.ProtocolIndex = (int)ConnectionProtocol.Ssh;
+        editor.Host = "example.org";
+        editor.Username = "alice";
+
+        Assert.True(editor.Validate());
+        var profile = editor.BuildProfile();
+
+        Assert.Equal(ConnectionProtocol.Ssh, profile.Protocol);
+        Assert.Null(profile.Serial);
+        Assert.Equal("alice@example.org", profile.Endpoint);
+    }
 }

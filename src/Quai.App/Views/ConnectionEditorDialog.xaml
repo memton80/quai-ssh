@@ -23,75 +23,175 @@
                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                 Severity="Error" />
 
+            <RadioButtons
+                Header="{l:Str Key=Editor_Protocol}"
+                MaxColumns="2"
+                SelectedIndex="{x:Bind ViewModel.ProtocolIndex, Mode=TwoWay}">
+                <RadioButton Content="{l:Str Key=Editor_ProtocolSsh}" />
+                <RadioButton Content="{l:Str Key=Editor_ProtocolSerial}" />
+            </RadioButtons>
+
             <TextBox
                 Header="{l:Str Key=Editor_Name}"
                 PlaceholderText="{l:Str Key=Editor_NamePlaceholder}"
                 Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-            <Grid ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="110" />
-                </Grid.ColumnDefinitions>
-                <TextBox
-                    Header="{l:Str Key=Editor_Host}"
-                    IsSpellCheckEnabled="False"
-                    PlaceholderText="{l:Str Key=Editor_HostPlaceholder}"
-                    Text="{x:Bind ViewModel.Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <NumberBox
-                    Grid.Column="1"
-                    Header="{l:Str Key=Editor_Port}"
-                    Maximum="65535"
-                    Minimum="1"
-                    SpinButtonPlacementMode="Hidden"
-                    Value="{x:Bind ViewModel.Port, Mode=TwoWay}" />
-            </Grid>
-
-            <TextBox
-                Header="{l:Str Key=Editor_Username}"
-                IsSpellCheckEnabled="False"
-                Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-            <ComboBox
-                HorizontalAlignment="Stretch"
-                Header="{l:Str Key=Editor_Authentication}"
-                SelectedIndex="{x:Bind ViewModel.AuthenticationIndex, Mode=TwoWay}">
-                <ComboBoxItem Content="{l:Str Key=Editor_AuthPassword}" />
-                <ComboBoxItem Content="{l:Str Key=Editor_AuthKey}" />
-            </ComboBox>
-
-            <!-- Authentification par mot de passe -->
-            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsPasswordAuthentication, Mode=OneWay}">
-                <PasswordBox
-                    Header="{l:Str Key=Editor_Password}"
-                    Password="{x:Bind ViewModel.Password, Mode=TwoWay}"
-                    PlaceholderText="{x:Bind ViewModel.PasswordPlaceholder}" />
-                <CheckBox Content="{l:Str Key=Editor_SavePassword}" IsChecked="{x:Bind ViewModel.SavePassword, Mode=TwoWay}" />
-            </StackPanel>
-
-            <!-- Authentification par clé privée -->
-            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsPrivateKeyAuthentication, Mode=OneWay}">
-                <Grid ColumnSpacing="8">
+            <!-- Serveur SSH -->
+            <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.IsSsh, Mode=OneWay}">
+                <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="110" />
                     </Grid.ColumnDefinitions>
                     <TextBox
-                        Header="{l:Str Key=Editor_KeyPath}"
+                        Header="{l:Str Key=Editor_Host}"
                         IsSpellCheckEnabled="False"
-                        PlaceholderText="{l:Str Key=Editor_KeyPathPlaceholder}"
-                        Text="{x:Bind ViewModel.PrivateKeyPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button
+                        PlaceholderText="{l:Str Key=Editor_HostPlaceholder}"
+                        Text="{x:Bind ViewModel.Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <NumberBox
                         Grid.Column="1"
-                        VerticalAlignment="Bottom"
-                        Click="OnBrowseKeyClick"
-                        Content="{l:Str Key=Common_Browse}" />
+                        Header="{l:Str Key=Editor_Port}"
+                        Maximum="65535"
+                        Minimum="1"
+                        SpinButtonPlacementMode="Hidden"
+                        Value="{x:Bind ViewModel.Port, Mode=TwoWay}" />
                 </Grid>
-                <PasswordBox
-                    Header="{l:Str Key=Editor_Passphrase}"
-                    Password="{x:Bind ViewModel.Passphrase, Mode=TwoWay}"
-                    PlaceholderText="{x:Bind ViewModel.PassphrasePlaceholder}" />
-                <CheckBox Content="{l:Str Key=Editor_SavePassphrase}" IsChecked="{x:Bind ViewModel.SavePassphrase, Mode=TwoWay}" />
+
+                <TextBox
+                    Header="{l:Str Key=Editor_Username}"
+                    IsSpellCheckEnabled="False"
+                    Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <ComboBox
+                    HorizontalAlignment="Stretch"
+                    Header="{l:Str Key=Editor_Authentication}"
+                    SelectedIndex="{x:Bind ViewModel.AuthenticationIndex, Mode=TwoWay}">
+                    <ComboBoxItem Content="{l:Str Key=Editor_AuthPassword}" />
+                    <ComboBoxItem Content="{l:Str Key=Editor_AuthKey}" />
+                </ComboBox>
+
+                <!-- Authentification par mot de passe -->
+                <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsPasswordAuthentication, Mode=OneWay}">
+                    <PasswordBox
+                        Header="{l:Str Key=Editor_Password}"
+                        Password="{x:Bind ViewModel.Password, Mode=TwoWay}"
+                        PlaceholderText="{x:Bind ViewModel.PasswordPlaceholder}" />
+                    <CheckBox Content="{l:Str Key=Editor_SavePassword}" IsChecked="{x:Bind ViewModel.SavePassword, Mode=TwoWay}" />
+                </StackPanel>
+
+                <!-- Authentification par clé privée -->
+                <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsPrivateKeyAuthentication, Mode=OneWay}">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            Header="{l:Str Key=Editor_KeyPath}"
+                            IsSpellCheckEnabled="False"
+                            PlaceholderText="{l:Str Key=Editor_KeyPathPlaceholder}"
+                            Text="{x:Bind ViewModel.PrivateKeyPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Bottom"
+                            Click="OnBrowseKeyClick"
+                            Content="{l:Str Key=Common_Browse}" />
+                    </Grid>
+                    <PasswordBox
+                        Header="{l:Str Key=Editor_Passphrase}"
+                        Password="{x:Bind ViewModel.Passphrase, Mode=TwoWay}"
+                        PlaceholderText="{x:Bind ViewModel.PassphrasePlaceholder}" />
+                    <CheckBox Content="{l:Str Key=Editor_SavePassphrase}" IsChecked="{x:Bind ViewModel.SavePassphrase, Mode=TwoWay}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Port série -->
+            <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.IsSerial, Mode=OneWay}">
+                <StackPanel Spacing="4">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            Header="{l:Str Key=Editor_SerialPort}"
+                            IsEditable="True"
+                            ItemsSource="{x:Bind ViewModel.SerialPorts}"
+                            PlaceholderText="{l:Str Key=Editor_SerialPortPlaceholder}"
+                            Text="{x:Bind ViewModel.SerialPortName, Mode=TwoWay}" />
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Bottom"
+                            AutomationProperties.Name="{l:Str Key=Editor_RefreshPorts}"
+                            Command="{x:Bind ViewModel.RefreshSerialPortsCommand}"
+                            ToolTipService.ToolTip="{l:Str Key=Editor_RefreshPorts}">
+                            <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                        </Button>
+                    </Grid>
+                    <TextBlock
+                        Style="{StaticResource FieldHintStyle}"
+                        Text="{l:Str Key=Editor_NoSerialPort}"
+                        Visibility="{x:Bind ViewModel.NoSerialPortDetected, Mode=OneWay}" />
+                </StackPanel>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox
+                        HorizontalAlignment="Stretch"
+                        Header="{l:Str Key=Editor_BaudRate}"
+                        IsEditable="True"
+                        ItemsSource="{x:Bind ViewModel.BaudRates}"
+                        Text="{x:Bind ViewModel.BaudRateText, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Column="1"
+                        HorizontalAlignment="Stretch"
+                        Header="{l:Str Key=Editor_DataBits}"
+                        SelectedIndex="{x:Bind ViewModel.DataBitsIndex, Mode=TwoWay}">
+                        <x:String>5</x:String>
+                        <x:String>6</x:String>
+                        <x:String>7</x:String>
+                        <x:String>8</x:String>
+                    </ComboBox>
+                </Grid>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox
+                        HorizontalAlignment="Stretch"
+                        Header="{l:Str Key=Editor_Parity}"
+                        SelectedIndex="{x:Bind ViewModel.ParityIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="{l:Str Key=Editor_ParityNone}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_ParityOdd}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_ParityEven}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_ParityMark}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_ParitySpace}" />
+                    </ComboBox>
+                    <ComboBox
+                        Grid.Column="1"
+                        HorizontalAlignment="Stretch"
+                        Header="{l:Str Key=Editor_StopBits}"
+                        SelectedIndex="{x:Bind ViewModel.StopBitsIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="{l:Str Key=Editor_StopBitsOne}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_StopBitsOnePointFive}" />
+                        <ComboBoxItem Content="{l:Str Key=Editor_StopBitsTwo}" />
+                    </ComboBox>
+                </Grid>
+
+                <ComboBox
+                    HorizontalAlignment="Stretch"
+                    Header="{l:Str Key=Editor_FlowControl}"
+                    SelectedIndex="{x:Bind ViewModel.FlowControlIndex, Mode=TwoWay}">
+                    <ComboBoxItem Content="{l:Str Key=Editor_FlowNone}" />
+                    <ComboBoxItem Content="{l:Str Key=Editor_FlowXonXoff}" />
+                    <ComboBoxItem Content="{l:Str Key=Editor_FlowRtsCts}" />
+                </ComboBox>
             </StackPanel>
 
             <AutoSuggestBox

@@ -1,5 +1,6 @@
 using Quai.Core.Models;
 using Quai.Core.Security;
+using Quai.Core.Services;
 using Quai.Core.Storage;
 using Quai.Core.Tests.Support;
 using Quai.Core.ViewModels;
@@ -285,5 +286,74 @@ public sealed class ConnectionsViewModelTests : IDisposable
 
         Assert.Equal("Tests", vm.SelectedFilter?.Value);
         Assert.Equal(["B"], vm.Connections.Select(c => c.Name));
+    }
+
+    [Fact]
+    public async Task A_serial_connection_is_saved_without_any_secret_and_drops_old_ones()
+    {
+        var existing = Add("Ancien serveur");
+        _secrets.Items[SecretKeys.Password(existing.Id)] = "secret";
+        _secrets.Items[SecretKeys.Passphrase(existing.Id)] = "phrase";
+        _dialogs.OnEdit = editor =>
+        {
+            editor.ProtocolIndex = (int)ConnectionProtocol.Serial;
+            editor.SerialPortName = "COM3";
+            editor.Password = "ne-doit-pas-sortir";
+            return true;
+        };
+        var vm = CreateViewModel();
+
+        await vm.EditAsync(vm.Connections.Single());
+
+        var saved = _repository.Find(existing.Id)!;
+        Assert.True(saved.IsSerial);
+        Assert.Equal("COM3", saved.Serial!.PortName);
+        Assert.Empty(_secrets.Items);
+        var item = Assert.Single(vm.Connections);
+        Assert.True(item.IsSerial);
+        Assert.False(item.SupportsSftp);
+        Assert.False(item.UsesPrivateKey);
+    }
+
+    [Fact]
+    public async Task The_new_connection_form_lists_the_serial_ports_of_this_computer()
+    {
+        var ports = new FakeSerialPortCatalog { Ports = { "COM4" } };
+        ConnectionEditorViewModel? shown = null;
+        _dialogs.OnEdit = editor =>
+        {
+            shown = editor;
+            editor.ProtocolIndex = (int)ConnectionProtocol.Serial;
+            return false;
+        };
+        var vm = new ConnectionsViewModel(_repository, _secrets, _dialogs, new KeyStrings(), serialPorts: ports);
+
+        await vm.NewAsync();
+
+        Assert.Equal(["COM4"], shown!.SerialPorts);
+        Assert.Equal("COM4", shown.SerialPortName);
+    }
+
+    [Fact]
+    public void Sftp_is_not_opened_on_a_serial_connection_but_the_terminal_is()
+    {
+        var terminals = new TerminalsViewModel(new FakeSessionFactory(), new KeyStrings(), new ImmediateDispatcher());
+        var sftp = new SftpSessionsViewModel(new FakeSessionFactory(), _dialogs, new KeyStrings(), new ImmediateDispatcher());
+        var launcher = new SessionLauncher(terminals, sftp, new RecordingNavigator());
+        _repository.Save(new ConnectionProfile
+        {
+            Name = "Console",
+            Protocol = ConnectionProtocol.Serial,
+            Serial = new SerialSettings { PortName = "COM3" },
+        });
+        var vm = new ConnectionsViewModel(_repository, _secrets, _dialogs, new KeyStrings(), launcher);
+        var item = vm.Connections.Single();
+
+        vm.OpenSftp(item);
+        launcher.OpenSftp(item.Profile);
+        vm.OpenTerminal(item);
+
+        Assert.Empty(sftp.Tabs);
+        Assert.True(Assert.Single(terminals.Tabs).IsSerial);
     }
 }

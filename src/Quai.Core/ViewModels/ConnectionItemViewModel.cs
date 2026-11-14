@@ -32,10 +32,15 @@ public sealed class ConnectionItemViewModel
 
     public bool HasTags => Profile.Tags.Count > 0;
 
-    public bool UsesPrivateKey => Profile.Authentication == AuthenticationKind.PrivateKey;
+    public bool IsSerial => Profile.IsSerial;
 
-    /// <summary>Glyphe : clé (authentification par clé) ou cadenas (mot de passe).</summary>
-    public string AuthenticationGlyph => UsesPrivateKey ? "" : "";
+    /// <summary>L'explorateur SFTP n'a de sens que sur une connexion SSH.</summary>
+    public bool SupportsSftp => !Profile.IsSerial;
+
+    public bool UsesPrivateKey => !Profile.IsSerial && Profile.Authentication == AuthenticationKind.PrivateKey;
+
+    /// <summary>Glyphe : prise USB (port série), clé (authentification par clé) ou cadenas (mot de passe).</summary>
+    public string Glyph => IsSerial ? "" : UsesPrivateKey ? "" : "";
 
     public IRelayCommand OpenTerminalCommand { get; }
 
