@@ -25,11 +25,15 @@ Gestionnaire de connexions **SSH** et de transferts **SFTP** pour Windows, avec 
 **Réglages**
 - Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), police et taille du terminal, appliqués immédiatement.
 
+**Fermeture et mises à jour**
+- Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
+- Au démarrage, un bandeau signale qu'une nouvelle version est publiée dans les Releases GitHub (désactivable dans les réglages).
+
 ## Sécurité
 
 - **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
 - **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
-- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif.
+- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages.
 
 ## Télécharger et installer
 
