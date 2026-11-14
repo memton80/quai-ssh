@@ -32,7 +32,17 @@
     <!-- Fonctions du runtime inutiles ici : traçage EventSource, propagation d'activité HTTP. -->
     <EventSourceSupport>false</EventSourceSupport>
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+    <!--
+      Code précompilé (ReadyToRun) : le trimming réécrit le runtime .NET et lui fait perdre le sien, ce qui rallongeait
+      le démarrage (compilation à la volée). Les grosses assemblies gardées entières (voir QuaiKeepWinRTInterop) et
+      BouncyCastle, utilisé seulement à la connexion SSH, ne sont pas précompilées : elles restent telles que livrées.
+    -->
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll;Microsoft.WinUI.dll;WinRT.Runtime.dll;Microsoft.InteractiveExperiences.Projection.dll;BouncyCastle.Cryptography.dll" />
+  </ItemGroup>
 
   <!-- Permet un simple `dotnet build` sans préciser -r : le RID suit la plateforme. -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
