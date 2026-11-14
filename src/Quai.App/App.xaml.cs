@@ -53,6 +53,8 @@ public partial class App : Application
 
         MainWindow = new MainWindow();
         MainWindow.Activate();
+        StartupClock.TrackFirstFrame(elapsed =>
+            _logger.LogInformation("Fenêtre affichée en {Milliseconds} ms", (int)elapsed.TotalMilliseconds));
 
         if (_smokeTestDirectory is not null)
         {

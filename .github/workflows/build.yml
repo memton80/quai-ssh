@@ -170,6 +170,38 @@ jobs:
           Get-Item 'Quai-Setup-${{ matrix.platform }}.exe', 'Quai-${{ matrix.platform }}.zip' |
             Select-Object Name, @{ n = 'Mo'; e = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize | Out-String
 
+      # Tailles dans le résumé du run, pour suivre le poids de l'application d'une version à l'autre.
+      - name: Rapport de taille
+        shell: pwsh
+        run: |
+          $arch = '${{ matrix.platform }}'
+          $files = Get-ChildItem "publish/$arch" -Recurse -File
+          $mb = { param($bytes) '{0:N1}' -f ($bytes / 1MB) }
+          $installed = ($files | Measure-Object Length -Sum).Sum
+          $setup = (Get-Item "Quai-Setup-$arch.exe").Length
+          $zip = (Get-Item "Quai-$arch.zip").Length
+          $largest = $files | Sort-Object Length -Descending | Select-Object -First 12 |
+            ForEach-Object { "| $($_.FullName.Substring((Resolve-Path "publish/$arch").Path.Length + 1)) | $(& $mb $_.Length) |" }
+          @(
+            "### Taille ($arch)"
+            ''
+            '| | Mo |'
+            '|---|---:|'
+            "| Installée ($($files.Count) fichiers) | $(& $mb $installed) |"
+            "| Installateur | $(& $mb $setup) |"
+            "| Zip | $(& $mb $zip) |"
+            ''
+            '<details><summary>Fichiers les plus lourds</summary>'
+            ''
+            '| Fichier | Mo |'
+            '|---|---:|'
+            $largest
+            ''
+            '</details>'
+            ''
+          ) | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          "Installée : $(& $mb $installed) Mo ($($files.Count) fichiers) — installateur : $(& $mb $setup) Mo — zip : $(& $mb $zip) Mo"
+
       - name: Installation silencieuse
         if: matrix.platform == 'x64'
         shell: pwsh
@@ -212,6 +244,11 @@ jobs:
           }
           if (Test-Path $out) { Get-ChildItem $out -File | Format-Table Name, Length -AutoSize | Out-String }
           if (Test-Path (Join-Path $out 'smoke-report.txt')) { Get-Content (Join-Path $out 'smoke-report.txt') }
+          $metrics = Join-Path $out 'smoke-metrics.md'
+          if (Test-Path $metrics) {
+            Get-Content $metrics
+            Get-Content $metrics | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          }
           if ($failed -or -not (Test-Path (Join-Path $out 'smoke-ok.txt'))) {
             if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
             Get-ChildItem (Join-Path $out 'data/logs') -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 80 }
@@ -229,6 +266,7 @@ jobs:
           path: |
             ${{ runner.temp }}/smoke/*.png
             ${{ runner.temp }}/smoke/*.txt
+            ${{ runner.temp }}/smoke/*.md
             ${{ runner.temp }}/smoke/data/logs/*.log
             ${{ runner.temp }}/install.log
           if-no-files-found: ignore

@@ -28,6 +28,9 @@ internal static class SmokeTest
 {
     private const string Switch = "--smoke-test";
 
+    // Mesures du parcours (démarrage, mémoire) : écrites à la fin dans smoke-metrics.md.
+    private static readonly SmokeMetrics Metrics = new();
+
     public static bool TryGetOutputDirectory(out string directory)
     {
         var args = Environment.GetCommandLineArgs();
@@ -55,6 +58,7 @@ internal static class SmokeTest
         {
             Directory.CreateDirectory(directory);
             await Task.Delay(1500);
+            Metrics.Snapshot("fenêtre affichée");
             PaintBackground(window);
 
             foreach (var tag in MainWindow.PageTags)
@@ -65,6 +69,8 @@ internal static class SmokeTest
                 await CaptureAsync(window.Root, Path.Combine(directory, $"{tag}.png"));
                 report.Add($"page {tag} : OK");
             }
+
+            Metrics.Snapshot("4 pages ouvertes");
 
             await ConnectionBookAsync(window, services, directory, report);
             await TerminalAsync(window, services, directory, "terminal", report);
@@ -77,6 +83,8 @@ internal static class SmokeTest
             await CloseConfirmationAsync(window, services, directory, report);
             CheckVault(services, report);
 
+            Metrics.Snapshot("fin du parcours (sessions fermées)");
+            await File.WriteAllTextAsync(Path.Combine(directory, "smoke-metrics.md"), Metrics.ToMarkdown());
             File.WriteAllLines(Path.Combine(directory, "smoke-report.txt"), report);
             File.WriteAllText(Path.Combine(directory, "smoke-ok.txt"), "ok");
             logger.LogInformation("Test de fumée réussi");
@@ -264,6 +272,10 @@ internal static class SmokeTest
             TimeSpan.FromSeconds(20),
             "La sortie de la session n'apparaît pas dans le terminal.");
         await File.WriteAllTextAsync(Path.Combine(directory, $"{captureName}-text.txt"), screen);
+        if (captureName == "terminal")
+        {
+            Metrics.Snapshot("terminal SSH ouvert");
+        }
 
         await Task.Delay(500);
         var windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
