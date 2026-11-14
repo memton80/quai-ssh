@@ -97,7 +97,7 @@ public sealed class JsonConnectionRepository : IConnectionRepository
 
         try
         {
-            var document = JsonFile.Read<ConnectionDocument>(_path);
+            var document = JsonFile.Read(_path, QuaiJsonContext.Default.ConnectionDocument);
             _items = document?.Connections ?? [];
             _items.RemoveAll(p => p is null);
         }
@@ -112,12 +112,5 @@ public sealed class JsonConnectionRepository : IConnectionRepository
     }
 
     private void Persist(List<ConnectionProfile> items) =>
-        JsonFile.Write(_path, new ConnectionDocument { Connections = items });
-
-    private sealed class ConnectionDocument
-    {
-        public int Version { get; set; } = 1;
-
-        public List<ConnectionProfile> Connections { get; set; } = [];
-    }
+        JsonFile.Write(_path, new ConnectionDocument { Connections = items }, QuaiJsonContext.Default.ConnectionDocument);
 }

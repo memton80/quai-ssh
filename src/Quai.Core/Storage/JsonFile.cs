@@ -1,21 +1,12 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Quai.Core.Storage;
 
-/// <summary>Lecture / écriture JSON avec remplacement atomique du fichier.</summary>
+/// <summary>Lecture / écriture JSON avec remplacement atomique du fichier (format : <see cref="QuaiJsonContext"/>).</summary>
 internal static class JsonFile
 {
-    public static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-    };
-
-    public static T? Read<T>(string path)
+    public static T? Read<T>(string path, JsonTypeInfo<T> typeInfo)
         where T : class
     {
         if (!File.Exists(path))
@@ -24,10 +15,10 @@ internal static class JsonFile
         }
 
         using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<T>(stream, Options);
+        return JsonSerializer.Deserialize(stream, typeInfo);
     }
 
-    public static void Write<T>(string path, T value)
+    public static void Write<T>(string path, T value, JsonTypeInfo<T> typeInfo)
     {
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
@@ -39,7 +30,7 @@ internal static class JsonFile
         var temp = path + ".tmp";
         using (var stream = File.Create(temp))
         {
-            JsonSerializer.Serialize(stream, value, Options);
+            JsonSerializer.Serialize(stream, value, typeInfo);
         }
 
         File.Move(temp, path, overwrite: true);

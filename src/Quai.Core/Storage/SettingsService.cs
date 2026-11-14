@@ -67,7 +67,7 @@ public sealed class JsonSettingsService : ISettingsService
             _settings = updated;
             try
             {
-                JsonFile.Write(_path, updated);
+                JsonFile.Write(_path, updated, QuaiJsonContext.Default.AppSettings);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -94,7 +94,7 @@ public sealed class JsonSettingsService : ISettingsService
 
         try
         {
-            _settings = JsonFile.Read<AppSettings>(_path) ?? new AppSettings();
+            _settings = JsonFile.Read(_path, QuaiJsonContext.Default.AppSettings) ?? new AppSettings();
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or IOException or UnauthorizedAccessException)
         {

@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Quai.Core</RootNamespace>
     <Platforms>AnyCPU;x64;ARM64</Platforms>
+    <!-- Analyse de compatibilité trimming / AOT à la compilation : l'application est réduite à la publication. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
