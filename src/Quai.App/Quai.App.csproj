@@ -140,8 +140,8 @@
     - l'interop WinRT : les view-models et collections de Quai.Core (sans générateur CsWinRT, Quai.Core ne connaît pas
       Windows) passent à WinUI par des interfaces COM que CsWinRT construit par réflexion à l'exécution ; réduites, ces
       assemblies perdent les types qu'il cherche (plantage dès le carnet de connexions) ;
-    - le cœur du runtime (System.Private.CoreLib) : sa version officielle, précompilée par Microsoft, démarre plus vite
-      qu'une version réduite puis précompilée ici (mesuré au CI : environ 610 contre 750 ms, 700 sans trimming).
+    - le cœur du runtime (System.Private.CoreLib) : la bibliothèque la plus sollicitée reste la version officielle,
+      précompilée et signée par Microsoft (+2 Mo d'installateur), plutôt qu'une version réduite puis précompilée ici.
   -->
   <Target Name="QuaiKeepWholeAssemblies" BeforeTargets="PrepareForILLink">
     <ItemGroup>
