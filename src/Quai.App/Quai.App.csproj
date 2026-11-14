@@ -118,11 +118,14 @@
 
   <Target Name="QuaiExcludeRuntimeDiagnostics" AfterTargets="ResolveRuntimePackAssets" Condition="'$(_IsPublishing)' == 'true'">
     <ItemGroup>
-      <RuntimePackAsset Remove="@(RuntimePackAsset)"
-                        Condition="'%(Filename)%(Extension)' == 'createdump.exe'
-                                   or '%(Filename)%(Extension)' == 'mscordbi.dll'
-                                   or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
-                                   or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))" />
+      <_QuaiRuntimeDiagnostics Include="@(RuntimePackAsset)"
+                               Condition="'%(Filename)%(Extension)' == 'createdump.exe'
+                                          or '%(Filename)%(Extension)' == 'mscordbi.dll'
+                                          or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
+                                          or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))" />
+      <!-- ResolveRuntimePackAssets les a déjà ajoutés à la copie locale : retirés des deux listes. -->
+      <RuntimePackAsset Remove="@(_QuaiRuntimeDiagnostics)" />
+      <ReferenceCopyLocalPaths Remove="@(_QuaiRuntimeDiagnostics)" />
     </ItemGroup>
   </Target>
 
