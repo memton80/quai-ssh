@@ -7,7 +7,7 @@ public static class AppInfo
 {
     public const string Name = "Quai";
 
-    /// <summary>Version lisible (« 0.1.0 »), sans le suffixe de commit ajouté par le SDK.</summary>
+    /// <summary>Version lisible (« 1.0.0 »), sans le suffixe de commit ajouté par le SDK.</summary>
     public static string Version { get; } = ReadVersion();
 
     private static string ReadVersion()
