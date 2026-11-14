@@ -64,7 +64,7 @@
                     <TextBlock
                         Margin="0,6,0,0"
                         FontFamily="{x:Bind ui:UiHelpers.TerminalFont(ViewModel.TerminalFontFamily), Mode=OneWay}"
-                        FontSize="{x:Bind ui:UiHelpers.SafeFontSize(ViewModel.TerminalFontSize), Mode=OneWay}"
+                        FontSize="{x:Bind ui:UiHelpers.TerminalPreviewFontSize(ViewModel.TerminalFontSize), Mode=OneWay}"
                         Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                         Text="{l:Str Key=Settings_PreviewText}"
                         TextWrapping="NoWrap" />

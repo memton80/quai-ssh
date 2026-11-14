@@ -15,7 +15,7 @@ public class SettingsServiceTests
 
         Assert.Equal(AppTheme.System, settings.Theme);
         Assert.Equal("Cascadia Mono", settings.TerminalFontFamily);
-        Assert.Equal(14, settings.TerminalFontSize);
+        Assert.Equal(12, settings.TerminalFontSize);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class SettingsServiceTests
 
         service.Current.TerminalFontSize = 30;
 
-        Assert.Equal(14, service.Current.TerminalFontSize);
+        Assert.Equal(12, service.Current.TerminalFontSize);
     }
 
     [Theory]
@@ -91,7 +91,7 @@ public class SettingsServiceTests
 
         var service = new JsonSettingsService(path);
 
-        Assert.Equal(14, service.Current.TerminalFontSize);
+        Assert.Equal(12, service.Current.TerminalFontSize);
         Assert.Single(Directory.GetFiles(temp.Path, "settings.json.corrompu-*"));
     }
 
@@ -107,7 +107,7 @@ public class SettingsServiceTests
 
         var vm = new SettingsViewModel(service, paths);
         Assert.Equal(1, vm.ThemeIndex);
-        Assert.Equal(14, vm.TerminalFontSize);
+        Assert.Equal(12, vm.TerminalFontSize);
         Assert.Equal(0, notifications);
 
         vm.ThemeIndex = 2;
@@ -140,8 +140,8 @@ public class SettingsServiceTests
 
         vm.ResetTerminalFontCommand.Execute(null);
         Assert.Equal("Cascadia Mono", service.Current.TerminalFontFamily);
-        Assert.Equal(14, service.Current.TerminalFontSize);
-        Assert.Equal(14, vm.TerminalFontSize);
+        Assert.Equal(12, service.Current.TerminalFontSize);
+        Assert.Equal(12, vm.TerminalFontSize);
     }
 
     [Fact]

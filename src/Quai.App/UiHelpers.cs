@@ -21,7 +21,10 @@ public static class UiHelpers
         return new FontFamily($"{name}, Cascadia Mono, Consolas");
     }
 
-    /// <summary>Taille de police toujours valide (un NumberBox vidé vaut NaN).</summary>
-    public static double SafeFontSize(double size) =>
-        double.IsNaN(size) ? AppSettings.DefaultTerminalFontSize : Math.Clamp(size, AppSettings.MinTerminalFontSize, AppSettings.MaxTerminalFontSize);
+    /// <summary>
+    /// Taille de l'aperçu, en pixels indépendants : le réglage est en points (comme le terminal),
+    /// toujours valide (un NumberBox vidé vaut NaN).
+    /// </summary>
+    public static double TerminalPreviewFontSize(double points) =>
+        (double.IsNaN(points) ? AppSettings.DefaultTerminalFontSize : Math.Clamp(points, AppSettings.MinTerminalFontSize, AppSettings.MaxTerminalFontSize)) * 96 / 72;
 }

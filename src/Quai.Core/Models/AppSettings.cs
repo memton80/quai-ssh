@@ -12,7 +12,9 @@ public enum AppTheme
 public sealed class AppSettings
 {
     public const string DefaultTerminalFontFamily = "Cascadia Mono";
-    public const int DefaultTerminalFontSize = 14;
+
+    /// <summary>Taille en points, comme dans Windows Terminal (même valeur par défaut).</summary>
+    public const int DefaultTerminalFontSize = 12;
     public const int MinTerminalFontSize = 8;
     public const int MaxTerminalFontSize = 32;
 
