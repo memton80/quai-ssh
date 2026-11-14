@@ -549,4 +549,49 @@
   <data name="Settings_OpenDataFolder" xml:space="preserve">
     <value>Ouvrir le dossier</value>
   </data>
+  <data name="Shutdown_Title" xml:space="preserve">
+    <value>Fermer Quai ?</value>
+  </data>
+  <data name="Shutdown_Confirm" xml:space="preserve">
+    <value>Fermer Quai</value>
+  </data>
+  <data name="Shutdown_SessionsOpen" xml:space="preserve">
+    <value>Ces connexions seront fermées : {0}.</value>
+  </data>
+  <data name="Shutdown_OneTerminal" xml:space="preserve">
+    <value>1 terminal</value>
+  </data>
+  <data name="Shutdown_Terminals" xml:space="preserve">
+    <value>{0} terminaux</value>
+  </data>
+  <data name="Shutdown_OneSftp" xml:space="preserve">
+    <value>1 session SFTP</value>
+  </data>
+  <data name="Shutdown_Sftp" xml:space="preserve">
+    <value>{0} sessions SFTP</value>
+  </data>
+  <data name="Shutdown_Both" xml:space="preserve">
+    <value>{0} et {1}</value>
+  </data>
+  <data name="Shutdown_OneTransfer" xml:space="preserve">
+    <value>Un transfert en cours sera interrompu et son fichier incomplet supprimé.</value>
+  </data>
+  <data name="Shutdown_Transfers" xml:space="preserve">
+    <value>{0} transferts en cours seront interrompus et leurs fichiers incomplets supprimés.</value>
+  </data>
+  <data name="Update_Title" xml:space="preserve">
+    <value>Mise à jour disponible</value>
+  </data>
+  <data name="Update_Message" xml:space="preserve">
+    <value>Quai {0} est disponible (vous avez la version {1}).</value>
+  </data>
+  <data name="Update_Download" xml:space="preserve">
+    <value>Télécharger</value>
+  </data>
+  <data name="Settings_Updates" xml:space="preserve">
+    <value>Rechercher les mises à jour</value>
+  </data>
+  <data name="Settings_UpdatesDescription" xml:space="preserve">
+    <value>Au démarrage, Quai demande à GitHub le numéro de la dernière version publiée (rien sur vous ni sur vos connexions).</value>
+  </data>
 </root>

@@ -13,6 +13,7 @@ using Quai.Core.Storage;
 using Quai.Core.ViewModels;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
+using static Quai.App.NativeMethods;
 
 namespace Quai.App;
 
@@ -70,6 +71,8 @@ internal static class SmokeTest
             await SftpAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
             await SettingsAsync(window, services, directory, report);
+            await UpdateBannerAsync(window, services, directory, report);
+            await CloseConfirmationAsync(window, services, directory, report);
             CheckVault(services, report);
 
             File.WriteAllLines(Path.Combine(directory, "smoke-report.txt"), report);
@@ -311,6 +314,71 @@ internal static class SmokeTest
             "Le retour au thème clair ne s'est pas appliqué.");
         PaintBackground(window);
         report.Add("réglages (thème, police du terminal) : OK");
+    }
+
+    /// <summary>Bandeau de mise à jour : une release plus récente (fictive, sans réseau) l'affiche.</summary>
+    private static async Task UpdateBannerAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var banner = services.GetRequiredService<UpdateBannerViewModel>();
+        await banner.CheckAsync();
+        if (!banner.IsOpen || banner.ReleasePage?.AbsoluteUri != $"https://github.com/memton80/quai-ssh/releases/tag/{SmokeSessionFactory.ReleaseTag}")
+        {
+            throw new InvalidOperationException("Le bandeau de mise à jour ne s'affiche pas pour une version plus récente.");
+        }
+
+        window.NavigateTo(MainWindow.ConnectionsTag);
+        await Task.Delay(700);
+        await CaptureAsync(window.Root, Path.Combine(directory, "update-banner.png"));
+        banner.IsOpen = false;
+        await Task.Delay(300);
+        report.Add("bandeau de mise à jour : OK");
+    }
+
+    /// <summary>
+    /// Fermeture de la fenêtre avec des sessions ouvertes (vrai message WM_CLOSE) : la confirmation les liste ;
+    /// « Annuler » garde tout ouvert ; la fermeture groupée déconnecte ensuite chaque session.
+    /// </summary>
+    private static async Task CloseConfirmationAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var launcher = services.GetRequiredService<ISessionLauncher>();
+        var profile = new ConnectionProfile { Name = "Démonstration", Host = "demo.example.org", Username = "quai" };
+        var sftp = services.GetRequiredService<SftpSessionsViewModel>();
+        var terminals = services.GetRequiredService<TerminalsViewModel>();
+
+        launcher.OpenSftp(profile);
+        var browser = sftp.SelectedTab ?? throw new InvalidOperationException("Aucun onglet SFTP n'a été créé.");
+        await WaitUntilAsync(() => Task.FromResult(browser.IsConnected), TimeSpan.FromSeconds(20), "La session SFTP de démonstration ne s'est pas ouverte.");
+        launcher.OpenTerminal(profile);
+        var terminal = terminals.SelectedTab ?? throw new InvalidOperationException("Aucun onglet de terminal n'a été créé.");
+        await WaitUntilAsync(() => Task.FromResult(terminal.IsConnected), TimeSpan.FromSeconds(60), "Le terminal de démonstration ne s'est pas connecté.");
+
+        var dialogs = services.GetRequiredService<DialogService>();
+        PostMessageW(WinRT.Interop.WindowNative.GetWindowHandle(window), WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+        await WaitUntilAsync(() => Task.FromResult(dialogs.Current is not null), TimeSpan.FromSeconds(10), "Aucune confirmation à la fermeture de la fenêtre.");
+        await Task.Delay(900);
+        var dialog = dialogs.Current ?? throw new InvalidOperationException("La confirmation de fermeture s'est refermée toute seule.");
+        var text = (dialog.Content as Microsoft.UI.Xaml.Controls.TextBlock)?.Text ?? string.Empty;
+        if (!text.Contains("1 terminal", StringComparison.Ordinal) || !text.Contains("1 session SFTP", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"La confirmation ne liste pas les sessions ouvertes : « {text} ».");
+        }
+
+        await CaptureAsync(dialog, Path.Combine(directory, "close-confirmation.png"));
+        dialog.Hide();
+        await WaitUntilAsync(() => Task.FromResult(dialogs.Current is null), TimeSpan.FromSeconds(10), "La confirmation ne se ferme pas.");
+        await Task.Delay(500);
+        if (!terminal.IsConnected || !browser.IsConnected)
+        {
+            throw new InvalidOperationException("« Annuler » à la fermeture a quand même coupé des sessions.");
+        }
+
+        var closed = await services.GetRequiredService<AppShutdown>().CloseAllAsync(TimeSpan.FromSeconds(10));
+        if (!closed || !terminals.IsEmpty || !sftp.IsEmpty || browser.IsConnected)
+        {
+            throw new InvalidOperationException("La fermeture groupée n'a pas déconnecté toutes les sessions.");
+        }
+
+        report.Add("fermeture : confirmation, annulation, déconnexion de toutes les sessions : OK");
     }
 
     /// <summary>Fond opaque derrière le contenu : le Mica n'apparaît pas dans les captures.</summary>

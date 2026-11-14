@@ -79,6 +79,12 @@
                     <ImageIcon Source="ms-appx:///Assets/AppIcon.png" />
                 </tk:SettingsCard.HeaderIcon>
             </tk:SettingsCard>
+            <tk:SettingsCard Description="{l:Str Key=Settings_UpdatesDescription}" Header="{l:Str Key=Settings_Updates}">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE895;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ToggleSwitch AutomationProperties.Name="{l:Str Key=Settings_Updates}" IsOn="{x:Bind ViewModel.CheckForUpdates, Mode=TwoWay}" />
+            </tk:SettingsCard>
             <tk:SettingsCard Description="{x:Bind ViewModel.DataDirectory}" Header="{l:Str Key=Settings_Data}">
                 <tk:SettingsCard.HeaderIcon>
                     <FontIcon Glyph="&#xE8B7;" />

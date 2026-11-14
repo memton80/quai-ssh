@@ -2,6 +2,7 @@ using System.Text;
 using Quai.Core.Models;
 using Quai.Core.Sftp;
 using Quai.Core.Ssh;
+using Quai.Core.Updates;
 
 namespace Quai.App.Services;
 
@@ -11,6 +12,9 @@ namespace Quai.App.Services;
 /// </summary>
 internal sealed class SmokeSessionFactory : ISshSessionFactory
 {
+    /// <summary>Version « publiée » du test de fumée, forcément plus récente : le bandeau doit apparaître.</summary>
+    public const string ReleaseTag = "v99.0.0";
+
     public const string Banner = "Quai - terminal de test";
 
     public Task<ITerminalSession> OpenTerminalAsync(
@@ -127,4 +131,11 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
 
         private void Emit(string text) => DataReceived?.Invoke(Encoding.UTF8.GetBytes(text));
     }
+}
+
+/// <summary>Source de releases du test de fumée : aucune requête réseau.</summary>
+internal sealed class SmokeReleaseSource : IReleaseSource
+{
+    public Task<string?> GetLatestTagAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<string?>(SmokeSessionFactory.ReleaseTag);
 }

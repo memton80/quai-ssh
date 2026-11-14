@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -7,6 +9,7 @@ using Quai.App.Services;
 using Quai.App.Terminal;
 using Quai.App.Views;
 using Quai.Core.Services;
+using Quai.Core.ViewModels;
 using Windows.Foundation;
 using Windows.Graphics;
 
@@ -23,14 +26,25 @@ public sealed partial class MainWindow : Window
     /// <summary>Toutes les pages, dans l'ordre de la navigation.</summary>
     public static readonly IReadOnlyList<string> PageTags = [ConnectionsTag, TerminalsTag, SftpTag, SettingsTag];
 
+    // Délai maximal pour déconnecter proprement les sessions à la fermeture.
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
+
     // Les pages sont créées à la demande puis conservées : les sessions ouvertes survivent à la navigation.
     private readonly Dictionary<string, FrameworkElement> _pages = [];
+
+    private readonly ILogger<MainWindow> _logger;
 
     // Volet de navigation déplié par-dessus le contenu (mode compact ou minimal).
     private bool _paneOverlay;
 
+    // Fermeture : confirmation en cours, puis fermeture accordée (les sessions sont déjà déconnectées).
+    private bool _closeRequested;
+    private bool _closeAllowed;
+
     public MainWindow()
     {
+        Updates = App.Current.Services.GetRequiredService<UpdateBannerViewModel>();
+        _logger = App.Current.Services.GetRequiredService<ILogger<MainWindow>>();
         InitializeComponent();
 
         Title = "Quai";
@@ -74,9 +88,14 @@ public sealed partial class MainWindow : Window
         NavView.DisplayModeChanged += (_, _) =>
             SetPaneOverlay(NavView.IsPaneOpen && NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
 
+        AppWindow.Closing += OnClosing;
+
         ResizeForDpi(1240, 800);
         NavigateTo(ConnectionsTag);
     }
+
+    /// <summary>Bandeau « nouvelle version disponible ».</summary>
+    public UpdateBannerViewModel Updates { get; }
 
     /// <summary>Contenu racine de la fenêtre (thème, capture d'écran des tests de fumée).</summary>
     public FrameworkElement Root => RootGrid;
@@ -126,6 +145,82 @@ public sealed partial class MainWindow : Window
         foreach (var (key, element) in _pages)
         {
             element.Visibility = key == tag ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>
+    /// Fermeture de la fenêtre (bouton, Alt+F4) : s'il reste des sessions ouvertes ou des transferts,
+    /// l'utilisateur confirme ; puis chaque session est déconnectée proprement avant de quitter.
+    /// </summary>
+    private async void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_closeAllowed)
+        {
+            return;
+        }
+
+        var services = App.Current.Services;
+        var shutdown = services.GetRequiredService<AppShutdown>();
+        var open = shutdown.Inventory();
+        if (open.IsEmpty)
+        {
+            // Rien de connecté : les onglets restants (déconnectés) n'ont rien à fermer.
+            return;
+        }
+
+        args.Cancel = true;
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        _closeRequested = true;
+        try
+        {
+            var confirmed = await services.GetRequiredService<DialogService>().ConfirmAsync(
+                Loc.Get("Shutdown_Title"),
+                shutdown.Describe(open),
+                Loc.Get("Shutdown_Confirm"),
+                isDestructive: open.ActiveTransfers > 0);
+            if (!confirmed)
+            {
+                return;
+            }
+
+            if (!await shutdown.CloseAllAsync(ShutdownTimeout))
+            {
+                _logger.LogWarning("Des sessions ne se sont pas fermées dans le délai ; fermeture forcée");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Quitter reste possible même si la fermeture propre échoue.
+            _logger.LogError(ex, "Fermeture propre des sessions impossible");
+        }
+        finally
+        {
+            _closeRequested = false;
+        }
+
+        _closeAllowed = true;
+        Close();
+    }
+
+    private void OnDownloadUpdateClick(object sender, RoutedEventArgs e)
+    {
+        if (Updates.ReleasePage is not { } page)
+        {
+            return;
+        }
+
+        try
+        {
+            // Navigateur par défaut ; l'adresse est construite par l'application (page de release GitHub).
+            Process.Start(new ProcessStartInfo(page.AbsoluteUri) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Ouverture de la page de mise à jour impossible ({Error})", ex.GetType().Name);
         }
     }
 

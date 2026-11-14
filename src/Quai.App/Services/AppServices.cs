@@ -4,7 +4,9 @@ using Quai.Core.Localization;
 using Quai.Core.Security;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
+using Quai.Core;
 using Quai.Core.Storage;
+using Quai.Core.Updates;
 using Quai.Core.ViewModels;
 using Serilog;
 
@@ -68,6 +70,12 @@ internal static class AppServices
         services.AddSingleton<ISessionLauncher, SessionLauncher>();
         services.AddSingleton<ConnectionsViewModel>();
         services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<AppShutdown>();
+
+        // Mises à jour : une requête à l'API publique de GitHub (le test de fumée n'accède pas au réseau).
+        services.AddSingleton<IReleaseSource>(smokeTest ? new SmokeReleaseSource() : new GitHubReleaseSource());
+        services.AddSingleton(provider => new UpdateChecker(provider.GetRequiredService<IReleaseSource>(), AppInfo.Version));
+        services.AddSingleton<UpdateBannerViewModel>();
 
         return services.BuildServiceProvider();
     }

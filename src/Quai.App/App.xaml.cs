@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Quai.App.Services;
+using Quai.Core.ViewModels;
 
 namespace Quai.App;
 
@@ -57,6 +58,17 @@ public partial class App : Application
         {
             _ = SmokeTest.RunAsync(MainWindow, Services, _logger, _smokeTestDirectory);
         }
+        else
+        {
+            _ = CheckForUpdatesAsync();
+        }
+    }
+
+    /// <summary>Vérification des mises à jour, un peu après le démarrage pour ne pas le ralentir.</summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        await Services.GetRequiredService<UpdateBannerViewModel>().CheckAsync();
     }
 
     private void TrySetLanguage(string language)
