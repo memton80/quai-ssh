@@ -15,7 +15,7 @@ Briques imposées au départ (à remplacer seulement si tu trouves nettement mie
 | Besoin | Brique |
 |---|---|
 | SSH, SFTP, port forwarding, auth mot de passe / clé | `SSH.NET` (NuGet) |
-| Émulation de terminal | `xterm.js` (+ addon fit) hébergé dans `WebView2` (`Microsoft.Web.WebView2`), assets embarqués localement, pas de CDN |
+| Émulation de terminal | moteur natif de Windows Terminal (`Microsoft.Terminal.Control.dll`, tiré du paquet `CI.Microsoft.Terminal.Wpf`, DLL native seule) dans une fenêtre Win32 enfant. **Interdit absolu** : WebView2, xterm.js ou toute application web cachée |
 | MVVM | `CommunityToolkit.Mvvm` |
 | DI, config, logs | `Microsoft.Extensions.*` + `Serilog` (fichier) |
 | Contrôles WinUI supplémentaires | `CommunityToolkit.WinUI.Controls.*` |
@@ -65,7 +65,7 @@ Ne passe à l'étape suivante que quand la précédente fonctionne et que le CI 
 
 ## Règle CSS / HTML
 
-Le CSS ne va **jamais** dans le HTML. La page hôte du terminal est composée de fichiers séparés : `terminal.html`, `terminal.css`, `terminal.js`. Pas d'attribut `style=""`, pas de balise `<style>` dans le HTML. (XAML n'est pas concerné, mais préfère les `ResourceDictionary` aux styles répétés.)
+Le CSS ne va **jamais** dans le HTML : fichiers séparés, pas d'attribut `style=""`, pas de balise `<style>`. (Le terminal n'utilise plus aucune page HTML. XAML n'est pas concerné, mais préfère les `ResourceDictionary` aux styles répétés.)
 
 ## UI
 

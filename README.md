@@ -11,8 +11,9 @@ Gestionnaire de connexions **SSH** et de transferts **SFTP** pour Windows, avec 
 - Authentification par mot de passe ou par clé privée (OpenSSH, PEM, PuTTY ; passphrase prise en charge).
 
 **Terminal SSH**
-- Onglets, émulation complète par xterm.js (couleurs, UTF-8, redimensionnement), reconnexion en un clic.
-- Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+V` colle, clic droit copie ou colle.
+- Onglets, moteur natif de **Windows Terminal** (le même que l'application de Microsoft : rendu DirectWrite / Direct3D, couleurs, UTF-8, redimensionnement), reconnexion en un clic. Aucun navigateur embarqué.
+- Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+Maj+C` copie, `Ctrl+V` ou `Maj+Inser` colle, clic droit copie ou colle. Collage multiligne protégé quand le shell le permet (« bracketed paste »).
+- Historique : molette, barre de défilement, `Ctrl+Maj+↑ / ↓ / Pg.Préc / Pg.Suiv / Début / Fin`.
 
 **Explorateur SFTP**
 - Double panneau : cet ordinateur à gauche, le serveur à droite, séparateur redimensionnable.
@@ -28,7 +29,7 @@ Gestionnaire de connexions **SSH** et de transferts **SFTP** pour Windows, avec 
 
 - **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
 - **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
-- **Aucune télémétrie.** Le terminal charge xterm.js depuis des fichiers locaux, sans aucun accès réseau.
+- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif.
 
 ## Télécharger et installer
 
@@ -46,7 +47,7 @@ L'installateur est un seul fichier qui contient tout (.NET et Windows App SDK co
 
 **Désinstaller** : Paramètres de Windows → Applications → Applications installées → Quai → Désinstaller. Le désinstallateur demande s'il faut aussi effacer vos données (connexions, réglages, hôtes connus et secrets du coffre Windows) ; par défaut elles sont conservées.
 
-**Prérequis** : Windows 10 (1809) ou Windows 11. Le terminal utilise Microsoft Edge WebView2, déjà présent sur Windows 11 et sur les Windows 10 à jour.
+**Prérequis** : Windows 10 (1809) ou Windows 11, rien d'autre : le moteur du terminal est fourni avec Quai.
 
 ## Où sont mes données ?
 
@@ -64,14 +65,14 @@ Dans `%LOCALAPPDATA%\Quai` :
 ```
 Quai.sln
 src/Quai.Core/          logique sans dépendance UI : modèles, stockage, SSH / SFTP, view-models
-src/Quai.App/           application WinUI 3 : vues, dialogues, coffre Windows, page du terminal
+src/Quai.App/           application WinUI 3 : vues, dialogues, coffre Windows, hébergement du terminal natif
 tests/Quai.Core.Tests/  tests xUnit (unitaires + intégration contre un vrai OpenSSH)
 tests/integration/      script qui démarre le serveur OpenSSH de test
 installer/Quai.iss      script Inno Setup de l'installateur
 docs/DECISIONS.md       journal des choix techniques
 ```
 
-Briques : .NET 10, Windows App SDK 2 (WinUI 3, non packagé, auto-contenu), [SSH.NET](https://github.com/sshnet/SSH.NET), [xterm.js](https://xtermjs.org/) dans WebView2, CommunityToolkit (MVVM et contrôles), Serilog, Inno Setup.
+Briques : .NET 10, Windows App SDK 2 (WinUI 3, non packagé, auto-contenu), [SSH.NET](https://github.com/sshnet/SSH.NET), le moteur de [Windows Terminal](https://github.com/microsoft/terminal) (`Microsoft.Terminal.Control.dll`, licence MIT), CommunityToolkit (MVVM et contrôles), Serilog, Inno Setup.
 
 Tests :
 
