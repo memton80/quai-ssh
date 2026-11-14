@@ -159,7 +159,7 @@ jobs:
 
       - name: Zip (version portable)
         shell: pwsh
-        run: 7z a -tzip -mx=7 "Quai-${{ matrix.platform }}.zip" "./publish/${{ matrix.platform }}/*"
+        run: 7z a -tzip -mx=9 "Quai-${{ matrix.platform }}.zip" "./publish/${{ matrix.platform }}/*"
 
       - name: Installateur (Inno Setup)
         shell: pwsh

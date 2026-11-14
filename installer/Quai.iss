@@ -59,8 +59,10 @@ OutputDir={#OutputDir}
 OutputBaseFilename=Quai-Setup-{#Arch}
 SetupIconFile=..\src\Quai.App\Assets\Quai.ico
 WizardStyle=modern
-Compression=lzma2/max
+; Compression maximale (dictionnaire de 64 Mo, archive solide) : installateur plus petit, compilation un peu plus longue.
+Compression=lzma2/ultra64
 SolidCompression=yes
+LZMAUseSeparateProcess=yes
 
 ; Mise à jour par-dessus une version ouverte : l'installateur propose de fermer Quai.
 CloseApplications=yes
