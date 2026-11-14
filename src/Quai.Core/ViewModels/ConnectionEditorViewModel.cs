@@ -91,7 +91,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
 
     public bool IsSerial => Protocol == ConnectionProtocol.Serial;
 
-    /// <summary>Ports détectés sur cet ordinateur (le champ accepte aussi un nom saisi à la main).</summary>
+    /// <summary>Ports détectés sur cet ordinateur, proposés en suggestions (le champ accepte tout nom saisi).</summary>
     public ObservableCollection<string> SerialPorts { get; } = [];
 
     /// <summary>La liste a été lue et ne contient aucun port.</summary>
@@ -101,7 +101,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     [ObservableProperty]
     public partial string SerialPortName { get; set; }
 
-    /// <summary>Vitesses usuelles, en texte pour correspondre exactement à la saisie de la liste déroulante.</summary>
+    /// <summary>Vitesses usuelles, proposées en suggestions du champ de saisie.</summary>
     public IReadOnlyList<string> BaudRates { get; } =
         SerialSettings.StandardBaudRates.Select(rate => rate.ToString(CultureInfo.InvariantCulture)).ToList();
 
@@ -183,20 +183,10 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     public void RefreshSerialPorts()
     {
         var current = SerialPortName;
-        var detected = _serialPorts?.GetPortNames() ?? [];
-
-        // Mise à jour sans Clear : la liste déroulante garde la saisie en cours.
-        foreach (var gone in SerialPorts.Except(detected).ToList())
+        SerialPorts.Clear();
+        foreach (var port in _serialPorts?.GetPortNames() ?? [])
         {
-            SerialPorts.Remove(gone);
-        }
-
-        for (var i = 0; i < detected.Count; i++)
-        {
-            if (i >= SerialPorts.Count || SerialPorts[i] != detected[i])
-            {
-                SerialPorts.Insert(i, detected[i]);
-            }
+            SerialPorts.Add(port);
         }
 
         NoSerialPortDetected = SerialPorts.Count == 0;

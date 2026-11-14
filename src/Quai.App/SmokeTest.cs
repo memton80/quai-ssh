@@ -162,6 +162,12 @@ internal static class SmokeTest
         await Task.Delay(1200);
         dialog = dialogs.Current ?? throw new InvalidOperationException("La fiche de la connexion série ne s'est pas ouverte.");
         await CaptureAsync(dialog, Path.Combine(directory, "connection-editor-serial.png"));
+        var shown = (dialog as Views.ConnectionEditorDialog)?.SerialTextForTest;
+        if (shown is not ("COM3", "115200"))
+        {
+            throw new InvalidOperationException($"La fiche série n'affiche pas le port et la vitesse enregistrés : {shown}.");
+        }
+
         dialog.Hide();
         await pending;
         if (!serialEditor.IsSerial || serialEditor.SerialPorts.Count != SmokeSessionFactory.SerialPorts.Count || serialEditor.SerialPortName != "COM3")

@@ -190,7 +190,7 @@
     <value>Port</value>
   </data>
   <data name="Editor_SerialPortPlaceholder" xml:space="preserve">
-    <value>COM3</value>
+    <value>ex. COM3</value>
   </data>
   <data name="Editor_RefreshPorts" xml:space="preserve">
     <value>Actualiser la liste des ports</value>

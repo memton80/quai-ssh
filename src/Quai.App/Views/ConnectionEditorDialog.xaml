@@ -113,13 +113,14 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox
-                            HorizontalAlignment="Stretch"
+                        <!-- Ports détectés proposés en suggestions ; tout nom reste saisissable. -->
+                        <AutoSuggestBox
+                            x:Name="SerialPortBox"
+                            GotFocus="OnSerialPortGotFocus"
                             Header="{l:Str Key=Editor_SerialPort}"
-                            IsEditable="True"
-                            ItemsSource="{x:Bind ViewModel.SerialPorts}"
                             PlaceholderText="{l:Str Key=Editor_SerialPortPlaceholder}"
-                            Text="{x:Bind ViewModel.SerialPortName, Mode=TwoWay}" />
+                            Text="{x:Bind ViewModel.SerialPortName, Mode=TwoWay}"
+                            TextChanged="OnSerialPortTextChanged" />
                         <Button
                             Grid.Column="1"
                             VerticalAlignment="Bottom"
@@ -140,12 +141,12 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <ComboBox
-                        HorizontalAlignment="Stretch"
+                    <AutoSuggestBox
+                        x:Name="BaudRateBox"
+                        GotFocus="OnBaudRateGotFocus"
                         Header="{l:Str Key=Editor_BaudRate}"
-                        IsEditable="True"
-                        ItemsSource="{x:Bind ViewModel.BaudRates}"
-                        Text="{x:Bind ViewModel.BaudRateText, Mode=TwoWay}" />
+                        Text="{x:Bind ViewModel.BaudRateText, Mode=TwoWay}"
+                        TextChanged="OnBaudRateTextChanged" />
                     <ComboBox
                         Grid.Column="1"
                         HorizontalAlignment="Stretch"
