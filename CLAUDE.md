@@ -76,7 +76,7 @@ Fluent / Windows 11 : `NavigationView`, `TabView`, Mica, coins arrondis, thèmes
 - Le build se fait par `.github/workflows/build.yml` sur `windows-latest`. Il se déclenche sur les changements dans `src/`, `tests/`, `Quai.sln` et les fichiers `Directory.*`.
 - Le workflow est un point de départ : adapte-le dès que les projets existent (noms des projets, propriétés de publication WinUI 3, `Platforms` / `RuntimeIdentifiers` dans les `.csproj`).
 - Après chaque push, vérifie le résultat du run (`gh run watch` ou `gh run list`) et corrige jusqu'à ce que ce soit vert. Ne déclare rien terminé tant que le CI n'est pas vert.
-- Release : un tag `vX.Y.Z` publie les zips `x64` et `arm64` dans GitHub Releases.
+- Release : automatique. La version se prépare dans `Directory.Build.props` (`<Version>X.Y.Z</Version>`) ; quand ce numéro arrive sur `main` sans tag correspondant, le CI le construit, crée le tag `vX.Y.Z` et publie la release (installateurs et zips `x64` / `arm64`). Pour sortir une version : monter ce numéro. Un tag `vX.Y.Z` poussé à la main publie aussi.
 
 ## Façon de travailler
 

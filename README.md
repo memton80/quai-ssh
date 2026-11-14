@@ -98,7 +98,7 @@ Publication (sous Windows) :
 dotnet publish src/Quai.App/Quai.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish/x64
 ```
 
-**CI** (`.github/workflows/build.yml`) : à chaque push, build `x64` et `arm64` sur `windows-latest`, tests, construction de l'installateur, puis sur `x64` installation silencieuse, **test de fumée de l'application installée** (lancement réel, parcours de chaque écran avec captures) et désinstallation vérifiée. Un job Linux exécute les tests d'intégration contre OpenSSH et sur des ports série virtuels (`socat`). Un tag `vX.Y.Z` publie installateurs et zips dans Releases.
+**CI** (`.github/workflows/build.yml`) : à chaque push, build `x64` et `arm64` sur `windows-latest`, tests, construction de l'installateur, puis sur `x64` installation silencieuse, **test de fumée de l'application installée** (lancement réel, parcours de chaque écran avec captures) et désinstallation vérifiée. Un job Linux exécute les tests d'intégration contre OpenSSH et sur des ports série virtuels (`socat`). **Releases automatiques** : la version se règle dans `Directory.Build.props` (`<Version>X.Y.Z</Version>`) ; quand un numéro sans tag arrive sur `main`, le CI le construit, crée le tag `vX.Y.Z` et publie installateurs et zips dans Releases. Pour sortir une version, il suffit de monter ce numéro.
 
 ## Limites connues
 

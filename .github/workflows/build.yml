@@ -3,7 +3,8 @@ name: Build
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    # Tag poussé à la main (les releases sont normalement créées toutes seules, voir le job « version »).
+    tags: ['v*', 'V*']
     paths:
       - 'src/**'
       - 'tests/**'
@@ -35,7 +36,61 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  # Version de la construction et décision de publier.
+  # La version se prépare dans Directory.Build.props (<Version>X.Y.Z</Version>). Quand elle arrive sur main sans
+  # tag correspondant, ce run la construit, puis le job « release » crée le tag vX.Y.Z et publie la release.
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version et publication
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          prepared=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props || true)
+          if ! [[ "$prepared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=Directory.Build.props::<Version> doit être de la forme X.Y.Z (trouvé : « $prepared »)."
+            exit 1
+          fi
+
+          # Tag déjà présent ? Sans tenir compte de la casse du « v » (V1.0.0 a été créé à la main).
+          tags=$(git ls-remote --tags origin)
+          if grep -qiE "refs/tags/v${prepared//./\\.}$" <<<"$tags"; then tagged=true; else tagged=false; fi
+
+          case "$GITHUB_REF" in
+            refs/tags/[vV]*)
+              version="${GITHUB_REF_NAME:1}"; tag="$GITHUB_REF_NAME"; release=true ;;
+            refs/heads/main)
+              if [ "$tagged" = false ]; then
+                version="$prepared"; tag="v$prepared"; release=true
+              else
+                version="0.0.0-ci.$GITHUB_RUN_NUMBER"; tag=""; release=false
+              fi ;;
+            *)
+              version="0.0.0-ci.$GITHUB_RUN_NUMBER"; tag=""; release=false ;;
+          esac
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "Version préparée (Directory.Build.props) : **$prepared** — tag v$prepared déjà présent : **$tagged**"
+            echo
+            echo "Construction : **$version** — publication : **$release** ${tag:+(tag $tag)}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Version préparée $prepared (tag présent : $tagged) ; construction $version ; publication : $release"
+
   build:
+    needs: version
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -48,17 +103,6 @@ jobs:
         with:
           # .NET 10 = dernière LTS, prise en charge par le Windows App SDK 2.x (voir docs/DECISIONS.md).
           dotnet-version: 10.0.x
-
-      - name: Version
-        id: version
-        shell: pwsh
-        run: |
-          if ($env:GITHUB_REF -like 'refs/tags/v*') {
-            $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          } else {
-            $version = "0.0.0-ci.$($env:GITHUB_RUN_NUMBER)"
-          }
-          "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Restore
         run: dotnet restore Quai.sln
@@ -75,7 +119,7 @@ jobs:
           --self-contained true
           -p:Platform=${{ matrix.platform }}
           -p:WindowsPackageType=None
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:Version=${{ needs.version.outputs.version }}
           -o publish/${{ matrix.platform }}
 
       - name: Vérification du contenu publié
@@ -118,7 +162,7 @@ jobs:
           }
           if (-not (Test-Path $iscc)) { throw 'ISCC.exe (Inno Setup) introuvable.' }
 
-          $version = '${{ steps.version.outputs.version }}'
+          $version = '${{ needs.version.outputs.version }}'
           $numeric = ($version -split '-')[0]
           $source = (Resolve-Path 'publish/${{ matrix.platform }}').Path
           & $iscc /Qp "/DAppVersion=$version" "/DAppNumericVersion=$numeric" "/DArch=${{ matrix.platform }}" "/DSourceDir=$source" "/DOutputDir=$PWD" installer/Quai.iss
@@ -255,9 +299,10 @@ jobs:
       - name: Tests (Quai.Core, intégration comprise)
         run: dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
 
+  # Crée le tag (s'il n'existe pas encore) et la release, une fois tout vert.
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, integration]
+    if: needs.version.outputs.release == 'true'
+    needs: [version, build, integration]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -268,8 +313,13 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # Le tag est créé sur le commit construit s'il n'existe pas encore (créé par ce jeton, il ne relance pas le
+      # workflow : la construction est déjà faite).
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Quai ${{ needs.version.outputs.version }}
           files: |
             dist/*.exe
             dist/*.zip
