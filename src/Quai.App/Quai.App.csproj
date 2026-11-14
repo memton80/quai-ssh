@@ -41,8 +41,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll;Microsoft.WinUI.dll;WinRT.Runtime.dll;Microsoft.InteractiveExperiences.Projection.dll;BouncyCastle.Cryptography.dll" />
+    <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll;Microsoft.WinUI.dll;WinRT.Runtime.dll;BouncyCastle.Cryptography.dll" />
   </ItemGroup>
+
+  <!--
+    Précompilation guidée par le profil d'exécution standard de .NET (fourni avec le runtime, celui qui sert à
+    précompiler le runtime officiel) : sans lui, le code précompilé du runtime réduit démarrait moins vite que l'original.
+    Les projections (*.Projection.dll), gardées entières, restent telles que livrées.
+  -->
+  <Target Name="QuaiReadyToRunInputs" BeforeTargets="_PrepareForReadyToRunCompilation">
+    <ItemGroup>
+      <_QuaiStandardPgo Include="@(ResolvedRuntimePack->'%(PackageDirectory)\tools\StandardOptimizationData.mibc')"
+                        Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
+      <PublishReadyToRunPgoFiles Include="@(_QuaiStandardPgo)" Condition="'$(QuaiReadyToRunPgo)' != 'false' and Exists('%(FullPath)')" />
+      <PublishReadyToRunExclude Include="@(ResolvedFileToPublish->'%(Filename)%(Extension)')"
+                                Condition="$([System.String]::Copy('%(Filename)').EndsWith('.Projection'))" />
+      <PublishReadyToRunExclude Include="System.Private.CoreLib.dll" Condition="'$(QuaiKeepCoreLib)' == 'true'" />
+    </ItemGroup>
+    <Message Importance="high" Text="ReadyToRun : profil @(PublishReadyToRunPgoFiles)" />
+  </Target>
 
   <!-- Permet un simple `dotnet build` sans préciser -r : le RID suit la plateforme. -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
@@ -127,6 +144,7 @@
   <Target Name="QuaiKeepWinRTInterop" BeforeTargets="PrepareForILLink">
     <ItemGroup>
       <ManagedAssemblyToLink Condition="'%(Filename)' == 'WinRT.Runtime'
+                                        or ('%(Filename)' == 'System.Private.CoreLib' and '$(QuaiKeepCoreLib)' == 'true')
                                         or '%(Filename)' == 'Microsoft.Windows.SDK.NET'
                                         or '%(Filename)' == 'Microsoft.WinUI'
                                         or $([System.String]::Copy('%(Filename)').EndsWith('.Projection'))">
