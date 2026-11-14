@@ -23,6 +23,11 @@ on:
       - 'installer/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
+    inputs:
+      publish_args:
+        description: "Essai : propriétés MSBuild ajoutées à la publication (ex. -p:PublishTrimmed=false). Jamais publié en release."
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -52,6 +57,8 @@ jobs:
       - name: Version et publication
         id: version
         shell: bash
+        env:
+          PUBLISH_ARGS: ${{ inputs.publish_args }}
         run: |
           set -euo pipefail
           prepared=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props || true)
@@ -76,6 +83,12 @@ jobs:
             *)
               version="0.0.0-ci.$GITHUB_RUN_NUMBER"; tag=""; release=false ;;
           esac
+
+          # Un essai avec des propriétés de publication en plus n'est jamais publié.
+          if [ -n "$PUBLISH_ARGS" ]; then
+            version="0.0.0-ci.$GITHUB_RUN_NUMBER"; tag=""; release=false
+            echo "Essai de publication : $PUBLISH_ARGS" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
           {
             echo "version=$version"
@@ -112,15 +125,21 @@ jobs:
         run: dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj -c Release
 
       - name: Publish
-        run: >
-          dotnet publish src/Quai.App/Quai.App.csproj
-          -c Release
-          -r win-${{ matrix.platform }}
-          --self-contained true
-          -p:Platform=${{ matrix.platform }}
-          -p:WindowsPackageType=None
-          -p:Version=${{ needs.version.outputs.version }}
-          -o publish/${{ matrix.platform }}
+        shell: pwsh
+        env:
+          PUBLISH_ARGS: ${{ inputs.publish_args }}
+        run: |
+          $extra = @(if ($env:PUBLISH_ARGS) { $env:PUBLISH_ARGS -split '\s+' | Where-Object { $_ } })
+          dotnet publish src/Quai.App/Quai.App.csproj `
+            -c Release `
+            -r win-${{ matrix.platform }} `
+            --self-contained true `
+            -p:Platform=${{ matrix.platform }} `
+            -p:WindowsPackageType=None `
+            -p:Version=${{ needs.version.outputs.version }} `
+            -o publish/${{ matrix.platform }} `
+            @extra
+          if ($LASTEXITCODE -ne 0) { throw "La publication a échoué (code $LASTEXITCODE)." }
 
       - name: Vérification du contenu publié
         shell: pwsh
@@ -233,6 +252,27 @@ jobs:
           $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai.lnk'
           if (-not (Test-Path $shortcut)) { throw 'Raccourci du menu Démarrer absent.' }
           "QUAI_INSTALL_DIR=$dir" >> $env:GITHUB_ENV
+
+      # Démarrage seul, trois fois de suite : le premier lancement paie la lecture des fichiers et leur analyse par
+      # l'antivirus, les suivants montrent le démarrage habituel.
+      - name: Démarrage (3 lancements)
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          $probe = Join-Path $env:RUNNER_TEMP 'startup'
+          $exe = Join-Path $env:QUAI_INSTALL_DIR 'Quai.exe'
+          foreach ($i in 1..3) {
+            $process = Start-Process -FilePath $exe -ArgumentList '--startup-probe', "`"$probe`"" -PassThru
+            $null = $process.Handle
+            if (-not $process.WaitForExit(60000)) { $process.Kill(); throw "Lancement $i : pas de premier rendu en 60 s." }
+            if ($process.ExitCode -ne 0) { throw "Lancement $i : code de sortie $($process.ExitCode)." }
+          }
+          $times = @(Get-Content (Join-Path $probe 'startup-ms.txt') | ForEach-Object { [int]$_ })
+          if ($times.Count -ne 3) { throw "Mesures de démarrage incomplètes : $($times -join ', ')" }
+          $line = "Démarrage jusqu'au premier rendu : **$($times[0]) ms** au premier lancement, puis **$($times[1]) ms** et **$($times[2]) ms**"
+          $line
+          @('### Démarrage', '', $line, '') | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          Remove-Item -Recurse -Force $probe
 
       - name: Test de fumée (application installée, lancement réel)
         if: matrix.platform == 'x64'

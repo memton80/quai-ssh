@@ -27,6 +27,7 @@ namespace Quai.App;
 internal static class SmokeTest
 {
     private const string Switch = "--smoke-test";
+    private const string ProbeSwitch = "--startup-probe";
 
     // Mesures du parcours (démarrage, mémoire) : écrites à la fin dans smoke-metrics.md.
     private static readonly SmokeMetrics Metrics = new();
@@ -45,6 +46,34 @@ internal static class SmokeTest
             ? Path.GetFullPath(args[index + 1])
             : Path.Combine(Path.GetTempPath(), "quai-smoke");
         return true;
+    }
+
+    /// <summary>
+    /// Mesure du démarrage seul (CI) : <c>Quai.exe --startup-probe &lt;dossier&gt;</c> ajoute la durée jusqu'au premier
+    /// rendu à <c>startup-ms.txt</c> puis quitte. Lancé plusieurs fois de suite : premier lancement, puis lancements
+    /// suivants (fichiers déjà en cache, déjà analysés par l'antivirus).
+    /// </summary>
+    public static bool TryGetStartupProbeDirectory(out string directory)
+    {
+        var args = Environment.GetCommandLineArgs();
+        var index = Array.FindIndex(args, a => string.Equals(a, ProbeSwitch, StringComparison.OrdinalIgnoreCase));
+        directory = index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : string.Empty;
+        return directory.Length > 0;
+    }
+
+    public static void RecordStartup(string directory, TimeSpan elapsed)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(Path.Combine(directory, "startup-ms.txt"), $"{(int)elapsed.TotalMilliseconds}{Environment.NewLine}");
+        }
+        catch (IOException)
+        {
+            Environment.Exit(1);
+        }
+
+        Environment.Exit(0);
     }
 
     /// <summary>À appeler avant la création des services : le test ne touche jamais aux vraies données.</summary>

@@ -11,6 +11,7 @@ public partial class App : Application
 {
     private readonly ILogger<App> _logger;
     private readonly string? _smokeTestDirectory;
+    private readonly string? _startupProbeDirectory;
 
     public App()
     {
@@ -24,6 +25,11 @@ public partial class App : Application
         {
             _smokeTestDirectory = smokeDirectory;
             SmokeTest.IsolateData(smokeDirectory);
+        }
+        else if (SmokeTest.TryGetStartupProbeDirectory(out var probeDirectory))
+        {
+            _startupProbeDirectory = probeDirectory;
+            SmokeTest.IsolateData(probeDirectory);
         }
 
         Services = AppServices.Build(smokeTest: _smokeTestDirectory is not null);
@@ -54,7 +60,18 @@ public partial class App : Application
         MainWindow = new MainWindow();
         MainWindow.Activate();
         StartupClock.TrackFirstFrame(elapsed =>
-            _logger.LogInformation("Fenêtre affichée en {Milliseconds} ms", (int)elapsed.TotalMilliseconds));
+        {
+            _logger.LogInformation("Fenêtre affichée en {Milliseconds} ms", (int)elapsed.TotalMilliseconds);
+            if (_startupProbeDirectory is not null)
+            {
+                SmokeTest.RecordStartup(_startupProbeDirectory, elapsed);
+            }
+        });
+
+        if (_startupProbeDirectory is not null)
+        {
+            return;
+        }
 
         if (_smokeTestDirectory is not null)
         {
