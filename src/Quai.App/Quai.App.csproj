@@ -24,7 +24,8 @@
       Réduction à la publication (trimming) : le code .NET jamais appelé est retiré des bibliothèques déclarées
       compatibles (runtime .NET, projection C# du SDK Windows, WinUI, SSH.NET, Serilog…). Mode « partial » : les
       bibliothèques non déclarées compatibles (BouncyCastle, Community Toolkit) restent entières, car la
-      cryptographie SSH n'est pas exercée par le test de fumée.
+      cryptographie SSH n'est pas exercée par le test de fumée. L'interop WinRT reste entière aussi (voir la cible
+      QuaiKeepWinRTInterop).
     -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
@@ -107,6 +108,22 @@
     <WebView2EnableCsWinRTProjection>true</WebView2EnableCsWinRTProjection>
     <WebView2EnableCsWinRTProjectionExcludeCoreRef>true</WebView2EnableCsWinRTProjectionExcludeCoreRef>
   </PropertyGroup>
+
+  <!--
+    Interop WinRT gardée entière au trimming : les view-models et collections de Quai.Core (sans générateur CsWinRT,
+    Quai.Core ne connaît pas Windows) passent à WinUI par des interfaces COM que CsWinRT construit par réflexion à
+    l'exécution ; réduites, ces assemblies perdent les types qu'il cherche (plantage dès le carnet de connexions).
+  -->
+  <Target Name="QuaiKeepWinRTInterop" BeforeTargets="PrepareForILLink">
+    <ItemGroup>
+      <ManagedAssemblyToLink Condition="'%(Filename)' == 'WinRT.Runtime'
+                                        or '%(Filename)' == 'Microsoft.Windows.SDK.NET'
+                                        or '%(Filename)' == 'Microsoft.WinUI'
+                                        or $([System.String]::Copy('%(Filename)').EndsWith('.Projection'))">
+        <TrimMode>copy</TrimMode>
+      </ManagedAssemblyToLink>
+    </ItemGroup>
+  </Target>
 
   <Target Name="QuaiExcludeWindowsAppSdkPayload"
           BeforeTargets="AddMicrosoftWindowsAppSDKPayloadFilesFromComponents"
