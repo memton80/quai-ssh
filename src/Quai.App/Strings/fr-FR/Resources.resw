@@ -55,7 +55,7 @@
     <value>Nouvelle connexion</value>
   </data>
   <data name="Connections_SearchPlaceholder" xml:space="preserve">
-    <value>Rechercher (nom, hôte, tag…)</value>
+    <value>Rechercher (nom, hôte, port, tag…)</value>
   </data>
   <data name="Connections_FilterAll" xml:space="preserve">
     <value>Toutes les connexions</value>
@@ -70,7 +70,7 @@
     <value>Aucune connexion pour l'instant</value>
   </data>
   <data name="Connections_EmptyHint" xml:space="preserve">
-    <value>Ajoutez votre premier serveur pour le retrouver ici, rangé par dossier et par tag.</value>
+    <value>Ajoutez votre premier serveur SSH ou port série pour le retrouver ici, rangé par dossier et par tag.</value>
   </data>
   <data name="Connections_NoResultsTitle" xml:space="preserve">
     <value>Aucun résultat</value>
@@ -177,6 +177,84 @@
   <data name="Editor_ErrorKeyRequired" xml:space="preserve">
     <value>Choisissez le fichier de clé privée.</value>
   </data>
+  <data name="Editor_Protocol" xml:space="preserve">
+    <value>Type de connexion</value>
+  </data>
+  <data name="Editor_ProtocolSsh" xml:space="preserve">
+    <value>Serveur SSH</value>
+  </data>
+  <data name="Editor_ProtocolSerial" xml:space="preserve">
+    <value>Port série</value>
+  </data>
+  <data name="Editor_SerialPort" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Editor_SerialPortPlaceholder" xml:space="preserve">
+    <value>COM3</value>
+  </data>
+  <data name="Editor_RefreshPorts" xml:space="preserve">
+    <value>Actualiser la liste des ports</value>
+  </data>
+  <data name="Editor_NoSerialPort" xml:space="preserve">
+    <value>Aucun port série détecté. Branchez l'adaptateur puis actualisez la liste, ou saisissez le nom du port (ex. COM3).</value>
+  </data>
+  <data name="Editor_BaudRate" xml:space="preserve">
+    <value>Vitesse (bauds)</value>
+  </data>
+  <data name="Editor_DataBits" xml:space="preserve">
+    <value>Bits de données</value>
+  </data>
+  <data name="Editor_Parity" xml:space="preserve">
+    <value>Parité</value>
+  </data>
+  <data name="Editor_ParityNone" xml:space="preserve">
+    <value>Aucune</value>
+  </data>
+  <data name="Editor_ParityOdd" xml:space="preserve">
+    <value>Impaire</value>
+  </data>
+  <data name="Editor_ParityEven" xml:space="preserve">
+    <value>Paire</value>
+  </data>
+  <data name="Editor_ParityMark" xml:space="preserve">
+    <value>Marque (toujours 1)</value>
+  </data>
+  <data name="Editor_ParitySpace" xml:space="preserve">
+    <value>Espace (toujours 0)</value>
+  </data>
+  <data name="Editor_StopBits" xml:space="preserve">
+    <value>Bits d'arrêt</value>
+  </data>
+  <data name="Editor_StopBitsOne" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="Editor_StopBitsOnePointFive" xml:space="preserve">
+    <value>1,5</value>
+  </data>
+  <data name="Editor_StopBitsTwo" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="Editor_FlowControl" xml:space="preserve">
+    <value>Contrôle de flux</value>
+  </data>
+  <data name="Editor_FlowNone" xml:space="preserve">
+    <value>Aucun</value>
+  </data>
+  <data name="Editor_FlowXonXoff" xml:space="preserve">
+    <value>XON / XOFF (logiciel)</value>
+  </data>
+  <data name="Editor_FlowRtsCts" xml:space="preserve">
+    <value>RTS / CTS (matériel)</value>
+  </data>
+  <data name="Editor_ErrorSerialPortRequired" xml:space="preserve">
+    <value>Choisissez ou saisissez le port série.</value>
+  </data>
+  <data name="Editor_ErrorSerialPortInvalid" xml:space="preserve">
+    <value>Le port doit s'écrire COM suivi de son numéro (ex. COM3).</value>
+  </data>
+  <data name="Editor_ErrorBaudRate" xml:space="preserve">
+    <value>La vitesse doit être un nombre entier de bauds (ex. 9600 ou 115200).</value>
+  </data>
   <data name="Vault_ErrorTitle" xml:space="preserve">
     <value>Coffre Windows indisponible</value>
   </data>
@@ -193,13 +271,13 @@
     <value>Aucun terminal ouvert</value>
   </data>
   <data name="Terminals_EmptyHint" xml:space="preserve">
-    <value>Double-cliquez sur une connexion du carnet pour ouvrir un terminal SSH dans un onglet.</value>
+    <value>Double-cliquez sur une connexion du carnet pour ouvrir un terminal (SSH ou port série) dans un onglet.</value>
   </data>
   <data name="Terminals_OpenConnections" xml:space="preserve">
     <value>Ouvrir le carnet de connexions</value>
   </data>
   <data name="Terminal_AutomationName" xml:space="preserve">
-    <value>Terminal SSH</value>
+    <value>Terminal</value>
   </data>
   <data name="Terminal_ScrollBarName" xml:space="preserve">
     <value>Historique du terminal</value>
@@ -230,6 +308,27 @@
   </data>
   <data name="Terminal_KeyUnavailable" xml:space="preserve">
     <value>Clé privée introuvable ou illisible : {0}</value>
+  </data>
+  <data name="Terminal_SerialOpening" xml:space="preserve">
+    <value>Ouverture du port {0}…</value>
+  </data>
+  <data name="Terminal_SerialOpened" xml:space="preserve">
+    <value>Port {0} ouvert. Appuyez sur Entrée si l'appareil n'affiche rien.</value>
+  </data>
+  <data name="Terminal_SerialNotFound" xml:space="preserve">
+    <value>Port {0} introuvable : vérifiez que l'appareil ou l'adaptateur est branché.</value>
+  </data>
+  <data name="Terminal_SerialInUse" xml:space="preserve">
+    <value>Le port {0} est déjà utilisé par une autre application.</value>
+  </data>
+  <data name="Terminal_SerialSettingsRejected" xml:space="preserve">
+    <value>Le port {0} refuse ces paramètres (vitesse, bits de données, parité ou bits d'arrêt).</value>
+  </data>
+  <data name="Terminal_SerialLost" xml:space="preserve">
+    <value>Port {0} fermé : l'appareil a été débranché ou ne répond plus.</value>
+  </data>
+  <data name="Terminal_SendBreak" xml:space="preserve">
+    <value>Envoyer un signal Break</value>
   </data>
   <data name="Terminal_EngineErrorTitle" xml:space="preserve">
     <value>Terminal indisponible</value>

@@ -1,25 +1,7 @@
+using Quai.Core.Terminal;
 using Renci.SshNet;
 
 namespace Quai.Core.Ssh;
-
-/// <summary>Un shell distant interactif (pseudo-terminal).</summary>
-public interface ITerminalSession : IAsyncDisposable
-{
-    /// <summary>Octets émis par le shell (déclenché hors du fil d'interface).</summary>
-    event Action<byte[]>? DataReceived;
-
-    /// <summary>Fin de session ; l'exception est nulle pour une fermeture normale.</summary>
-    event Action<Exception?>? Closed;
-
-    bool IsOpen { get; }
-
-    /// <summary>Démarre la réception ; à appeler une fois abonné aux événements.</summary>
-    void Start();
-
-    void Send(byte[] data);
-
-    void Resize(int columns, int rows);
-}
 
 /// <summary>Shell interactif au-dessus d'un <see cref="ShellStream"/> SSH.NET.</summary>
 internal sealed class SshTerminalSession : ITerminalSession

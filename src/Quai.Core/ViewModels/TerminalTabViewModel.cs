@@ -5,8 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Quai.Core.Localization;
 using Quai.Core.Models;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
+using Quai.Core.Terminal;
 
 namespace Quai.Core.ViewModels;
 
@@ -20,10 +22,12 @@ public enum TerminalStatus
     Failed,
 }
 
-/// <summary>Un onglet de terminal : cycle de vie de la session SSH et échange d'octets avec l'émulateur.</summary>
+/// <summary>
+/// Un onglet de terminal : cycle de vie de la session (shell SSH ou port série) et échange d'octets avec l'émulateur.
+/// </summary>
 public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
 {
-    private readonly ISshSessionFactory _factory;
+    private readonly ITerminalSessionFactory _factory;
     private readonly IStrings _strings;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger _logger;
@@ -35,7 +39,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     public TerminalTabViewModel(
         ConnectionProfile profile,
-        ISshSessionFactory factory,
+        ITerminalSessionFactory factory,
         IStrings strings,
         IUiDispatcher dispatcher,
         ILogger? logger = null)
@@ -58,10 +62,14 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     public string Endpoint => Profile.Endpoint;
 
+    public bool IsSerial => Profile.IsSerial;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsConnected))]
     [NotifyPropertyChangedFor(nameof(IsConnecting))]
     [NotifyPropertyChangedFor(nameof(CanReconnect))]
+    [NotifyPropertyChangedFor(nameof(CanSendBreak))]
+    [NotifyCanExecuteChangedFor(nameof(SendBreakCommand))]
     public partial TerminalStatus Status { get; set; }
 
     /// <summary>Message affiché quand la session n'est pas (ou plus) connectée.</summary>
@@ -74,6 +82,9 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     public bool CanReconnect => Status is TerminalStatus.Disconnected or TerminalStatus.Failed;
 
+    /// <summary>Session connectée qui sait envoyer un « break » (liaison série).</summary>
+    public bool CanSendBreak => IsConnected && _session is { CanSendBreak: true };
+
     /// <summary>Ouvre la session ; appelé par la vue dès que l'émulateur connaît sa taille.</summary>
     public async Task ConnectAsync(int columns, int rows)
     {
@@ -84,7 +95,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
         Remember(columns, rows);
         Status = TerminalStatus.Connecting;
-        StatusText = _strings.Format("Terminal_Connecting", Endpoint);
+        StatusText = _strings.Format(IsSerial ? "Terminal_SerialOpening" : "Terminal_Connecting", Endpoint);
         WriteNotice(StatusText);
 
         var cancellation = new CancellationTokenSource();
@@ -103,6 +114,12 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
             session.Closed += OnSessionClosed;
             Status = TerminalStatus.Connected;
             StatusText = string.Empty;
+            if (IsSerial)
+            {
+                // Un appareil série n'affiche souvent rien avant qu'on appuie sur Entrée.
+                WriteNotice(_strings.Format("Terminal_SerialOpened", PortName));
+            }
+
             session.Start();
             session.Resize(_columns, _rows);
         }
@@ -122,6 +139,16 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         {
             Fail(TerminalStatus.Failed, _strings.Format("Terminal_KeyUnavailable", ex.Path));
         }
+        catch (SerialPortUnavailableException ex)
+        {
+            var key = ex.Problem switch
+            {
+                SerialPortProblem.NotFound => "Terminal_SerialNotFound",
+                SerialPortProblem.InUse => "Terminal_SerialInUse",
+                _ => "Terminal_SerialSettingsRejected",
+            };
+            Fail(TerminalStatus.Failed, _strings.Format(key, ex.PortName));
+        }
         catch (Exception ex)
         {
             _logger.LogWarning("Ouverture du terminal vers {Endpoint} impossible ({Error})", Endpoint, ex.GetType().Name);
@@ -136,6 +163,16 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     [RelayCommand]
     public Task ReconnectAsync() => CanReconnect ? ConnectAsync(_columns, _rows) : Task.CompletedTask;
+
+    /// <summary>Signal « break » sur la liaison série (console de routeur, retour au moniteur de démarrage…).</summary>
+    [RelayCommand(CanExecute = nameof(CanSendBreak))]
+    public void SendBreak()
+    {
+        if (CanSendBreak)
+        {
+            _session?.SendBreak();
+        }
+    }
 
     /// <summary>Texte saisi dans l'émulateur (UTF-8 vers le serveur).</summary>
     public void SendInput(string? text)
@@ -217,11 +254,16 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
                 _ = session.DisposeAsync().AsTask();
             }
 
-            Fail(
-                TerminalStatus.Disconnected,
-                error is null ? _strings.Get("Terminal_Closed") : _strings.Format("Terminal_ConnectionLost", error.Message));
+            Fail(TerminalStatus.Disconnected, ClosedMessage(error));
         });
     }
+
+    private string PortName => Profile.Serial?.PortName ?? string.Empty;
+
+    private string ClosedMessage(Exception? error) =>
+        error is null ? _strings.Get("Terminal_Closed")
+        : IsSerial ? _strings.Format("Terminal_SerialLost", PortName)
+        : _strings.Format("Terminal_ConnectionLost", error.Message);
 
     private void Fail(TerminalStatus status, string message)
     {

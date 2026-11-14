@@ -1,5 +1,6 @@
 using System.Text;
 using Quai.Core.Models;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
 using Quai.Core.Tests.Support;
@@ -180,5 +181,123 @@ public class TerminalViewModelTests
 
         Assert.Equal("Serveur", Assert.Single(terminals.Tabs).Title);
         Assert.Equal([AppPage.Terminals], navigator.Pages);
+    }
+
+    private static readonly ConnectionProfile SerialProfile = new()
+    {
+        Name = "Console",
+        Protocol = ConnectionProtocol.Serial,
+        Serial = new SerialSettings { PortName = "COM3", BaudRate = 115200 },
+    };
+
+    private TerminalTabViewModel CreateSerialTab(FakeSerialSessionFactory serial, out StringBuilder output)
+    {
+        var tab = new TerminalTabViewModel(
+            SerialProfile,
+            new Quai.Core.Terminal.TerminalSessionFactory(_factory, serial),
+            new KeyStrings(),
+            new ImmediateDispatcher());
+        var text = new StringBuilder();
+        tab.Output += data => text.Append(Encoding.UTF8.GetString(data));
+        output = text;
+        return tab;
+    }
+
+    [Fact]
+    public async Task A_serial_tab_opens_the_port_and_invites_to_press_enter()
+    {
+        var serial = new FakeSerialSessionFactory();
+        var session = new FakeTerminalSession { CanSendBreak = true };
+        serial.Sessions.Enqueue(() => session);
+        var tab = CreateSerialTab(serial, out var output);
+
+        await tab.ConnectAsync(80, 24);
+
+        Assert.True(tab.IsSerial);
+        Assert.True(tab.IsConnected);
+        Assert.True(session.Started);
+        Assert.Empty(_factory.TerminalRequests);
+        Assert.Equal("COM3", Assert.Single(serial.Requests).PortName);
+        Assert.Contains("Terminal_SerialOpening(COM3 · 115200 8N1)", output.ToString());
+        Assert.Contains("Terminal_SerialOpened(COM3)", output.ToString());
+    }
+
+    public static TheoryData<SerialPortProblem, string> SerialFailures => new()
+    {
+        { SerialPortProblem.NotFound, "Terminal_SerialNotFound(COM3)" },
+        { SerialPortProblem.InUse, "Terminal_SerialInUse(COM3)" },
+        { SerialPortProblem.SettingsRejected, "Terminal_SerialSettingsRejected(COM3)" },
+    };
+
+    [Theory]
+    [MemberData(nameof(SerialFailures))]
+    public async Task Serial_port_failures_are_explained_in_the_tab(SerialPortProblem problem, string expectedText)
+    {
+        var serial = new FakeSerialSessionFactory();
+        serial.Sessions.Enqueue(() => throw new SerialPortUnavailableException("COM3", problem));
+        var tab = CreateSerialTab(serial, out var output);
+
+        await tab.ConnectAsync(80, 24);
+
+        Assert.Equal(TerminalStatus.Failed, tab.Status);
+        Assert.Equal(expectedText, tab.StatusText);
+        Assert.Contains(expectedText, output.ToString());
+        Assert.True(tab.CanReconnect);
+    }
+
+    [Fact]
+    public async Task An_unplugged_device_is_reported_and_the_port_can_be_reopened()
+    {
+        var serial = new FakeSerialSessionFactory();
+        var first = new FakeTerminalSession { CanSendBreak = true };
+        var second = new FakeTerminalSession { CanSendBreak = true };
+        serial.Sessions.Enqueue(() => first);
+        serial.Sessions.Enqueue(() => second);
+        var tab = CreateSerialTab(serial, out _);
+        await tab.ConnectAsync(80, 24);
+
+        first.Close(new IOException("Le périphérique ne reconnaît pas la commande."));
+
+        Assert.Equal(TerminalStatus.Disconnected, tab.Status);
+        Assert.Equal("Terminal_SerialLost(COM3)", tab.StatusText);
+        Assert.True(first.Disposed);
+
+        await tab.ReconnectCommand.ExecuteAsync(null);
+        Assert.True(tab.IsConnected);
+        Assert.Equal(2, serial.Requests.Count);
+    }
+
+    [Fact]
+    public async Task Break_is_sent_only_while_a_capable_session_is_connected()
+    {
+        var serial = new FakeSerialSessionFactory();
+        var session = new FakeTerminalSession { CanSendBreak = true };
+        serial.Sessions.Enqueue(() => session);
+        var tab = CreateSerialTab(serial, out _);
+        Assert.False(tab.SendBreakCommand.CanExecute(null));
+
+        await tab.ConnectAsync(80, 24);
+        Assert.True(tab.CanSendBreak);
+        tab.SendBreakCommand.Execute(null);
+
+        session.Close();
+        Assert.False(tab.CanSendBreak);
+        Assert.False(tab.SendBreakCommand.CanExecute(null));
+        tab.SendBreak();
+
+        Assert.Equal(1, session.Breaks);
+    }
+
+    [Fact]
+    public async Task Break_is_not_offered_on_an_ssh_session()
+    {
+        _factory.Terminals.Enqueue(() => new FakeTerminalSession());
+        var tab = CreateTab(out _);
+
+        await tab.ConnectAsync(80, 24);
+
+        Assert.False(tab.IsSerial);
+        Assert.False(tab.CanSendBreak);
+        Assert.False(tab.SendBreakCommand.CanExecute(null));
     }
 }

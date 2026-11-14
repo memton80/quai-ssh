@@ -1,18 +1,13 @@
 using Quai.Core.Models;
 using Quai.Core.Sftp;
+using Quai.Core.Terminal;
 using Renci.SshNet;
 
 namespace Quai.Core.Ssh;
 
-/// <summary>Ouvre les sessions (terminal, SFTP) d'une connexion du carnet.</summary>
-public interface ISshSessionFactory
+/// <summary>Ouvre les sessions SSH (terminal, SFTP) d'une connexion du carnet.</summary>
+public interface ISshSessionFactory : ITerminalSessionFactory
 {
-    Task<ITerminalSession> OpenTerminalAsync(
-        ConnectionProfile profile,
-        int columns,
-        int rows,
-        CancellationToken cancellationToken = default);
-
     Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default);
 }
 

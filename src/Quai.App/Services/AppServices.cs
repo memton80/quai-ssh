@@ -2,10 +2,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Security;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
 using Quai.Core;
 using Quai.Core.Storage;
+using Quai.Core.Terminal;
 using Quai.Core.Updates;
 using Quai.Core.ViewModels;
 using Serilog;
@@ -15,7 +17,7 @@ namespace Quai.App.Services;
 /// <summary>Composition des services de l'application (DI + journalisation fichier).</summary>
 internal static class AppServices
 {
-    /// <param name="smokeTest">Test de fumée : les sessions SSH sont remplacées par une session de démonstration locale.</param>
+    /// <param name="smokeTest">Test de fumée : les sessions SSH et série sont remplacées par des sessions de démonstration locales.</param>
     public static ServiceProvider Build(bool smokeTest = false)
     {
         var paths = new AppPaths();
@@ -52,17 +54,24 @@ internal static class AppServices
         services.AddSingleton<IHostKeyPrompt>(provider => provider.GetRequiredService<DialogService>());
         services.AddSingleton<ICredentialPrompt>(provider => provider.GetRequiredService<DialogService>());
 
-        // SSH
+        // SSH et port série
         services.AddSingleton<IKnownHostsStore, KnownHostsStore>();
         services.AddSingleton<SshConnector>();
         if (smokeTest)
         {
-            services.AddSingleton<ISshSessionFactory, SmokeSessionFactory>();
+            services.AddSingleton<SmokeSessionFactory>();
+            services.AddSingleton<ISshSessionFactory>(provider => provider.GetRequiredService<SmokeSessionFactory>());
+            services.AddSingleton<ISerialSessionFactory>(provider => provider.GetRequiredService<SmokeSessionFactory>());
+            services.AddSingleton<ISerialPortCatalog>(provider => provider.GetRequiredService<SmokeSessionFactory>());
         }
         else
         {
             services.AddSingleton<ISshSessionFactory, SshSessionFactory>();
+            services.AddSingleton<ISerialSessionFactory, SerialSessionFactory>();
+            services.AddSingleton<ISerialPortCatalog, SerialPortCatalog>();
         }
+
+        services.AddSingleton<ITerminalSessionFactory, TerminalSessionFactory>();
 
         // View-models
         services.AddSingleton<TerminalsViewModel>();

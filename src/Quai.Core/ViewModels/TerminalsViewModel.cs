@@ -4,20 +4,20 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Services;
-using Quai.Core.Ssh;
+using Quai.Core.Terminal;
 
 namespace Quai.Core.ViewModels;
 
-/// <summary>Les terminaux ouverts (un onglet par session).</summary>
+/// <summary>Les terminaux ouverts (un onglet par session SSH ou série).</summary>
 public sealed partial class TerminalsViewModel : ObservableObject
 {
-    private readonly ISshSessionFactory _factory;
+    private readonly ITerminalSessionFactory _factory;
     private readonly IStrings _strings;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILoggerFactory? _loggerFactory;
 
     public TerminalsViewModel(
-        ISshSessionFactory factory,
+        ITerminalSessionFactory factory,
         IStrings strings,
         IUiDispatcher dispatcher,
         ILoggerFactory? loggerFactory = null)
@@ -68,6 +68,6 @@ public sealed partial class TerminalsViewModel : ObservableObject
         await tab.DisposeAsync();
     }
 
-    /// <summary>Ferme tous les onglets (fermeture de l'application) : chaque session SSH est déconnectée.</summary>
+    /// <summary>Ferme tous les onglets (fermeture de l'application) : chaque session est déconnectée, chaque port libéré.</summary>
     public Task CloseAllAsync() => Task.WhenAll(Tabs.ToList().Select(CloseAsync));
 }

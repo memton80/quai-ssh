@@ -1,30 +1,52 @@
 using System.Text;
 using Quai.Core.Models;
+using Quai.Core.Serial;
 using Quai.Core.Sftp;
 using Quai.Core.Ssh;
+using Quai.Core.Terminal;
 using Quai.Core.Updates;
 
 namespace Quai.App.Services;
 
 /// <summary>
-/// Session de démonstration du test de fumée : aucun réseau, une bannière puis l'écho de la saisie.
-/// Permet de vérifier sur le CI toute la chaîne du terminal (moteur Windows Terminal) sans serveur SSH.
+/// Sessions de démonstration du test de fumée : aucun réseau ni port série, une bannière puis l'écho de la saisie.
+/// Permet de vérifier sur le CI toute la chaîne du terminal (moteur Windows Terminal) sans serveur SSH ni appareil.
 /// </summary>
-internal sealed class SmokeSessionFactory : ISshSessionFactory
+internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFactory, ISerialPortCatalog
 {
     /// <summary>Version « publiée » du test de fumée, forcément plus récente : le bandeau doit apparaître.</summary>
     public const string ReleaseTag = "v99.0.0";
 
-    private int _liveSessions;
-
     public const string Banner = "Quai - terminal de test";
+
+    public const string SerialBanner = "Quai - port série de test";
+
+    /// <summary>Réponse de l'appareil simulé à un signal « break ».</summary>
+    public const string BreakAnswer = "[break reçu]";
+
+    /// <summary>Ports « détectés » proposés par la fiche de connexion.</summary>
+    public static readonly IReadOnlyList<string> SerialPorts = ["COM1", "COM3"];
+
+    private int _liveSessions;
 
     public Task<ITerminalSession> OpenTerminalAsync(
         ConnectionProfile profile,
         int columns,
         int rows,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult<ITerminalSession>(new EchoSession(profile, columns, rows, Track()));
+        Task.FromResult<ITerminalSession>(new EchoSession(
+            $"\u001b[1;36m{Banner}\u001b[0m ({columns}x{rows})\r\n" +
+            "Couleurs : \u001b[31mrouge\u001b[0m \u001b[32mvert\u001b[0m \u001b[33mjaune\u001b[0m \u001b[34mbleu\u001b[0m — accents : é è à ç\r\n" +
+            $"\u001b[32m{profile.Username}@{profile.Host}\u001b[0m:\u001b[34m~\u001b[0m$ ",
+            Track()));
+
+    public Task<ITerminalSession> OpenAsync(SerialSettings settings, CancellationToken cancellationToken = default) =>
+        Task.FromResult<ITerminalSession>(new EchoSession(
+            $"\u001b[1;33m{SerialBanner}\u001b[0m ({settings.Summary})\r\nrouter> ",
+            Track(),
+            breakAnswer: $"\r\n{BreakAnswer}\r\nrommon 1 > "));
+
+    public IReadOnlyList<string> GetPortNames() => SerialPorts;
 
     public Task<ISftpSession> OpenSftpAsync(ConnectionProfile profile, CancellationToken cancellationToken = default) =>
         Task.FromResult<ISftpSession>(new DemoSftpSession(Track()));
@@ -112,7 +134,8 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
         }
     }
 
-    private sealed class EchoSession(ConnectionProfile profile, int columns, int rows, Action onClosed) : ITerminalSession
+    /// <summary>Affiche une bannière puis renvoie la saisie ; <paramref name="breakAnswer"/> : sait recevoir un « break ».</summary>
+    private sealed class EchoSession(string banner, Action onClosed, string? breakAnswer = null) : ITerminalSession
     {
         public event Action<byte[]>? DataReceived;
 
@@ -120,15 +143,22 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory
 
         public bool IsOpen { get; private set; } = true;
 
-        public void Start() => Emit(
-            $"\u001b[1;36m{Banner}\u001b[0m ({columns}x{rows})\r\n" +
-            "Couleurs : \u001b[31mrouge\u001b[0m \u001b[32mvert\u001b[0m \u001b[33mjaune\u001b[0m \u001b[34mbleu\u001b[0m — accents : é è à ç\r\n" +
-            $"\u001b[32m{profile.Username}@{profile.Host}\u001b[0m:\u001b[34m~\u001b[0m$ ");
+        public bool CanSendBreak => breakAnswer is not null;
+
+        public void Start() => Emit(banner);
 
         public void Send(byte[] data) => Emit(Encoding.UTF8.GetString(data).Replace("\r", "\r\n"));
 
         public void Resize(int columns, int rows)
         {
+        }
+
+        public void SendBreak()
+        {
+            if (breakAnswer is not null)
+            {
+                Emit(breakAnswer);
+            }
         }
 
         public ValueTask DisposeAsync()

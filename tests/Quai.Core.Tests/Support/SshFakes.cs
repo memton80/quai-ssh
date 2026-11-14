@@ -1,7 +1,9 @@
 using Quai.Core.Models;
+using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Sftp;
 using Quai.Core.Ssh;
+using Quai.Core.Terminal;
 
 namespace Quai.Core.Tests.Support;
 
@@ -55,6 +57,10 @@ public sealed class FakeTerminalSession : ITerminalSession
 
     public bool IsOpen { get; private set; } = true;
 
+    public bool CanSendBreak { get; init; }
+
+    public int Breaks { get; private set; }
+
     public bool Started { get; private set; }
 
     public bool Disposed { get; private set; }
@@ -68,6 +74,8 @@ public sealed class FakeTerminalSession : ITerminalSession
     public void Send(byte[] data) => Sent.Add(data);
 
     public void Resize(int columns, int rows) => Sizes.Add((columns, rows));
+
+    public void SendBreak() => Breaks++;
 
     public void Emit(string text) => DataReceived?.Invoke(System.Text.Encoding.UTF8.GetBytes(text));
 
@@ -130,6 +138,41 @@ public sealed class FakeSessionFactory : ISshSessionFactory
         {
             return Task.FromException<ISftpSession>(ex);
         }
+    }
+}
+
+/// <summary>Fabrique de sessions série factice.</summary>
+public sealed class FakeSerialSessionFactory : ISerialSessionFactory
+{
+    public Queue<Func<ITerminalSession>> Sessions { get; } = new();
+
+    public List<SerialSettings> Requests { get; } = [];
+
+    public Task<ITerminalSession> OpenAsync(SerialSettings settings, CancellationToken cancellationToken = default)
+    {
+        Requests.Add(settings);
+        try
+        {
+            return Task.FromResult(Sessions.Dequeue()());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<ITerminalSession>(ex);
+        }
+    }
+}
+
+/// <summary>Ports série « présents », modifiables par le test.</summary>
+public sealed class FakeSerialPortCatalog : ISerialPortCatalog
+{
+    public List<string> Ports { get; } = [];
+
+    public int Reads { get; private set; }
+
+    public IReadOnlyList<string> GetPortNames()
+    {
+        Reads++;
+        return [.. Ports];
     }
 }
 
