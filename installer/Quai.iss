@@ -75,6 +75,7 @@ UninstallDisplayIcon={app}\{#AppExe}
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [CustomMessages]
+french.PreparingApp=Préparation de Quai…
 french.RemoveUserData=Supprimer aussi vos données Quai ?%n%nOui : les connexions enregistrées, les réglages, les hôtes connus et les secrets conservés dans le coffre Windows sont effacés.%n%nNon : ils sont conservés pour une réinstallation ultérieure.
 
 [Tasks]
@@ -88,6 +89,9 @@ Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
+; Premier accès à tous les fichiers neufs (analyse antivirus) pendant l'installation plutôt qu'au premier démarrage,
+; qui sinon met 10 s à s'afficher puis ne répond plus pendant une minute. Rien n'est exécuté ni affiché.
+Filename: "{app}\{#AppExe}"; Parameters: "--warmup"; WorkingDir: "{app}"; StatusMsg: "{cm:PreparingApp}"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 ; Mise à jour lancée par Quai lui-même (/SILENT /RELAUNCH=1) : la nouvelle version redémarre une fois installée.
 Filename: "{app}\{#AppExe}"; Parameters: "--after-update"; WorkingDir: "{app}"; Flags: nowait; Check: RelaunchRequested

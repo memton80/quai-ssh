@@ -25,6 +25,12 @@ public partial class App : Application
             Environment.Exit(SecretPurge.Run());
         }
 
+        // Installation : premier accès aux fichiers neufs (analyse antivirus) avant le premier vrai démarrage.
+        if (InstallWarmup.IsRequested())
+        {
+            Environment.Exit(InstallWarmup.Run());
+        }
+
         if (SmokeTest.TryGetOutputDirectory(out var smokeDirectory))
         {
             _smokeTestDirectory = smokeDirectory;
