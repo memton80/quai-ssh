@@ -33,13 +33,13 @@ Gestionnaire de connexions **SSH**, de **ports série** et de transferts **SFTP*
 
 **Fermeture et mises à jour**
 - Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
-- Au démarrage, un bandeau signale qu'une nouvelle version est publiée dans les Releases GitHub (désactivable dans les réglages).
+- Au démarrage, un bandeau signale qu'une nouvelle version est publiée dans les Releases GitHub (désactivable dans les réglages). **« Mettre à jour »** fait tout, comme un navigateur : téléchargement de l'installateur (progression, annulable), vérification de son empreinte SHA-256, puis Quai se ferme (en demandant confirmation s'il reste des sessions ouvertes), s'installe en silencieux et redémarre tout seul. Version portable (zip) : le bouton ouvre la page de la release.
 
 ## Sécurité
 
 - **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
 - **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
-- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages.
+- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages. L'installateur d'une mise à jour n'est téléchargé (depuis GitHub) que si vous cliquez sur « Mettre à jour », et il n'est exécuté que si son empreinte correspond à celle publiée avec la release.
 
 ## Télécharger et installer
 
