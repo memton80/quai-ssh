@@ -277,6 +277,23 @@ jobs:
           @('### Démarrage', '', $line, '') | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
           Remove-Item -Recurse -Force $probe
 
+      # Les machines du CI (Windows Server) n'animent pas l'interface : sans animation, certains bugs d'affichage
+      # (terminal en retard sur le volet de navigation) ne se produisent pas. On les active comme sur un poste.
+      - name: Animations de Windows activées (comme sur un poste)
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          Add-Type -Namespace Quai -Name Spi -MemberDefinition @'
+          [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")] public static extern bool Get(uint action, uint param, ref bool value, uint flags);
+          [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")] public static extern bool Set(uint action, uint param, IntPtr value, uint flags);
+          '@
+          $before = $false
+          [void][Quai.Spi]::Get(0x1042, 0, [ref]$before, 0)   # SPI_GETCLIENTAREAANIMATION
+          [void][Quai.Spi]::Set(0x1043, 0, [IntPtr]1, 3)       # SPI_SETCLIENTAREAANIMATION, enregistré et diffusé
+          $after = $false
+          [void][Quai.Spi]::Get(0x1042, 0, [ref]$after, 0)
+          "Animations de l'interface : $before -> $after"
+
       - name: Test de fumée (application installée, lancement réel)
         if: matrix.platform == 'x64'
         shell: pwsh

@@ -25,6 +25,9 @@ public sealed partial class MainWindow : Window
     /// <summary>Toutes les pages, dans l'ordre de la navigation.</summary>
     public static readonly IReadOnlyList<string> PageTags = [ConnectionsTag, TerminalsTag, SftpTag, SettingsTag];
 
+    // Largeur à partir de laquelle le volet est posé à côté du contenu (ExpandedModeThresholdWidth du XAML).
+    private const double ExpandedModeThreshold = 1400;
+
     // Délai maximal pour déconnecter proprement les sessions à la fermeture.
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 
@@ -89,7 +92,7 @@ public sealed partial class MainWindow : Window
             SetPaneOverlay(NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
             TerminalAirspace.NotifyMoving();
         };
-        NavView.PaneOpened += (_, _) => TerminalAirspace.NotifyChanged();
+        NavView.PaneOpened += (_, _) => TerminalAirspace.NotifyMoved();
         NavView.PaneClosing += (_, _) => TerminalAirspace.NotifyMoving();
         NavView.PaneClosed += (_, _) => SetPaneOverlay(false);
         NavView.DisplayModeChanged += (_, _) =>
@@ -110,7 +113,9 @@ public sealed partial class MainWindow : Window
     /// </summary>
     internal async Task FoldPaneBesideContentForTestAsync()
     {
-        NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
+        // Mode « Auto » comme d'habitude, mais étendu dès cette largeur (la fenêtre du CI ne peut pas dépasser l'écran).
+        NavView.ExpandedModeThresholdWidth = 0;
+        await Task.Delay(800);
         NavView.IsPaneOpen = true;
         await Task.Delay(800);
         NavView.IsPaneOpen = false;
@@ -122,7 +127,7 @@ public sealed partial class MainWindow : Window
     internal void RestorePaneForTest()
     {
         NavView.IsPaneOpen = false;
-        NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
+        NavView.ExpandedModeThresholdWidth = ExpandedModeThreshold;
     }
 
     /// <summary>Contenu racine de la fenêtre (thème, capture d'écran des tests de fumée).</summary>

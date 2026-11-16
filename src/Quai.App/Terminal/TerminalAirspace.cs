@@ -30,7 +30,25 @@ internal static class TerminalAirspace
 
     public static void NotifyChanged() => Changed?.Invoke();
 
-    public static void NotifyMoving() => Moving?.Invoke();
+    /// <summary>Suivi des animations du volet (désactivé seulement par le test de fumée, pour constater le bug sans lui).</summary>
+    public static bool FollowAnimations { get; set; } = true;
+
+    public static void NotifyMoving()
+    {
+        if (FollowAnimations)
+        {
+            Moving?.Invoke();
+        }
+    }
+
+    /// <summary>Fin d'une animation du volet : dernier recalage des terminaux.</summary>
+    public static void NotifyMoved()
+    {
+        if (FollowAnimations)
+        {
+            Changed?.Invoke();
+        }
+    }
 
     public static void BeginModal()
     {
