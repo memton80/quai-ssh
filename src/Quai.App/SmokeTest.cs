@@ -413,6 +413,24 @@ internal static class SmokeTest
             report.Add($"fond du terminal ({captureName}) : Fluent et classique appliqués à chaud : OK");
         }
 
+        if (captureName == "terminal")
+        {
+            // Volet posé à côté du contenu (fenêtre en plein écran), replié puis redéplié : son animation fait glisser
+            // le contenu sans relancer la mise en page, le terminal (fenêtre native) doit quand même suivre.
+            await window.FoldPaneBesideContentForTestAsync();
+            var error = view.PlacementErrorForTest();
+            await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, "terminal-pane-reopened.png"));
+            window.RestorePaneForTest();
+            await Task.Delay(800);
+            if (error is not (>= 0 and <= 2))
+            {
+                throw new InvalidOperationException(
+                    $"Volet replié puis redéplié : le terminal n'est plus sur sa zone (écart : {error?.ToString() ?? "terminal masqué"} px).");
+            }
+
+            report.Add("terminal : suit le volet replié puis redéplié : OK");
+        }
+
         // La fenêtre native passe derrière les dialogues…
         var dialogs = services.GetRequiredService<DialogService>();
         var pending = dialogs.ShowErrorAsync("Test de fumée", "Le terminal doit s'effacer derrière ce dialogue.");

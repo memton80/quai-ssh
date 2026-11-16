@@ -86,6 +86,9 @@ internal sealed class NativeTerminal : IDisposable
     /// <summary>Fenêtre conteneur (captures du test de fumée).</summary>
     public IntPtr Handle => _host;
 
+    /// <summary>Position et taille actuelles (pixels, coordonnées client de la fenêtre principale).</summary>
+    public (int X, int Y, int Width, int Height) Bounds => (_x, _y, _width, _height);
+
     /// <summary>Crée le terminal, masqué, dans la fenêtre principale <paramref name="parent"/>.</summary>
     public static NativeTerminal Create(IntPtr parent, ILogger logger)
     {

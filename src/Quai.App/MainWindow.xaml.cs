@@ -96,6 +96,27 @@ public sealed partial class MainWindow : Window
     /// <summary>Bandeau « nouvelle version disponible ».</summary>
     public UpdateBannerViewModel Updates { get; }
 
+    /// <summary>
+    /// Test de fumée : volet posé à côté du contenu (comme en plein écran), replié puis redéplié ; le mode d'affichage
+    /// d'origine est rétabli par <see cref="RestorePaneForTest"/>.
+    /// </summary>
+    internal async Task FoldPaneBesideContentForTestAsync()
+    {
+        NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
+        NavView.IsPaneOpen = true;
+        await Task.Delay(800);
+        NavView.IsPaneOpen = false;
+        await Task.Delay(800);
+        NavView.IsPaneOpen = true;
+        await Task.Delay(1000);
+    }
+
+    internal void RestorePaneForTest()
+    {
+        NavView.IsPaneOpen = false;
+        NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
+    }
+
     /// <summary>Contenu racine de la fenêtre (thème, capture d'écran des tests de fumée).</summary>
     public FrameworkElement Root => RootGrid;
 

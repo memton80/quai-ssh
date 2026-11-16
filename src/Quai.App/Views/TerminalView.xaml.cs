@@ -123,6 +123,31 @@ public sealed partial class TerminalView : UserControl
     /// <summary>Test de fumée : texte actuellement affiché par le terminal.</summary>
     internal string ReadScreenText() => _native?.ReadVisibleTextForTest() ?? string.Empty;
 
+    /// <summary>
+    /// Test de fumée : écart (pixels) entre la fenêtre native et la zone XAML qu'elle doit recouvrir,
+    /// ou <c>null</c> si le terminal n'est pas affiché.
+    /// </summary>
+    internal int? PlacementErrorForTest()
+    {
+        if (_native is not { IsShown: true } native || XamlRoot is not { } root)
+        {
+            return null;
+        }
+
+        var area = ToPixels(
+            TerminalHost.TransformToVisual(null).TransformBounds(new Rect(0, 0, TerminalHost.ActualWidth, TerminalHost.ActualHeight)),
+            root.RasterizationScale,
+            XamlOrigin());
+        var (x, y, width, height) = native.Bounds;
+        return new[]
+        {
+            Math.Abs(area.Left - x),
+            Math.Abs(area.Top - y),
+            Math.Abs(area.Right - area.Left - width),
+            Math.Abs(area.Bottom - area.Top - height),
+        }.Max();
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (_closed)
