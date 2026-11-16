@@ -309,6 +309,50 @@ jobs:
             throw 'Test de fumée en échec.'
           }
 
+      # Le bouton « Mettre à jour » pour de vrai : Quai installé se voit proposer l'installateur qui vient d'être
+      # construit (servi depuis le disque à la place de GitHub, avec sa vraie empreinte), le télécharge, le vérifie,
+      # le lance en silencieux et se ferme ; l'installateur doit réussir et relancer Quai.
+      - name: Mise à jour en place (téléchargement vérifié, installation silencieuse, relance)
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'update'
+          $exe = Join-Path $env:QUAI_INSTALL_DIR 'Quai.exe'
+          $setup = (Resolve-Path 'Quai-Setup-x64.exe').Path
+          $log = Join-Path $out 'data/logs/update-install.log'
+          $process = Start-Process -FilePath $exe -ArgumentList '--update-test', "`"$out`"", "`"$setup`"" -PassThru
+          $null = $process.Handle
+          $failure = $null
+          $relaunched = $null
+          if (-not $process.WaitForExit(120000)) {
+            $process.Kill()
+            $failure = "Quai ne s'est pas fermé pour installer la mise à jour (120 s)."
+          } elseif ($process.ExitCode -ne 0) {
+            $failure = "Quai a quitté avec le code $($process.ExitCode) pendant la mise à jour."
+          } else {
+            $deadline = (Get-Date).AddSeconds(180)
+            $done = $false
+            while ((Get-Date) -lt $deadline) {
+              $done = (Test-Path $log) -and (Select-String -Path $log -Pattern 'Installation process succeeded' -SimpleMatch -Quiet)
+              $relaunched = @(Get-Process -Name Quai -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $process.ExitTime })
+              if ($done -and $relaunched.Count -gt 0) { break }
+              Start-Sleep -Seconds 1
+            }
+            if (-not $done) { $failure = "L'installateur n'a pas terminé la mise à jour." }
+            elseif ($relaunched.Count -eq 0) { $failure = "Quai n'a pas été relancé après la mise à jour." }
+          }
+          if (Test-Path $log) { Get-Content $log | Select-String -Pattern 'Parameters|RELAUNCH|-- Run entry --|Filename:|Installation process|Need to restart|application' | ForEach-Object { $_.Line } }
+          if ($relaunched) { $relaunched | Stop-Process -Force; Start-Sleep -Seconds 2 }
+          if ($failure) {
+            if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
+            Get-ChildItem (Join-Path $out 'data/logs') -Filter 'quai-*.log' -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 40 }
+            if (Test-Path $log) { Get-Content $log -Tail 40 }
+            throw $failure
+          }
+          $line = 'Mise à jour en place : installateur téléchargé et vérifié (SHA-256), installé en silencieux, Quai relancé : OK'
+          $line
+          @('### Mise à jour en place', '', $line, '') | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+
       - name: Captures du test de fumée
         if: always() && matrix.platform == 'x64'
         uses: actions/upload-artifact@v4
@@ -319,6 +363,9 @@ jobs:
             ${{ runner.temp }}/smoke/*.txt
             ${{ runner.temp }}/smoke/*.md
             ${{ runner.temp }}/smoke/data/logs/*.log
+            ${{ runner.temp }}/update/*.png
+            ${{ runner.temp }}/update/*.txt
+            ${{ runner.temp }}/update/data/logs/*.log
             ${{ runner.temp }}/install.log
           if-no-files-found: ignore
 
