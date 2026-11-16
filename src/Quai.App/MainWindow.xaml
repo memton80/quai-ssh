@@ -35,7 +35,10 @@
             </StackPanel>
         </Grid>
 
-        <!-- Nouvelle version publiée sur GitHub : téléchargement, vérification, installation et redémarrage. -->
+        <!--
+            Nouvelle version publiée sur GitHub : téléchargement, vérification, installation et redémarrage.
+            Fermé, le bandeau est retiré de la mise en page : sinon sa marge laisse un écart sous la barre de titre.
+        -->
         <InfoBar
             Grid.Row="1"
             Margin="12,0,12,8"
@@ -43,7 +46,8 @@
             IsOpen="{x:Bind Updates.IsOpen, Mode=TwoWay}"
             Message="{x:Bind Updates.Message, Mode=OneWay}"
             Severity="{x:Bind ui:UiHelpers.WarningIf(Updates.HasFailed), Mode=OneWay}"
-            Title="{l:Str Key=Update_Title}">
+            Title="{l:Str Key=Update_Title}"
+            Visibility="{x:Bind ui:UiHelpers.VisibleIf(Updates.IsOpen), Mode=OneWay}">
             <InfoBar.ActionButton>
                 <Button
                     Click="OnUpdateActionClick"
