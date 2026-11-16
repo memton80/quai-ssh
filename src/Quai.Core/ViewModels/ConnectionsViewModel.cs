@@ -44,7 +44,11 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         Reload();
     }
 
-    /// <summary>Filtres du volet de gauche : « toutes », puis les dossiers, puis les tags.</summary>
+    // Tous les filtres (y compris les sous-dossiers de dossiers repliés) et les dossiers repliés (pour la session).
+    private readonly List<ConnectionFilterItem> _allFilters = [];
+    private readonly HashSet<string> _collapsedFolders = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Filtres affichés dans le volet de gauche : « toutes », puis les dossiers (sauf ceux d'un dossier replié), puis les tags.</summary>
     public ObservableCollection<ConnectionFilterItem> Filters { get; } = [];
 
     /// <summary>Connexions correspondant au filtre et à la recherche.</summary>
@@ -73,21 +77,29 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         _reloading = true;
         try
         {
-            Filters.Clear();
-            Filters.Add(new ConnectionFilterItem(ConnectionFilterKind.All, string.Empty, _strings.Get("Connections_FilterAll"), all.Count));
+            _allFilters.Clear();
+            _allFilters.Add(new ConnectionFilterItem(ConnectionFilterKind.All, string.Empty, _strings.Get("Connections_FilterAll"), all.Count));
 
             var folders = all
                 .SelectMany(p => FolderPath.SelfAndAncestors(p.Folder))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(f => f, StringComparer.CurrentCultureIgnoreCase);
+                .OrderBy(f => f, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+            // Un dossier replié qui n'a plus de sous-dossier n'a plus rien à cacher.
+            _collapsedFolders.RemoveWhere(collapsed => !folders.Any(f => IsInside(f, collapsed)));
             foreach (var folder in folders)
             {
                 var label = folder[(folder.LastIndexOf(FolderPath.Separator) + 1)..];
-                Filters.Add(new ConnectionFilterItem(
+                _allFilters.Add(new ConnectionFilterItem(
                     ConnectionFilterKind.Folder,
                     folder,
                     label,
-                    all.Count(p => FolderPath.IsSameOrDescendant(p.Folder, folder))));
+                    all.Count(p => FolderPath.IsSameOrDescendant(p.Folder, folder)),
+                    hasChildren: folders.Any(f => IsInside(f, folder)))
+                {
+                    IsExpanded = !_collapsedFolders.Contains(folder),
+                });
             }
 
             var tags = all
@@ -96,11 +108,17 @@ public sealed partial class ConnectionsViewModel : ObservableObject
                 .OrderBy(t => t, StringComparer.CurrentCultureIgnoreCase);
             foreach (var tag in tags)
             {
-                Filters.Add(new ConnectionFilterItem(
+                _allFilters.Add(new ConnectionFilterItem(
                     ConnectionFilterKind.Tag,
                     tag,
                     tag,
                     all.Count(p => p.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))));
+            }
+
+            Filters.Clear();
+            foreach (var item in _allFilters.Where(IsShown))
+            {
+                Filters.Add(item);
             }
 
             SelectedFilter = Filters.FirstOrDefault(f => f.IsSameFilter(previous)) ?? Filters[0];
@@ -233,6 +251,54 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         Reload();
     }
 
+    /// <summary>Replie ou déplie un dossier : ses sous-dossiers disparaissent du volet, son compteur ne change pas.</summary>
+    [RelayCommand]
+    public void ToggleFolder(ConnectionFilterItem? folder)
+    {
+        if (folder is { Kind: ConnectionFilterKind.Folder, HasChildren: true })
+        {
+            SetExpanded(folder, !folder.IsExpanded);
+        }
+    }
+
+    /// <summary>Flèche droite : déplie le dossier sélectionné.</summary>
+    /// <returns><c>true</c> si la touche a servi.</returns>
+    public bool ExpandSelected()
+    {
+        if (SelectedFilter is { Kind: ConnectionFilterKind.Folder, HasChildren: true, IsExpanded: false } folder)
+        {
+            SetExpanded(folder, true);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Flèche gauche : replie le dossier sélectionné, ou remonte à son dossier parent (comme l'Explorateur).</summary>
+    /// <returns><c>true</c> si la touche a servi.</returns>
+    public bool CollapseSelected()
+    {
+        if (SelectedFilter is not { Kind: ConnectionFilterKind.Folder } folder)
+        {
+            return false;
+        }
+
+        if (folder is { HasChildren: true, IsExpanded: true })
+        {
+            SetExpanded(folder, false);
+            return true;
+        }
+
+        var parent = Filters.FirstOrDefault(f => f.Kind == ConnectionFilterKind.Folder && f.Depth == folder.Depth - 1 && folder.IsInside(f.Value));
+        if (parent is null)
+        {
+            return false;
+        }
+
+        SelectedFilter = parent;
+        return true;
+    }
+
     partial void OnSelectedFilterChanged(ConnectionFilterItem? value)
     {
         if (!_reloading)
@@ -311,6 +377,52 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         {
             _logger.LogWarning("Lecture du coffre impossible ({Error})", ex.GetType().Name);
             return false;
+        }
+    }
+
+    private static bool IsInside(string folder, string ancestor) =>
+        folder.Length > ancestor.Length
+        && folder[ancestor.Length] == FolderPath.Separator
+        && folder.StartsWith(ancestor, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Affiché dans le volet : tout sauf les sous-dossiers d'un dossier replié.</summary>
+    private bool IsShown(ConnectionFilterItem item) =>
+        item.Kind != ConnectionFilterKind.Folder || !_collapsedFolders.Any(item.IsInside);
+
+    private void SetExpanded(ConnectionFilterItem folder, bool expanded)
+    {
+        folder.IsExpanded = expanded;
+        if (expanded)
+        {
+            _collapsedFolders.Remove(folder.Value);
+        }
+        else
+        {
+            _collapsedFolders.Add(folder.Value);
+
+            // Le sous-dossier sélectionné va disparaître : la sélection remonte au dossier replié (son contenu reste listé).
+            if (SelectedFilter is { } selected && selected.IsInside(folder.Value))
+            {
+                SelectedFilter = folder;
+            }
+        }
+
+        // Mise à jour sur place (pas de Clear) : la liste garde sa position et le focus clavier.
+        var shown = _allFilters.Where(IsShown).ToList();
+        for (var i = Filters.Count - 1; i >= 0; i--)
+        {
+            if (!shown.Contains(Filters[i]))
+            {
+                Filters.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < shown.Count; i++)
+        {
+            if (i >= Filters.Count || !ReferenceEquals(Filters[i], shown[i]))
+            {
+                Filters.Insert(i, shown[i]);
+            }
         }
     }
 

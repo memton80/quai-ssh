@@ -23,6 +23,9 @@ public sealed class ConnectionsViewModelTests : IDisposable
 
     private ConnectionsViewModel CreateViewModel() => new(_repository, _secrets, _dialogs, new KeyStrings());
 
+    private static ConnectionFilterItem Folder(ConnectionsViewModel vm, string path) =>
+        vm.Filters.Single(f => f.Kind == ConnectionFilterKind.Folder && f.Value == path);
+
     private ConnectionProfile Add(string name, string folder = "", params string[] tags)
     {
         var profile = new ConnectionProfile
@@ -63,6 +66,137 @@ public sealed class ConnectionsViewModelTests : IDisposable
         Assert.Equal("Web", vm.Filters[2].Label);
         Assert.Equal(1, vm.Filters[2].Depth);
         Assert.Equal(3, vm.Connections.Count);
+    }
+
+    [Fact]
+    public void Only_folders_with_subfolders_can_be_collapsed()
+    {
+        Add("Proxmox", "HomeLab");
+        Add("NAS", "HomeLab/data");
+        Add("Web", "Prod");
+
+        var vm = CreateViewModel();
+
+        Assert.Equal(
+            ["HomeLab:True:True", "HomeLab/data:False:True", "Prod:False:True"],
+            vm.Filters.Where(f => f.Kind == ConnectionFilterKind.Folder).Select(f => $"{f.Value}:{f.HasChildren}:{f.IsExpanded}"));
+        Assert.Equal("\uE70D", Folder(vm, "HomeLab").ChevronGlyph);
+    }
+
+    [Fact]
+    public void Collapsing_a_folder_hides_its_subfolders_and_keeps_its_count()
+    {
+        Add("Proxmox", "HomeLab");
+        Add("NAS", "HomeLab/data");
+        Add("Sauvegardes", "HomeLab/data/backup");
+        Add("Web", "Prod", "web");
+        var vm = CreateViewModel();
+        var homeLab = Folder(vm, "HomeLab");
+        var changes = new List<string>();
+        homeLab.PropertyChanged += (_, e) => changes.Add(e.PropertyName!);
+
+        vm.ToggleFolderCommand.Execute(homeLab);
+
+        Assert.Equal(["All:", "Folder:HomeLab", "Folder:Prod", "Tag:web"], vm.Filters.Select(f => $"{f.Kind}:{f.Value}"));
+        Assert.False(homeLab.IsExpanded);
+        Assert.Equal(3, homeLab.Count);
+        Assert.Equal("\uE76C", homeLab.ChevronGlyph);
+        Assert.Contains(nameof(ConnectionFilterItem.ChevronGlyph), changes);
+
+        vm.ToggleFolderCommand.Execute(homeLab);
+
+        Assert.Equal(
+            ["All:", "Folder:HomeLab", "Folder:HomeLab/data", "Folder:HomeLab/data/backup", "Folder:Prod", "Tag:web"],
+            vm.Filters.Select(f => $"{f.Kind}:{f.Value}"));
+        Assert.Same(homeLab, vm.Filters[1]);
+    }
+
+    [Fact]
+    public void A_collapsed_subfolder_stays_collapsed_when_its_parent_is_reopened()
+    {
+        Add("NAS", "HomeLab/data");
+        Add("Sauvegardes", "HomeLab/data/backup");
+        var vm = CreateViewModel();
+
+        vm.ToggleFolder(Folder(vm, "HomeLab/data"));
+        vm.ToggleFolder(Folder(vm, "HomeLab"));
+        vm.ToggleFolder(Folder(vm, "HomeLab"));
+
+        Assert.Equal(["HomeLab", "HomeLab/data"], vm.Filters.Where(f => f.Kind == ConnectionFilterKind.Folder).Select(f => f.Value));
+        Assert.False(Folder(vm, "HomeLab/data").IsExpanded);
+    }
+
+    [Fact]
+    public void Collapsing_the_parent_of_the_selected_folder_selects_the_parent()
+    {
+        Add("Proxmox", "HomeLab");
+        Add("NAS", "HomeLab/data");
+        Add("Web", "Prod");
+        var vm = CreateViewModel();
+        vm.SelectedFilter = Folder(vm, "HomeLab/data");
+        Assert.Equal(["NAS"], vm.Connections.Select(c => c.Name));
+
+        vm.ToggleFolder(Folder(vm, "HomeLab"));
+
+        Assert.Same(Folder(vm, "HomeLab"), vm.SelectedFilter);
+        Assert.Equal(["NAS", "Proxmox"], vm.Connections.Select(c => c.Name).Order());
+    }
+
+    [Fact]
+    public void Leaves_and_tags_do_not_collapse()
+    {
+        Add("NAS", "HomeLab/data", "nas");
+        var vm = CreateViewModel();
+        var before = vm.Filters.Select(f => f.Value).ToList();
+
+        vm.ToggleFolder(Folder(vm, "HomeLab/data"));
+        vm.ToggleFolder(vm.Filters.Single(f => f.Kind == ConnectionFilterKind.Tag));
+        vm.ToggleFolder(vm.Filters[0]);
+        vm.ToggleFolder(null);
+
+        Assert.Equal(before, vm.Filters.Select(f => f.Value));
+        Assert.All(vm.Filters, f => Assert.True(f.IsExpanded));
+    }
+
+    [Fact]
+    public void Left_and_right_arrows_fold_like_the_explorer()
+    {
+        Add("Proxmox", "HomeLab");
+        Add("NAS", "HomeLab/data");
+        var vm = CreateViewModel();
+
+        vm.SelectedFilter = Folder(vm, "HomeLab/data");
+        Assert.True(vm.CollapseSelected());          // sous-dossier sans enfant : remonte au parent
+        Assert.Equal("HomeLab", vm.SelectedFilter!.Value);
+        Assert.True(vm.CollapseSelected());          // parent déplié : se replie
+        Assert.False(Folder(vm, "HomeLab").IsExpanded);
+        Assert.False(vm.CollapseSelected());         // déjà replié, à la racine : rien à faire
+        Assert.True(vm.ExpandSelected());
+        Assert.True(Folder(vm, "HomeLab").IsExpanded);
+        Assert.False(vm.ExpandSelected());           // déjà déplié
+
+        vm.SelectedFilter = vm.Filters[0];
+        Assert.False(vm.CollapseSelected());         // « toutes » : la touche n'est pas utilisée
+        Assert.False(vm.ExpandSelected());
+    }
+
+    [Fact]
+    public async Task Folding_survives_a_reload_after_an_edit()
+    {
+        Add("Proxmox", "HomeLab");
+        Add("NAS", "HomeLab/data");
+        var vm = CreateViewModel();
+        vm.ToggleFolder(Folder(vm, "HomeLab"));
+        _dialogs.OnEdit = editor =>
+        {
+            editor.Name = "Proxmox VE";
+            return true;
+        };
+
+        await vm.Connections.Single(c => c.Name == "Proxmox").EditCommand.ExecuteAsync(null);
+
+        Assert.False(Folder(vm, "HomeLab").IsExpanded);
+        Assert.DoesNotContain(vm.Filters, f => f.Value == "HomeLab/data");
     }
 
     [Fact]
