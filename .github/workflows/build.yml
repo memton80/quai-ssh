@@ -354,7 +354,7 @@ jobs:
           }
           if (Test-Path $log) {
             # Lignes utiles du journal d'Inno Setup (pas la liste des fichiers copiés).
-            Get-Content $log | Select-String -CaseSensitive -Pattern 'Setup command line:', 'RestartManager', 'Installation process', '-- Run entry --', 'Filename: ' |
+            Get-Content $log | Select-String -CaseSensitive -Pattern 'Setup command line:', 'RestartManager', 'Installation process', '-- Run entry --', 'Filename: ', 'Parameters: ', 'Process exit code' |
               ForEach-Object { $_.Line }
           }
           if ($relaunched) { $relaunched | Stop-Process -Force; Start-Sleep -Seconds 2 }
