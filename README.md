@@ -8,7 +8,7 @@ Gestionnaire de connexions **SSH**, de **ports série** et de transferts **SFTP*
 
 **Carnet de connexions**
 - Serveurs SSH et ports série dans le même carnet.
-- Créer, modifier, dupliquer, supprimer ; rangement par dossiers (`Prod/Web`) et par tags ; recherche instantanée (nom, hôte, utilisateur, port série, tag, notes — sans tenir compte des accents).
+- Créer, modifier, dupliquer, supprimer ; rangement par dossiers (`Prod/Web`, repliables d'un clic sur le chevron ou avec les flèches ← →) et par tags ; recherche instantanée (nom, hôte, utilisateur, port série, tag, notes — sans tenir compte des accents).
 - Authentification par mot de passe ou par clé privée (OpenSSH, PEM, PuTTY ; passphrase prise en charge).
 
 **Terminal SSH**
