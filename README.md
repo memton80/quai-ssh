@@ -29,7 +29,7 @@ Gestionnaire de connexions **SSH**, de **ports série** et de transferts **SFTP*
 - Clavier : `Entrée` ouvre, `Retour arrière` remonte, `F2` renomme, `F5` actualise, `Suppr` supprime.
 
 **Réglages**
-- Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), police et taille du terminal, appliqués immédiatement.
+- Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), fond « Fluent » du terminal (couleur de surface de Windows 11, comme l'onglet actif) ou fond classique de Windows Terminal, police et taille du terminal, appliqués immédiatement.
 
 **Fermeture et mises à jour**
 - Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
