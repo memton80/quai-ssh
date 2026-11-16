@@ -1,113 +1,59 @@
-# Quai
+<p align="center">
+  <img src="docs/images/logo.png" width="96" alt="Logo de Quai">
+</p>
 
-Gestionnaire de connexions **SSH**, de **ports série** et de transferts **SFTP** pour Windows, avec une interface native **WinUI 3** (look Windows 11). Dans l'esprit de Termius / WinSCP / MobaXterm / PuTTY, en plus léger.
+<h1 align="center">Quai</h1>
 
-[![Build](https://github.com/memton80/quai-ssh/actions/workflows/build.yml/badge.svg)](https://github.com/memton80/quai-ssh/actions/workflows/build.yml)
+<p align="center">
+  <b>Vos serveurs, vos fichiers et vos appareils, réunis dans une seule application Windows.</b><br>
+  Un client SSH et SFTP moderne, simple et gratuit, pensé pour Windows 11.
+</p>
 
-## Fonctionnalités
+<p align="center">
+  <a href="https://github.com/memton80/quai-ssh/releases/latest"><b>Télécharger Quai pour Windows</b></a>
+  · Gratuit · Sans compte · Sans publicité
+</p>
 
-**Carnet de connexions**
-- Serveurs SSH et ports série dans le même carnet.
-- Créer, modifier, dupliquer, supprimer ; rangement par dossiers (`Prod/Web`, repliables d'un clic sur le chevron ou avec les flèches ← →) et par tags ; recherche instantanée (nom, hôte, utilisateur, port série, tag, notes — sans tenir compte des accents).
-- Authentification par mot de passe ou par clé privée (OpenSSH, PEM, PuTTY ; passphrase prise en charge).
+![Le carnet de connexions de Quai : dossiers, étiquettes et recherche](docs/images/connexions.png)
 
-**Terminal SSH**
-- Onglets, moteur natif de **Windows Terminal** (le même que l'application de Microsoft : rendu DirectWrite / Direct3D, couleurs, UTF-8, redimensionnement), reconnexion en un clic. Aucun navigateur embarqué.
-- Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+Maj+C` copie, `Ctrl+V` ou `Maj+Inser` colle, clic droit copie ou colle. Collage multiligne protégé quand le shell le permet (« bracketed paste »).
-- Historique : molette, barre de défilement, `Ctrl+Maj+↑ / ↓ / Pg.Préc / Pg.Suiv / Début / Fin`.
+## Pourquoi Quai ?
 
-**Port série** (console de routeur ou de switch, carte Arduino / ESP32 / Raspberry Pi, modem…)
-- Port choisi parmi ceux que Windows détecte (bouton « Actualiser » après avoir branché l'adaptateur) ou saisi (`COM3`).
-- Vitesse (de 300 à 921 600 bauds, ou toute autre valeur), bits de données, parité, bits d'arrêt, contrôle de flux XON / XOFF ou RTS / CTS. Par défaut, comme PuTTY : 9600 bauds, 8N1, sans contrôle de flux.
-- Même terminal à onglets que le SSH (copier / coller, historique). **Signal Break** par clic droit sur l'onglet. Appareil débranché : l'onglet le signale et se rouvre en un clic.
+Se connecter à un serveur ne devrait pas demander trois logiciels et un post-it couvert de mots de passe. Quai rassemble tout au même endroit, dans une fenêtre qui ressemble à Windows 11.
 
-**Explorateur SFTP**
-- Double panneau : cet ordinateur à gauche, le serveur à droite, séparateur redimensionnable.
-- Envoi et téléchargement de fichiers et de dossiers entiers, par boutons ou par **glisser-déposer** (entre les panneaux, ou depuis l'Explorateur Windows vers le serveur).
-- File de transferts avec progression et **annulation** ; confirmation avant tout écrasement.
-- Renommer, nouveau dossier, **droits** (cases à cocher + notation octale), supprimer — toujours avec confirmation côté serveur, via la corbeille côté local.
-- Clavier : `Entrée` ouvre, `Retour arrière` remonte, `F2` renomme, `F5` actualise, `Suppr` supprime.
+- **Tous vos serveurs, bien rangés.** Ajoutez une connexion une fois, retrouvez-la en un clic : dossiers, étiquettes et recherche instantanée.
+- **Un vrai terminal, rapide et net.** Quai utilise le moteur de Windows Terminal, celui de Microsoft. Plusieurs onglets, copier-coller comme d'habitude.
+- **Vos fichiers par glisser-déposer.** Votre PC à gauche, le serveur à droite : faites glisser, c'est envoyé.
+- **Aussi pour vos petits appareils.** Routeur, switch, Arduino, Raspberry Pi : branchez le câble, choisissez le port, c'est parti.
+- **Toujours à jour, en un clic.** Quand une nouvelle version sort, un bouton suffit : Quai se met à jour et redémarre tout seul.
 
-**Réglages**
-- Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), fond « Fluent » du terminal (couleur de surface de Windows 11, comme l'onglet actif) ou fond classique de Windows Terminal, police et taille du terminal, appliqués immédiatement.
+![Le terminal de Quai en thème sombre](docs/images/terminal.png)
 
-**Fermeture et mises à jour**
-- Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
-- Au démarrage, un bandeau signale qu'une nouvelle version est publiée dans les Releases GitHub (désactivable dans les réglages). **« Mettre à jour »** fait tout, comme un navigateur : téléchargement de l'installateur (progression, annulable), vérification de son empreinte SHA-256, puis Quai se ferme (en demandant confirmation s'il reste des sessions ouvertes), s'installe en silencieux et redémarre tout seul. Version portable (zip) : le bouton ouvre la page de la release.
+## Vos secrets restent chez vous
 
-## Sécurité
+- Vos mots de passe sont rangés dans le **coffre de Windows**, jamais dans un fichier.
+- Quai vérifie l'identité de chaque serveur et vous **prévient** si elle change.
+- **Aucune publicité, aucun pistage, aucun compte à créer.** Quai ne parle qu'à vos serveurs, et à GitHub pour savoir s'il existe une nouvelle version (désactivable).
 
-- **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
-- **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
-- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages. L'installateur d'une mise à jour n'est téléchargé (depuis GitHub) que si vous cliquez sur « Mettre à jour », et il n'est exécuté que si son empreinte correspond à celle publiée avec la release.
+![L'explorateur de fichiers de Quai : votre PC à gauche, le serveur à droite](docs/images/fichiers.png)
 
-## Télécharger et installer
+## Installer Quai en une minute
 
-Rendez-vous dans [**Releases**](https://github.com/memton80/quai-ssh/releases) :
+1. Téléchargez **`Quai-Setup-x64.exe`** depuis la [dernière version](https://github.com/memton80/quai-ssh/releases/latest) (ou `Quai-Setup-arm64.exe` pour un PC Snapdragon / ARM).
+2. Lancez-le : pas besoin d'être administrateur, tout est inclus.
+3. C'est prêt : Quai vous attend dans le menu Démarrer.
 
-| Fichier | Pour qui |
-|---|---|
-| `Quai-Setup-x64.exe` | **Recommandé.** Installateur pour PC Intel / AMD 64 bits. |
-| `Quai-Setup-arm64.exe` | Installateur pour PC ARM64 (Snapdragon…). |
-| `Quai-x64.zip`, `Quai-arm64.zip` | Version portable : décompressez et lancez `Quai.exe`. |
+> Au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur » : Quai est un projet indépendant et ses fichiers ne sont pas encore signés. Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
 
-L'installateur est un seul fichier qui contient tout (.NET et Windows App SDK compris). Il installe Quai pour votre compte dans `%LOCALAPPDATA%\Programs\Quai`, **sans droits administrateur**, et ajoute un raccourci au menu Démarrer.
+Fonctionne sur Windows 10 et Windows 11. Une version portable (zip, sans installation) est aussi proposée.
 
-> Les exécutables ne sont pas signés : au premier lancement, Windows SmartScreen peut afficher « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires** puis **Exécuter quand même**.
+## Une alternative légère
 
-**Désinstaller** : Paramètres de Windows → Applications → Applications installées → Quai → Désinstaller. Le désinstallateur demande s'il faut aussi effacer vos données (connexions, réglages, hôtes connus et secrets du coffre Windows) ; par défaut elles sont conservées.
+Vous jonglez entre PuTTY, WinSCP, MobaXterm ou Termius ? Quai réunit l'essentiel dans une seule application, plus légère, en français, qui suit le thème clair ou sombre de Windows.
 
-**Prérequis** : Windows 10 (1809) ou Windows 11, rien d'autre : le moteur du terminal est fourni avec Quai.
+## En savoir plus
 
-## Où sont mes données ?
+- [Le guide complet](docs/GUIDE.md) : toutes les fonctionnalités, les raccourcis clavier, où sont vos données, les limites actuelles.
+- [Pour les développeurs](docs/DEVELOPPEMENT.md) : organisation du code, tests, compilation, publication.
+- Une idée, un bug ? [Ouvrez un ticket](https://github.com/memton80/quai-ssh/issues).
 
-Dans `%LOCALAPPDATA%\Quai` :
-
-| Fichier | Contenu |
-|---|---|
-| `connections.json` | Le carnet (aucun secret). |
-| `settings.json` | Les réglages. |
-| `known_hosts` | Les clés d'hôte acceptées (format OpenSSH). |
-| `logs\` | Journaux des 7 derniers jours. |
-
-## Développement
-
-```
-Quai.sln
-src/Quai.Core/          logique sans dépendance UI : modèles, stockage, SSH / SFTP, port série, view-models
-src/Quai.App/           application WinUI 3 : vues, dialogues, coffre Windows, hébergement du terminal natif
-tests/Quai.Core.Tests/  tests xUnit (unitaires + intégration contre un vrai OpenSSH et de vrais ports série virtuels)
-tests/integration/      script qui démarre le serveur OpenSSH de test
-installer/Quai.iss      script Inno Setup de l'installateur
-docs/DECISIONS.md       journal des choix techniques
-```
-
-Briques : .NET 10, Windows App SDK 2 (WinUI 3, non packagé, auto-contenu), [SSH.NET](https://github.com/sshnet/SSH.NET), `System.IO.Ports` (port série, paquet officiel de .NET), le moteur de [Windows Terminal](https://github.com/microsoft/terminal) (`Microsoft.Terminal.Control.dll`, licence MIT), CommunityToolkit (MVVM et contrôles), Serilog, Inno Setup.
-
-Tests :
-
-```bash
-dotnet test --project tests/Quai.Core.Tests/Quai.Core.Tests.csproj
-```
-
-Les tests d'intégration SSH / SFTP sont ignorés tant que les variables `QUAI_TEST_SSH_*` ne sont pas définies ; `tests/integration/start-sshd.sh` démarre un serveur jetable et les fournit (Linux). Ceux du port série tournent sous Linux dès que `socat` est installé (il crée un port virtuel relié à un appareil d'écho).
-
-Publication (sous Windows) :
-
-```bash
-dotnet publish src/Quai.App/Quai.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish/x64
-```
-
-**CI** (`.github/workflows/build.yml`) : à chaque push, build `x64` et `arm64` sur `windows-latest`, tests, construction de l'installateur, puis sur `x64` installation silencieuse, **test de fumée de l'application installée** (lancement réel, parcours de chaque écran avec captures) et désinstallation vérifiée. Un job Linux exécute les tests d'intégration contre OpenSSH et sur des ports série virtuels (`socat`). **Releases automatiques** : la version se règle dans `Directory.Build.props` (`<Version>X.Y.Z</Version>`) ; quand un numéro sans tag arrive sur `main`, le CI le construit, crée le tag `vX.Y.Z` et publie installateurs et zips dans Releases. Pour sortir une version, il suffit de monter ce numéro.
-
-## Limites connues
-
-- Pas encore de tunnels / redirection de ports, de rebond (jump host), d'agent OpenSSH, ni d'import `ssh_config` / PuTTY.
-- Port série : noms `COMn` uniquement, pas de nom « parlant » de l'adaptateur dans la liste, ni écho local, ni conversion des fins de ligne (Entrée envoie CR, comme PuTTY), ni journal de session.
-- Un seul transfert à la fois par onglet SFTP, sans reprise après interruption.
-- Pas de glisser-déposer du serveur vers l'Explorateur Windows (passer par le panneau local).
-- Interface en français uniquement pour l'instant.
-
-## Licence
-
-MIT
+Quai est gratuit et open source, sous licence MIT.
