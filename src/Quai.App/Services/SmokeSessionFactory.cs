@@ -180,6 +180,6 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
 /// <summary>Source de releases du test de fumée : aucune requête réseau.</summary>
 internal sealed class SmokeReleaseSource : IReleaseSource
 {
-    public Task<string?> GetLatestTagAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<string?>(SmokeSessionFactory.ReleaseTag);
+    public Task<ReleaseInfo?> GetLatestAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<ReleaseInfo?>(new ReleaseInfo(SmokeSessionFactory.ReleaseTag, []));
 }

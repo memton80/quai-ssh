@@ -29,6 +29,7 @@ internal static class SmokeTest
 {
     private const string Switch = "--smoke-test";
     private const string ProbeSwitch = "--startup-probe";
+    private const string UpdateSwitch = "--update-test";
 
     // Mesures du parcours (démarrage, mémoire) : écrites à la fin dans smoke-metrics.md.
     private static readonly SmokeMetrics Metrics = new();
@@ -60,6 +61,72 @@ internal static class SmokeTest
         var index = Array.FindIndex(args, a => string.Equals(a, ProbeSwitch, StringComparison.OrdinalIgnoreCase));
         directory = index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : string.Empty;
         return directory.Length > 0;
+    }
+
+    /// <summary>
+    /// Mise à jour en place (CI) : <c>Quai.exe --update-test &lt;dossier&gt; &lt;installateur&gt;</c>. Quai, installé,
+    /// se voit proposer cet installateur comme nouvelle version, le télécharge, le vérifie, le lance en mode silencieux
+    /// et se ferme ; le workflow vérifie ensuite que l'installateur a réussi et a relancé Quai.
+    /// </summary>
+    public static bool TryGetUpdateTest(out string directory, out string installer)
+    {
+        var args = Environment.GetCommandLineArgs();
+        var index = Array.FindIndex(args, a => string.Equals(a, UpdateSwitch, StringComparison.OrdinalIgnoreCase));
+        var found = index >= 0 && index + 2 < args.Length;
+        directory = found ? Path.GetFullPath(args[index + 1]) : string.Empty;
+        installer = found ? Path.GetFullPath(args[index + 2]) : string.Empty;
+        return found;
+    }
+
+    public static async Task RunUpdateAsync(MainWindow window, IServiceProvider services, ILogger logger, string directory)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+            await Task.Delay(1500);
+            PaintBackground(window);
+
+            var banner = services.GetRequiredService<UpdateBannerViewModel>();
+            await banner.CheckAsync();
+            if (!banner.IsOpen)
+            {
+                throw new InvalidOperationException("Le bandeau ne propose pas la nouvelle version.");
+            }
+
+            if (!banner.CanInstallInPlace)
+            {
+                throw new InvalidOperationException(
+                    "Quai, lancé depuis son installation, ne propose pas la mise à jour en place (installation non reconnue ?).");
+            }
+
+            await Task.Delay(500);
+            await CaptureAsync(window.Root, Path.Combine(directory, "update-available.png"));
+
+            // Un clic : téléchargement (capturé en cours), vérification, installation silencieuse, fermeture de Quai.
+            var update = banner.ActAsync();
+            await WaitUntilAsync(
+                () => Task.FromResult(!banner.IsDownloading || banner.Progress >= 25),
+                TimeSpan.FromSeconds(60),
+                "Le téléchargement de la mise à jour n'avance pas.");
+            if (banner.IsDownloading)
+            {
+                await CaptureAsync(window.Root, Path.Combine(directory, "update-downloading.png"));
+            }
+
+            logger.LogInformation("Test de la mise à jour : installation lancée");
+            await update;
+            if (banner.HasFailed)
+            {
+                throw new InvalidOperationException($"Mise à jour en échec : {banner.Message}");
+            }
+
+            // Normalement, Quai est déjà en train de se fermer pour laisser la place à l'installateur.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Test de la mise à jour en échec");
+            Fail(directory, ex);
+        }
     }
 
     public static void RecordStartup(string directory, TimeSpan elapsed)

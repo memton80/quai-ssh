@@ -89,17 +89,26 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; Mise à jour lancée par Quai lui-même (/SILENT /RELAUNCH=1) : la nouvelle version redémarre une fois installée.
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RelaunchRequested
 
 [UninstallDelete]
 ; Journaux (et cache de l'ancien terminal WebView2 des premières versions de développement) :
 ; jamais conservés, ce ne sont pas des données de l'utilisateur.
 Type: filesandordirs; Name: "{localappdata}\{#AppName}\WebView2"
 Type: filesandordirs; Name: "{localappdata}\{#AppName}\logs"
+Type: filesandordirs; Name: "{localappdata}\{#AppName}\updates"
 Type: dirifempty; Name: "{localappdata}\{#AppName}"
 
 [Code]
 var
   RemoveUserData: Boolean;
+
+// Installation demandée par le bouton « Mettre à jour » de Quai : relancer l'application à la fin.
+function RelaunchRequested(): Boolean;
+begin
+  Result := ExpandConstant('{param:RELAUNCH|0}') = '1';
+end;
 
 // Désinstallation : on demande s'il faut aussi effacer les données personnelles (non par défaut).
 // En mode silencieux, le paramètre /PURGE=1 répond « oui ».

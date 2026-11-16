@@ -699,4 +699,46 @@
   <data name="Settings_UpdatesDescription" xml:space="preserve">
     <value>Au démarrage, Quai demande à GitHub le numéro de la dernière version publiée (rien sur vous ni sur vos connexions).</value>
   </data>
+  <data name="Update_Install" xml:space="preserve">
+    <value>Mettre à jour</value>
+  </data>
+  <data name="Update_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Update_Retry" xml:space="preserve">
+    <value>Réessayer</value>
+  </data>
+  <data name="Update_Downloading" xml:space="preserve">
+    <value>Téléchargement de Quai {0}…</value>
+  </data>
+  <data name="Update_Installing" xml:space="preserve">
+    <value>Quai {0} est téléchargé et vérifié : Quai se ferme pour l'installer, puis redémarre tout seul.</value>
+  </data>
+  <data name="Update_Ready" xml:space="preserve">
+    <value>Quai {0} est téléchargé. Cliquez sur « Mettre à jour » quand vous pourrez fermer vos sessions.</value>
+  </data>
+  <data name="Update_Failed" xml:space="preserve">
+    <value>La mise à jour vers Quai {0} a échoué. {1}</value>
+  </data>
+  <data name="Update_FailedDownload" xml:space="preserve">
+    <value>Le téléchargement n'a pas abouti : vérifiez la connexion, puis réessayez.</value>
+  </data>
+  <data name="Update_FailedIntegrity" xml:space="preserve">
+    <value>Le fichier reçu ne correspond pas à celui publié : il a été supprimé sans être exécuté.</value>
+  </data>
+  <data name="Update_FailedInstall" xml:space="preserve">
+    <value>L'installateur n'a pas pu être lancé.</value>
+  </data>
+  <data name="Update_ConfirmTitle" xml:space="preserve">
+    <value>Mettre à jour maintenant ?</value>
+  </data>
+  <data name="Update_ConfirmRestart" xml:space="preserve">
+    <value>Quai va se fermer pour installer la mise à jour, puis redémarrer tout seul.</value>
+  </data>
+  <data name="Update_ConfirmButton" xml:space="preserve">
+    <value>Mettre à jour et redémarrer</value>
+  </data>
+  <data name="Update_ProgressName" xml:space="preserve">
+    <value>Progression du téléchargement de la mise à jour</value>
+  </data>
 </root>

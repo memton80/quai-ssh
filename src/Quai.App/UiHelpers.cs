@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Quai.Core.Models;
 
@@ -13,6 +14,8 @@ public static class UiHelpers
     public static Visibility VisibleIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
 
     public static Visibility CollapsedIf(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
+
+    public static InfoBarSeverity WarningIf(bool value) => value ? InfoBarSeverity.Warning : InfoBarSeverity.Informational;
 
     /// <summary>Police du terminal pour l'aperçu des réglages, avec repli sur une police à chasse fixe.</summary>
     public static FontFamily TerminalFont(string? family)

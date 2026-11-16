@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
@@ -18,7 +19,8 @@ namespace Quai.App.Services;
 internal static class AppServices
 {
     /// <param name="smokeTest">Test de fumée : les sessions SSH et série sont remplacées par des sessions de démonstration locales.</param>
-    public static ServiceProvider Build(bool smokeTest = false)
+    /// <param name="updateTestInstaller">Test de la mise à jour (CI) : cet installateur local est présenté comme la dernière release.</param>
+    public static ServiceProvider Build(bool smokeTest = false, string? updateTestInstaller = null)
     {
         var paths = new AppPaths();
         paths.EnsureCreated();
@@ -81,9 +83,23 @@ internal static class AppServices
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<AppShutdown>();
 
-        // Mises à jour : une requête à l'API publique de GitHub (le test de fumée n'accède pas au réseau).
-        services.AddSingleton<IReleaseSource>(smokeTest ? new SmokeReleaseSource() : new GitHubReleaseSource());
-        services.AddSingleton(provider => new UpdateChecker(provider.GetRequiredService<IReleaseSource>(), AppInfo.Version));
+        // Mises à jour : une requête à l'API publique de GitHub, puis, sur demande, le téléchargement de l'installateur
+        // (les tests de fumée n'accèdent pas au réseau).
+        var installerName = UpdateChecker.InstallerNameFor(RuntimeInformation.ProcessArchitecture);
+        if (updateTestInstaller is not null)
+        {
+            var (source, downloader) = SmokeUpdate.Create(updateTestInstaller, installerName);
+            services.AddSingleton(source);
+            services.AddSingleton(downloader);
+        }
+        else
+        {
+            services.AddSingleton<IReleaseSource>(smokeTest ? new SmokeReleaseSource() : new GitHubReleaseSource());
+            services.AddSingleton(_ => new UpdateDownloader());
+        }
+
+        services.AddSingleton(provider => new UpdateChecker(provider.GetRequiredService<IReleaseSource>(), AppInfo.Version, installerName));
+        services.AddSingleton<IUpdateInstaller, UpdateInstaller>();
         services.AddSingleton<UpdateBannerViewModel>();
 
         return services.BuildServiceProvider();

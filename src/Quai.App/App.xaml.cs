@@ -12,6 +12,7 @@ public partial class App : Application
     private readonly ILogger<App> _logger;
     private readonly string? _smokeTestDirectory;
     private readonly string? _startupProbeDirectory;
+    private readonly string? _updateTestDirectory;
 
     public App()
     {
@@ -32,7 +33,15 @@ public partial class App : Application
             SmokeTest.IsolateData(probeDirectory);
         }
 
-        Services = AppServices.Build(smokeTest: _smokeTestDirectory is not null);
+        string? updateTestInstaller = null;
+        if (SmokeTest.TryGetUpdateTest(out var updateDirectory, out var installer))
+        {
+            _updateTestDirectory = updateDirectory;
+            updateTestInstaller = installer;
+            SmokeTest.IsolateData(updateDirectory);
+        }
+
+        Services = AppServices.Build(smokeTest: _smokeTestDirectory is not null, updateTestInstaller);
         _logger = Services.GetRequiredService<ILogger<App>>();
 
         // Interface en français d'abord : force aussi les textes fournis par WinUI (boutons, menus).
@@ -77,6 +86,10 @@ public partial class App : Application
         {
             _ = SmokeTest.RunAsync(MainWindow, Services, _logger, _smokeTestDirectory);
         }
+        else if (_updateTestDirectory is not null)
+        {
+            _ = SmokeTest.RunUpdateAsync(MainWindow, Services, _logger, _updateTestDirectory);
+        }
         else
         {
             _ = CheckForUpdatesAsync();
@@ -106,9 +119,9 @@ public partial class App : Application
     {
         _logger.LogError(e.Exception, "Erreur non gérée");
 
-        if (_smokeTestDirectory is not null)
+        if ((_smokeTestDirectory ?? _updateTestDirectory) is { } testDirectory)
         {
-            SmokeTest.Fail(_smokeTestDirectory, e.Exception);
+            SmokeTest.Fail(testDirectory, e.Exception);
             return;
         }
 

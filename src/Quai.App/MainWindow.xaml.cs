@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
@@ -206,21 +205,26 @@ public sealed partial class MainWindow : Window
         Close();
     }
 
-    private void OnDownloadUpdateClick(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Fermeture pour installer une mise à jour : les sessions ont déjà été fermées (après confirmation),
+    /// l'installateur attend que Quai se termine puis le relance.
+    /// </summary>
+    internal void CloseForUpdate()
     {
-        if (Updates.ReleasePage is not { } page)
-        {
-            return;
-        }
+        _closeAllowed = true;
+        Close();
+    }
 
+    /// <summary>Bouton du bandeau : mettre à jour (ou ouvrir la page de la release), ou annuler le téléchargement.</summary>
+    private async void OnUpdateActionClick(object sender, RoutedEventArgs e)
+    {
         try
         {
-            // Navigateur par défaut ; l'adresse est construite par l'application (page de release GitHub).
-            Process.Start(new ProcessStartInfo(page.AbsoluteUri) { UseShellExecute = true })?.Dispose();
+            await Updates.ActAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Ouverture de la page de mise à jour impossible ({Error})", ex.GetType().Name);
+            _logger.LogError(ex, "Mise à jour interrompue");
         }
     }
 
