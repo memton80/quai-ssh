@@ -16,6 +16,37 @@ public class SettingsServiceTests
         Assert.Equal(AppTheme.System, settings.Theme);
         Assert.Equal("Cascadia Mono", settings.TerminalFontFamily);
         Assert.Equal(12, settings.TerminalFontSize);
+        Assert.True(settings.TerminalFluentBackground);
+    }
+
+    [Fact]
+    public void A_file_from_an_older_version_gets_the_fluent_background()
+    {
+        using var temp = new TempDirectory();
+        var path = temp.File("settings.json");
+        File.WriteAllText(path, """{ "theme": "dark", "terminalFontFamily": "Consolas", "terminalFontSize": 14, "checkForUpdates": true }""");
+
+        var settings = new JsonSettingsService(path).Current;
+
+        Assert.True(settings.TerminalFluentBackground);
+        Assert.Equal("Consolas", settings.TerminalFontFamily);
+    }
+
+    [Fact]
+    public void The_classic_background_choice_is_persisted()
+    {
+        using var temp = new TempDirectory();
+        var path = temp.File("settings.json");
+        var service = new JsonSettingsService(path);
+        var notifications = 0;
+        service.Changed += (_, _) => notifications++;
+
+        service.Update(s => s.TerminalFluentBackground = false);
+        service.Update(s => s.TerminalFluentBackground = false);
+
+        Assert.Equal(1, notifications);
+        Assert.False(new JsonSettingsService(path).Current.TerminalFluentBackground);
+        Assert.Contains("\"terminalFluentBackground\": false", File.ReadAllText(path));
     }
 
     [Fact]
@@ -108,17 +139,21 @@ public class SettingsServiceTests
         var vm = new SettingsViewModel(service, paths);
         Assert.Equal(1, vm.ThemeIndex);
         Assert.Equal(12, vm.TerminalFontSize);
+        Assert.True(vm.TerminalFluentBackground);
         Assert.Equal(0, notifications);
 
         vm.ThemeIndex = 2;
         vm.TerminalFontFamily = "Consolas";
         vm.TerminalFontSize = 17.6;
+        vm.TerminalFluentBackground = false;
 
         var saved = new JsonSettingsService(paths).Current;
         Assert.Equal(AppTheme.Dark, saved.Theme);
         Assert.Equal("Consolas", saved.TerminalFontFamily);
         Assert.Equal(18, saved.TerminalFontSize);
-        Assert.Equal(3, notifications);
+        Assert.False(saved.TerminalFluentBackground);
+        Assert.Equal(4, notifications);
+        Assert.False(new SettingsViewModel(service, paths).TerminalFluentBackground);
         Assert.Equal(temp.Path, vm.DataDirectory);
         Assert.Contains("Consolas", vm.SuggestedFonts);
     }

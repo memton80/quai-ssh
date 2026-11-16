@@ -82,6 +82,7 @@ public sealed class JsonSettingsService : ISettingsService
     private static bool Same(AppSettings a, AppSettings b) =>
         a.Theme == b.Theme
         && a.TerminalFontSize == b.TerminalFontSize
+        && a.TerminalFluentBackground == b.TerminalFluentBackground
         && a.CheckForUpdates == b.CheckForUpdates
         && string.Equals(a.TerminalFontFamily, b.TerminalFontFamily, StringComparison.Ordinal);
 

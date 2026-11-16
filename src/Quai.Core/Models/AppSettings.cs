@@ -24,6 +24,12 @@ public sealed class AppSettings
 
     public int TerminalFontSize { get; set; } = DefaultTerminalFontSize;
 
+    /// <summary>
+    /// Fond du terminal à la couleur de surface de Windows 11 (celle de l'onglet actif) plutôt que le fond
+    /// classique de Windows Terminal. Opaque : le moteur ne sait pas dessiner un fond transparent.
+    /// </summary>
+    public bool TerminalFluentBackground { get; set; } = true;
+
     /// <summary>Au démarrage, demander à GitHub si une version plus récente est publiée.</summary>
     public bool CheckForUpdates { get; set; } = true;
 

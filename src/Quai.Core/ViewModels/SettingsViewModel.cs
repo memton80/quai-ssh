@@ -53,6 +53,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool CheckForUpdates { get; set; }
 
+    /// <summary>Fond du terminal à la couleur de surface de Windows 11 (sinon fond classique de Windows Terminal).</summary>
+    [ObservableProperty]
+    public partial bool TerminalFluentBackground { get; set; }
+
     /// <summary>Taille en <see cref="double"/> pour se lier directement à un <c>NumberBox</c>.</summary>
     [ObservableProperty]
     public partial double TerminalFontSize { get; set; }
@@ -77,6 +81,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _settings.Update(s => s.CheckForUpdates = value);
+        }
+    }
+
+    partial void OnTerminalFluentBackgroundChanged(bool value)
+    {
+        if (!_loading)
+        {
+            _settings.Update(s => s.TerminalFluentBackground = value);
         }
     }
 
@@ -107,6 +119,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             ThemeIndex = (int)current.Theme;
             TerminalFontFamily = current.TerminalFontFamily;
             TerminalFontSize = current.TerminalFontSize;
+            TerminalFluentBackground = current.TerminalFluentBackground;
             CheckForUpdates = current.CheckForUpdates;
         }
         finally

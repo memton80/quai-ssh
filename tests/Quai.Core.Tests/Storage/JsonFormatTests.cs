@@ -76,7 +76,14 @@ public class JsonFormatTests
     [Fact]
     public void Settings_are_written_exactly_as_before()
     {
-        var settings = new AppSettings { Theme = AppTheme.Dark, TerminalFontFamily = "Consolas", TerminalFontSize = 14, CheckForUpdates = false };
+        var settings = new AppSettings
+        {
+            Theme = AppTheme.Dark,
+            TerminalFontFamily = "Consolas",
+            TerminalFontSize = 14,
+            TerminalFluentBackground = false,
+            CheckForUpdates = false,
+        };
 
         Assert.Equal(
             JsonSerializer.Serialize(settings, Reflection),
@@ -88,6 +95,7 @@ public class JsonFormatTests
     [InlineData("""{ "theme": "Dark" /* commentaire */ }""")]
     [InlineData("""{ "theme": 2, "checkForUpdates": false }""")]
     [InlineData("""{ "Theme": "light", "inconnu": [1, 2] }""")]
+    [InlineData("""{ "terminalFluentBackground": false }""")]
     public void Settings_are_read_exactly_as_before(string json)
     {
         var generated = JsonSerializer.Deserialize(json, QuaiJsonContext.Default.AppSettings);
