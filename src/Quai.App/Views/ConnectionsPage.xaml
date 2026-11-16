@@ -45,8 +45,9 @@
         </Grid>
 
         <Grid Grid.Row="1" ColumnSpacing="16">
+            <!-- Volet des filtres : 240 px + la colonne du chevron des dossiers (24 px + espacement). -->
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="276" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
