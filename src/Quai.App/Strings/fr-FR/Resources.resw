@@ -60,6 +60,12 @@
   <data name="Connections_FilterAll" xml:space="preserve">
     <value>Toutes les connexions</value>
   </data>
+  <data name="Connections_CollapseFolder" xml:space="preserve">
+    <value>Replier {0}</value>
+  </data>
+  <data name="Connections_ExpandFolder" xml:space="preserve">
+    <value>Déplier {0}</value>
+  </data>
   <data name="Connections_FiltersLabel" xml:space="preserve">
     <value>Dossiers et tags</value>
   </data>

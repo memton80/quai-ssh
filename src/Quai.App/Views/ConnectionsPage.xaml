@@ -52,9 +52,12 @@
 
             <!-- Filtres : toutes, dossiers, tags -->
             <Border Padding="4" Style="{StaticResource CardBorderStyle}">
+                <!-- Flèches gauche / droite : replier / déplier le dossier sélectionné (comme l'Explorateur). -->
                 <ListView
+                    x:Name="FilterList"
                     AutomationProperties.Name="{l:Str Key=Connections_FiltersLabel}"
                     ItemsSource="{x:Bind ViewModel.Filters}"
+                    PreviewKeyDown="OnFilterListPreviewKeyDown"
                     SelectedItem="{x:Bind ViewModel.SelectedFilter, Mode=TwoWay}"
                     SelectionMode="Single">
                     <ListView.ItemTemplate>
@@ -64,6 +67,7 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="24" />
                                 </Grid.ColumnDefinitions>
                                 <FontIcon FontSize="16" Glyph="{x:Bind Glyph}" />
                                 <TextBlock
@@ -76,6 +80,16 @@
                                     VerticalAlignment="Center"
                                     Style="{StaticResource SecondaryCaptionStyle}"
                                     Text="{x:Bind CountText}" />
+                                <!-- Dossier avec sous-dossiers : replier / déplier sans changer de filtre. -->
+                                <Button
+                                    Grid.Column="3"
+                                    AutomationProperties.Name="{x:Bind ui:UiHelpers.FolderToggleName(Label, IsExpanded), Mode=OneWay}"
+                                    Click="OnFolderToggleClick"
+                                    Style="{StaticResource FolderToggleButtonStyle}"
+                                    ToolTipService.ToolTip="{x:Bind ui:UiHelpers.FolderToggleName(Label, IsExpanded), Mode=OneWay}"
+                                    Visibility="{x:Bind ui:UiHelpers.VisibleIf(HasChildren)}">
+                                    <FontIcon FontSize="10" Glyph="{x:Bind ChevronGlyph, Mode=OneWay}" />
+                                </Button>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

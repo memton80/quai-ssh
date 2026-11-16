@@ -17,6 +17,10 @@ public static class UiHelpers
 
     public static InfoBarSeverity WarningIf(bool value) => value ? InfoBarSeverity.Warning : InfoBarSeverity.Informational;
 
+    /// <summary>Texte d'accessibilité et info-bulle du bouton replier / déplier d'un dossier.</summary>
+    public static string FolderToggleName(string label, bool expanded) =>
+        Localization.Loc.Format(expanded ? "Connections_CollapseFolder" : "Connections_ExpandFolder", label);
+
     /// <summary>Police du terminal pour l'aperçu des réglages, avec repli sur une police à chasse fixe.</summary>
     public static FontFamily TerminalFont(string? family)
     {

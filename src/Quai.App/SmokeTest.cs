@@ -244,6 +244,24 @@ internal static class SmokeTest
 
         report.Add("carnet rempli : OK");
 
+        // Dossier replié : « Production/Web » disparaît du volet, « Production » garde son compteur.
+        var production = viewModel.Filters.Single(f => f is { Kind: ConnectionFilterKind.Folder, Value: "Production" });
+        if (!production.HasChildren)
+        {
+            throw new InvalidOperationException("Le dossier « Production » ne propose pas de se replier.");
+        }
+
+        viewModel.ToggleFolder(production);
+        await Task.Delay(500);
+        await CaptureAsync(window.Root, Path.Combine(directory, "connections-folded.png"));
+        if (viewModel.Filters.Any(f => f.Value == "Production/Web") || production.Count != 2)
+        {
+            throw new InvalidOperationException("Replier « Production » ne cache pas son sous-dossier.");
+        }
+
+        viewModel.ToggleFolder(production);
+        report.Add("dossiers repliables : OK");
+
         var dialogs = services.GetRequiredService<DialogService>();
         var editor = new ConnectionEditorViewModel(
             services.GetRequiredService<IStrings>(),
