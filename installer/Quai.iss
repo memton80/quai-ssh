@@ -90,7 +90,7 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 ; Mise à jour lancée par Quai lui-même (/SILENT /RELAUNCH=1) : la nouvelle version redémarre une fois installée.
-Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RelaunchRequested
+Filename: "{app}\{#AppExe}"; Parameters: "--after-update"; WorkingDir: "{app}"; Flags: nowait; Check: RelaunchRequested
 
 [UninstallDelete]
 ; Journaux (et cache de l'ancien terminal WebView2 des premières versions de développement) :

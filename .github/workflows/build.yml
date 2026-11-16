@@ -340,6 +340,17 @@ jobs:
             }
             if (-not $done) { $failure = "L'installateur n'a pas terminé la mise à jour." }
             elseif ($relaunched.Count -eq 0) { $failure = "Quai n'a pas été relancé après la mise à jour." }
+            else {
+              # La nouvelle version sait qu'elle vient d'être relancée par l'installateur (--after-update).
+              $marker = $false
+              $deadline = (Get-Date).AddSeconds(30)
+              while (-not $marker -and (Get-Date) -lt $deadline) {
+                $marker = [bool](Get-ChildItem (Join-Path $out 'data/logs') -Filter 'quai-*.log' -ErrorAction SilentlyContinue |
+                  Select-String -Pattern 'Démarrage juste après une mise à jour' -SimpleMatch -Quiet)
+                if (-not $marker) { Start-Sleep -Seconds 1 }
+              }
+              if (-not $marker) { $failure = "Quai relancé sans l'indication « après une mise à jour »." }
+            }
           }
           if (Test-Path $log) {
             # Lignes utiles du journal d'Inno Setup (pas la liste des fichiers copiés).

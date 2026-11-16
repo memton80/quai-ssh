@@ -14,6 +14,9 @@ public partial class App : Application
     private readonly string? _startupProbeDirectory;
     private readonly string? _updateTestDirectory;
 
+    // Passé par l'installateur quand il relance Quai après une mise à jour.
+    private const string AfterUpdateSwitch = "--after-update";
+
     public App()
     {
         // Désinstallation : effacer les secrets du coffre puis quitter, sans créer de fenêtre ni de fichier.
@@ -65,6 +68,11 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         _logger.LogInformation("Démarrage de Quai {Version}", typeof(App).Assembly.GetName().Version);
+        if (Environment.GetCommandLineArgs().Contains(AfterUpdateSwitch, StringComparer.OrdinalIgnoreCase))
+        {
+            // Relancé par l'installateur au bout du bouton « Mettre à jour » (installer/Quai.iss).
+            _logger.LogInformation("Démarrage juste après une mise à jour (relancé par l'installateur)");
+        }
 
         MainWindow = new MainWindow();
         MainWindow.Activate();
@@ -92,6 +100,7 @@ public partial class App : Application
         }
         else
         {
+            Services.GetRequiredService<UiStallMonitor>().Start(MainWindow.DispatcherQueue);
             _ = CheckForUpdatesAsync();
         }
     }

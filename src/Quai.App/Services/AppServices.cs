@@ -102,6 +102,9 @@ internal static class AppServices
         services.AddSingleton<IUpdateInstaller, UpdateInstaller>();
         services.AddSingleton<UpdateBannerViewModel>();
 
+        // Diagnostic local : blocages de l'interface dans le journal.
+        services.AddSingleton<UiStallMonitor>();
+
         return services.BuildServiceProvider();
     }
 }
