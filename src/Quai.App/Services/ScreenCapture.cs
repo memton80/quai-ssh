@@ -43,6 +43,26 @@ internal static class ScreenCapture
         return colors.Count;
     }
 
+    /// <summary>Couleur la plus présente dans la fenêtre telle qu'affichée (fond du terminal), ou <c>null</c>.</summary>
+    public static Windows.UI.Color? DominantColor(IntPtr hwnd)
+    {
+        if (!GetWindowRect(hwnd, out var rect) || rect.Right <= rect.Left || rect.Bottom <= rect.Top)
+        {
+            return null;
+        }
+
+        var pixels = Capture(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+        var counts = new Dictionary<int, int>();
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            var color = pixels[i] | (pixels[i + 1] << 8) | (pixels[i + 2] << 16);
+            counts[color] = counts.GetValueOrDefault(color) + 1;
+        }
+
+        var top = counts.MaxBy(pair => pair.Value).Key;
+        return Windows.UI.Color.FromArgb(255, (byte)(top >> 16), (byte)(top >> 8), (byte)top);
+    }
+
     private static byte[] Capture(int x, int y, int width, int height)
     {
         var screen = GetDC(IntPtr.Zero);

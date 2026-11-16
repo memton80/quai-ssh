@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Quai.App.Services;
+using Quai.App.Terminal;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Security;
@@ -275,7 +276,8 @@ internal static class SmokeTest
     /// Windows Terminal, la saisie au clavier, l'affichage, et l'effacement de sa fenêtre derrière un dialogue
     /// ou quand on change de page.
     /// </summary>
-    private static async Task TerminalAsync(MainWindow window, IServiceProvider services, string directory, string captureName, List<string> report)
+    private static async Task TerminalAsync(
+        MainWindow window, IServiceProvider services, string directory, string captureName, List<string> report, bool switchBackground = false)
     {
         var terminals = services.GetRequiredService<TerminalsViewModel>();
         services.GetRequiredService<ISessionLauncher>().OpenTerminal(
@@ -311,6 +313,20 @@ internal static class SmokeTest
         await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, $"{captureName}-tab.png"));
         var colors = await ScreenCapture.SaveAsync(view.TerminalWindowForTest, Path.Combine(directory, $"{captureName}.png"));
         report.Add($"rendu du terminal ({captureName}) : {colors} couleur(s) à l'écran");
+
+        // Fond réellement dessiné par le moteur : celui du réglage, puis l'autre, appliqué à chaud.
+        var settings = services.GetRequiredService<ISettingsService>();
+        var fluent = settings.Current.TerminalFluentBackground;
+        await ExpectTerminalBackgroundAsync(view, fluent);
+        if (switchBackground)
+        {
+            settings.Update(s => s.TerminalFluentBackground = !fluent);
+            await ExpectTerminalBackgroundAsync(view, !fluent);
+            await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, $"{captureName}-{(fluent ? "classic" : "fluent")}-tab.png"));
+            settings.Update(s => s.TerminalFluentBackground = fluent);
+            await ExpectTerminalBackgroundAsync(view, fluent);
+            report.Add($"fond du terminal ({captureName}) : Fluent et classique appliqués à chaud : OK");
+        }
 
         // La fenêtre native passe derrière les dialogues…
         var dialogs = services.GetRequiredService<DialogService>();
@@ -429,7 +445,7 @@ internal static class SmokeTest
             throw new InvalidOperationException("Les réglages n'ont pas été enregistrés.");
         }
 
-        await TerminalAsync(window, services, directory, "terminal-dark", report);
+        await TerminalAsync(window, services, directory, "terminal-dark", report, switchBackground: true);
 
         settings.Update(s =>
         {
@@ -548,6 +564,27 @@ internal static class SmokeTest
         await CaptureAsync(dialog, path);
         dialog.Hide();
         await pending;
+    }
+
+    /// <summary>Le fond affiché par le moteur (couleur dominante de sa fenêtre) est celui de la palette attendue.</summary>
+    private static async Task ExpectTerminalBackgroundAsync(Views.TerminalView view, bool fluent)
+    {
+        var expected = TerminalPalette.Background(view.ActualTheme, fluent);
+        Windows.UI.Color? seen = null;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!((seen = ScreenCapture.DominantColor(view.TerminalWindowForTest)) is { } color
+            && Math.Abs(color.R - expected.R) <= 2 && Math.Abs(color.G - expected.G) <= 2 && Math.Abs(color.B - expected.B) <= 2))
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException(
+                    $"Fond du terminal ({(fluent ? "Fluent" : "classique")}) : {Hex(expected)} attendu, {(seen is { } s ? Hex(s) : "rien")} affiché.");
+            }
+
+            await Task.Delay(250);
+        }
+
+        static string Hex(Windows.UI.Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
     }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout, string failure)
