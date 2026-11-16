@@ -341,7 +341,11 @@ jobs:
             if (-not $done) { $failure = "L'installateur n'a pas terminé la mise à jour." }
             elseif ($relaunched.Count -eq 0) { $failure = "Quai n'a pas été relancé après la mise à jour." }
           }
-          if (Test-Path $log) { Get-Content $log | Select-String -Pattern 'Parameters|RELAUNCH|-- Run entry --|Filename:|Installation process|Need to restart|application' | ForEach-Object { $_.Line } }
+          if (Test-Path $log) {
+            # Lignes utiles du journal d'Inno Setup (pas la liste des fichiers copiés).
+            Get-Content $log | Select-String -CaseSensitive -Pattern 'Setup command line:', 'RestartManager', 'Installation process', '-- Run entry --', 'Filename: ' |
+              ForEach-Object { $_.Line }
+          }
           if ($relaunched) { $relaunched | Stop-Process -Force; Start-Sleep -Seconds 2 }
           if ($failure) {
             if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
