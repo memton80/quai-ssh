@@ -14,6 +14,12 @@ internal static class TerminalAirspace
     /// <summary>Un recouvrement a changé : les terminaux recalculent leur zone visible.</summary>
     public static event Action? Changed;
 
+    /// <summary>
+    /// Le contenu glisse en animation (volet de navigation qui s'ouvre ou se ferme à côté du contenu) : une animation
+    /// ne relance pas la mise en page, les terminaux suivent donc image par image le temps qu'elle dure.
+    /// </summary>
+    public static event Action? Moving;
+
     /// <summary>Rectangles (coordonnées de la racine XAML) actuellement posés au-dessus du contenu.</summary>
     public static Func<IEnumerable<Rect>>? OverlayProvider { get; set; }
 
@@ -23,6 +29,8 @@ internal static class TerminalAirspace
     public static IEnumerable<Rect> Overlays() => OverlayProvider?.Invoke() ?? [];
 
     public static void NotifyChanged() => Changed?.Invoke();
+
+    public static void NotifyMoving() => Moving?.Invoke();
 
     public static void BeginModal()
     {

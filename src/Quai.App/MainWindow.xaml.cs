@@ -80,9 +80,17 @@ public sealed partial class MainWindow : Window
             }
         };
 
-        // Le volet déplié en superposition doit passer devant les terminaux (fenêtres natives).
+        // Le volet déplié en superposition doit passer devant les terminaux (fenêtres natives). Déplié ou replié à côté
+        // du contenu (mode étendu, fenêtre large), il fait glisser le contenu en animation : les terminaux suivent
+        // pendant l'animation, puis se recalent une fois qu'elle est finie.
         TerminalAirspace.OverlayProvider = PaneOverlay;
-        NavView.PaneOpening += (_, _) => SetPaneOverlay(NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
+        NavView.PaneOpening += (_, _) =>
+        {
+            SetPaneOverlay(NavView.DisplayMode != NavigationViewDisplayMode.Expanded);
+            TerminalAirspace.NotifyMoving();
+        };
+        NavView.PaneOpened += (_, _) => TerminalAirspace.NotifyChanged();
+        NavView.PaneClosing += (_, _) => TerminalAirspace.NotifyMoving();
         NavView.PaneClosed += (_, _) => SetPaneOverlay(false);
         NavView.DisplayModeChanged += (_, _) =>
             SetPaneOverlay(NavView.IsPaneOpen && NavView.DisplayMode != NavigationViewDisplayMode.Expanded);

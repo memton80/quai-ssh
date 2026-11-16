@@ -29,6 +29,9 @@ public sealed partial class TerminalView : UserControl
     // Fenêtre qui porte le contenu XAML à l'intérieur de la fenêtre principale.
     private const string XamlBridgeClass = "Microsoft.UI.Content.DesktopChildSiteBridge";
 
+    // Durée du suivi image par image d'une animation du volet (les animations de WinUI durent moins de 400 ms).
+    private static readonly TimeSpan FollowDuration = TimeSpan.FromMilliseconds(700);
+
     // Polices de repli toujours ajoutées après celle des réglages.
     private static readonly string[] FallbackFonts = [AppSettings.DefaultTerminalFontFamily, "Consolas"];
 
@@ -51,6 +54,8 @@ public sealed partial class TerminalView : UserControl
     private volatile bool _failed;
     private volatile bool _closed;
     private bool _connectRequested;
+    private bool _following;
+    private DateTime _followUntil;
     private bool _focusWhenShown;
     private bool _restoreFocus;
     private (int Top, int Height, int Size) _scroll;
@@ -72,6 +77,7 @@ public sealed partial class TerminalView : UserControl
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         _settings.Changed += OnSettingsChanged;
         TerminalAirspace.Changed += UpdatePlacement;
+        TerminalAirspace.Moving += FollowAnimation;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => ApplyAppearance();
@@ -109,6 +115,7 @@ public sealed partial class TerminalView : UserControl
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _settings.Changed -= OnSettingsChanged;
         TerminalAirspace.Changed -= UpdatePlacement;
+        TerminalAirspace.Moving -= FollowAnimation;
         Detach();
         _native?.Dispose();
         _native = null;
@@ -205,6 +212,36 @@ public sealed partial class TerminalView : UserControl
         }
 
         _overlayTimer.Stop();
+        StopFollowing();
+    }
+
+    /// <summary>Le contenu glisse (volet de navigation) : la fenêtre native suit à chaque image, puis se cale.</summary>
+    private void FollowAnimation()
+    {
+        _followUntil = DateTime.UtcNow + FollowDuration;
+        if (!_following && _attached && !_closed)
+        {
+            _following = true;
+            CompositionTarget.Rendering += OnRendering;
+        }
+    }
+
+    private void OnRendering(object? sender, object e)
+    {
+        UpdatePlacement();
+        if (DateTime.UtcNow >= _followUntil)
+        {
+            StopFollowing();
+        }
+    }
+
+    private void StopFollowing()
+    {
+        if (_following)
+        {
+            _following = false;
+            CompositionTarget.Rendering -= OnRendering;
+        }
     }
 
     private void EnsureTerminal()
