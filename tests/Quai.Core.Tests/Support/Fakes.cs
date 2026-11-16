@@ -91,3 +91,35 @@ public sealed class FakeDialogService : IDialogService
     public Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor) =>
         Task.FromResult(OnEditPermissions?.Invoke(editor) ?? false);
 }
+
+/// <summary>Installation scriptée d'une mise à jour : enregistre ce qui serait lancé.</summary>
+public sealed class FakeUpdateInstaller : Quai.Core.Updates.IUpdateInstaller
+{
+    public bool CanInstall { get; set; } = true;
+
+    /// <summary>Réponse à la confirmation (sessions ouvertes) : faux = l'utilisateur garde ses sessions.</summary>
+    public bool Accept { get; set; } = true;
+
+    public Exception? Failure { get; set; }
+
+    public List<string> Installed { get; } = [];
+
+    public List<Uri> OpenedPages { get; } = [];
+
+    public Task<bool> InstallAndRestartAsync(string installerPath)
+    {
+        if (Failure is not null)
+        {
+            return Task.FromException<bool>(Failure);
+        }
+
+        if (Accept)
+        {
+            Installed.Add(installerPath);
+        }
+
+        return Task.FromResult(Accept);
+    }
+
+    public void OpenReleasePage(Uri page) => OpenedPages.Add(page);
+}

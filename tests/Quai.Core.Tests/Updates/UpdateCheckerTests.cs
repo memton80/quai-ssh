@@ -46,9 +46,10 @@ public class UpdateCheckerTests
         var handler = new RecordingHandler(HttpStatusCode.OK, """{ "tag_name": "v3.1.4", "html_url": "https://example.org/piege", "draft": false }""");
         using var source = new GitHubReleaseSource(handler);
 
-        var tag = await source.GetLatestTagAsync(TestContext.Current.CancellationToken);
+        var release = await source.GetLatestAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("v3.1.4", tag);
+        Assert.Equal("v3.1.4", release?.Tag);
+        Assert.Empty(release!.Assets);
         var request = Assert.Single(handler.Requests);
         Assert.Equal("https://api.github.com/repos/memton80/quai-ssh/releases/latest", request.RequestUri!.ToString());
         Assert.Equal(HttpMethod.Get, request.Method);
@@ -58,11 +59,86 @@ public class UpdateCheckerTests
     }
 
     [Fact]
+    public async Task The_github_source_reads_each_file_with_its_size_and_sha256()
+    {
+        var body = $$"""
+            {
+              "tag_name": "v1.1.0",
+              "assets": [
+                { "name": "Quai-Setup-x64.exe", "size": 35637956, "digest": "sha256:{{Hash('A')}}",
+                  "browser_download_url": "https://example.org/piege.exe" },
+                { "name": "Quai-x64.zip", "size": 49416463, "digest": null },
+                { "name": "Quai-Setup-arm64.exe", "size": 34610396, "digest": "md5:0123" },
+                { "name": "sans-taille.exe" },
+                "pas un objet"
+              ]
+            }
+            """;
+        using var source = new GitHubReleaseSource(new RecordingHandler(HttpStatusCode.OK, body));
+
+        var release = await source.GetLatestAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(release);
+        Assert.Equal(
+            new[]
+            {
+                new ReleaseAsset("Quai-Setup-x64.exe", 35637956, Hash('a')),
+                new ReleaseAsset("Quai-x64.zip", 49416463, null),
+                new ReleaseAsset("Quai-Setup-arm64.exe", 34610396, null),
+            },
+            release.Assets);
+    }
+
+    [Theory]
+    [InlineData(System.Runtime.InteropServices.Architecture.X64, "Quai-Setup-x64.exe")]
+    [InlineData(System.Runtime.InteropServices.Architecture.Arm64, "Quai-Setup-arm64.exe")]
+    [InlineData(System.Runtime.InteropServices.Architecture.X86, null)]
+    public void Each_architecture_has_its_installer(System.Runtime.InteropServices.Architecture architecture, string? expected)
+    {
+        Assert.Equal(expected, UpdateChecker.InstallerNameFor(architecture));
+    }
+
+    [Fact]
+    public async Task The_installer_is_offered_with_an_address_built_by_the_application()
+    {
+        var source = new FixedSource(new ReleaseInfo("v1.1.0",
+        [
+            new ReleaseAsset("Quai-Setup-arm64.exe", 100, Hash('b')),
+            new ReleaseAsset("Quai-Setup-x64.exe", 200, Hash('c')),
+        ]));
+
+        var update = await new UpdateChecker(source, "1.0.2", "Quai-Setup-x64.exe").CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(update?.Installer);
+        Assert.Equal("Quai-Setup-x64.exe", update.Installer.FileName);
+        Assert.Equal("https://github.com/memton80/quai-ssh/releases/download/v1.1.0/Quai-Setup-x64.exe", update.Installer.DownloadUrl.ToString());
+        Assert.Equal(200, update.Installer.Size);
+        Assert.Equal(Hash('c'), update.Installer.Sha256);
+    }
+
+    [Theory]
+    [InlineData("Quai-Setup-x64.exe", 200L, null)]                    // sans empreinte : rien pour vérifier le fichier
+    [InlineData("Quai-Setup-x64.exe", 0L, "c")]                       // taille absurde
+    [InlineData("Quai-Setup-x64.exe", 600L * 1024 * 1024, "c")]       // bien trop gros pour être Quai
+    [InlineData("quai-setup-x64.exe", 200L, "c")]                     // pas exactement le nom attendu
+    [InlineData("Quai-x64.zip", 200L, "c")]
+    public async Task Without_a_verifiable_installer_only_the_release_page_is_offered(string name, long size, string? hash)
+    {
+        var source = new FixedSource(new ReleaseInfo("v1.1.0", [new ReleaseAsset(name, size, hash is null ? null : Hash(hash[0]))]));
+
+        var update = await new UpdateChecker(source, "1.0.2", "Quai-Setup-x64.exe").CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(update);
+        Assert.Null(update.Installer);
+        Assert.Equal("https://github.com/memton80/quai-ssh/releases/tag/v1.1.0", update.ReleasePage.ToString());
+    }
+
+    [Fact]
     public async Task No_release_yet_is_not_an_error()
     {
         using var source = new GitHubReleaseSource(new RecordingHandler(HttpStatusCode.NotFound, """{ "message": "Not Found" }"""));
 
-        Assert.Null(await source.GetLatestTagAsync(TestContext.Current.CancellationToken));
+        Assert.Null(await source.GetLatestAsync(TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -72,7 +148,7 @@ public class UpdateCheckerTests
     {
         using var source = new GitHubReleaseSource(new RecordingHandler(status, body));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => source.GetLatestTagAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<HttpRequestException>(() => source.GetLatestAsync(TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -83,7 +159,7 @@ public class UpdateCheckerTests
     {
         using var source = new GitHubReleaseSource(new RecordingHandler(HttpStatusCode.OK, body));
 
-        Assert.Null(await source.GetLatestTagAsync(TestContext.Current.CancellationToken));
+        Assert.Null(await source.GetLatestAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -123,7 +199,9 @@ public class UpdateCheckerTests
         var settings = new JsonSettingsService(temp.File("settings.json"));
         settings.Update(s => s.CheckForUpdates = false);
         var source = new FixedSource("v99.0.0");
-        var banner = new UpdateBannerViewModel(new UpdateChecker(source, "1.0.0"), settings, new KeyStrings());
+        using var downloader = new UpdateDownloader();
+        var banner = new UpdateBannerViewModel(
+            new UpdateChecker(source, "1.0.0"), downloader, new FakeUpdateInstaller(), settings, new KeyStrings(), new AppPaths(temp.Path));
 
         await banner.CheckAsync(TestContext.Current.CancellationToken);
 
@@ -148,22 +226,35 @@ public class UpdateCheckerTests
     }
 
     private static UpdateBannerViewModel Banner(IReleaseSource source, TempDirectory temp) =>
-        new(new UpdateChecker(source, AppInfo.Version), new JsonSettingsService(temp.File("settings.json")), new KeyStrings());
+        new(
+            new UpdateChecker(source, AppInfo.Version),
+            new UpdateDownloader(),
+            new FakeUpdateInstaller(),
+            new JsonSettingsService(temp.File("settings.json")),
+            new KeyStrings(),
+            new AppPaths(temp.Path));
 
-    private sealed class FixedSource(string? tag) : IReleaseSource
+    private static string Hash(char digit) => new(digit, 64);
+
+    private sealed class FixedSource(ReleaseInfo? release) : IReleaseSource
     {
+        public FixedSource(string? tag)
+            : this(tag is null ? null : new ReleaseInfo(tag, []))
+        {
+        }
+
         public int Calls { get; private set; }
 
-        public Task<string?> GetLatestTagAsync(CancellationToken cancellationToken = default)
+        public Task<ReleaseInfo?> GetLatestAsync(CancellationToken cancellationToken = default)
         {
             Calls++;
-            return Task.FromResult(tag);
+            return Task.FromResult(release);
         }
     }
 
     private sealed class FailingSource(Exception error) : IReleaseSource
     {
-        public Task<string?> GetLatestTagAsync(CancellationToken cancellationToken = default) => Task.FromException<string?>(error);
+        public Task<ReleaseInfo?> GetLatestAsync(CancellationToken cancellationToken = default) => Task.FromException<ReleaseInfo?>(error);
     }
 
     private sealed class RecordingHandler(HttpStatusCode status, string body) : HttpMessageHandler
