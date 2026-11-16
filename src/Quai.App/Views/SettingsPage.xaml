@@ -33,6 +33,12 @@
 
             <!-- Terminal -->
             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="{l:Str Key=Settings_Terminal}" />
+            <tk:SettingsCard Description="{l:Str Key=Settings_FluentBackgroundDescription}" Header="{l:Str Key=Settings_FluentBackground}">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE771;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ToggleSwitch AutomationProperties.Name="{l:Str Key=Settings_FluentBackground}" IsOn="{x:Bind ViewModel.TerminalFluentBackground, Mode=TwoWay}" />
+            </tk:SettingsCard>
             <tk:SettingsCard Description="{l:Str Key=Settings_FontDescription}" Header="{l:Str Key=Settings_Font}">
                 <tk:SettingsCard.HeaderIcon>
                     <FontIcon Glyph="&#xE8D2;" />

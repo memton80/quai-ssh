@@ -75,7 +75,7 @@ public sealed partial class TerminalView : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => ApplyAppearance();
-        UpdateBackground();
+        UpdateBackground(_settings.Current.TerminalFluentBackground);
     }
 
     public TerminalTabViewModel ViewModel { get; }
@@ -378,16 +378,16 @@ public sealed partial class TerminalView : UserControl
     /// <summary>Thème, police et taille du terminal (réglages), appliqués à chaud.</summary>
     private void ApplyAppearance()
     {
-        UpdateBackground();
+        var appearance = _settings.Current;
+        UpdateBackground(appearance.TerminalFluentBackground);
         if (_native is null || _closed)
         {
             return;
         }
 
-        var appearance = _settings.Current;
         _dpi = CurrentDpi();
         _native.SetAppearance(
-            TerminalPalette.For(ActualTheme),
+            TerminalPalette.For(ActualTheme, appearance.TerminalFluentBackground),
             FontList(appearance.TerminalFontFamily),
             appearance.TerminalFontSize,
             _dpi);
@@ -408,8 +408,8 @@ public sealed partial class TerminalView : UserControl
         return string.Join(", ", fonts);
     }
 
-    private void UpdateBackground() =>
-        TerminalArea.Background = new SolidColorBrush(TerminalPalette.Background(ActualTheme));
+    private void UpdateBackground(bool fluent) =>
+        TerminalArea.Background = new SolidColorBrush(TerminalPalette.Background(ActualTheme, fluent));
 
     /// <summary>Réglages modifiés (éventuellement depuis un autre fil).</summary>
     private void OnSettingsChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(ApplyAppearance);

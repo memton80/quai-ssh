@@ -612,6 +612,12 @@
   <data name="Settings_Terminal" xml:space="preserve">
     <value>Terminal</value>
   </data>
+  <data name="Settings_FluentBackground" xml:space="preserve">
+    <value>Fond Fluent</value>
+  </data>
+  <data name="Settings_FluentBackgroundDescription" xml:space="preserve">
+    <value>Le terminal prend la couleur de surface de Windows 11, comme l'onglet actif. Désactivé : fond classique de Windows Terminal (noir en thème sombre).</value>
+  </data>
   <data name="Settings_Font" xml:space="preserve">
     <value>Police</value>
   </data>

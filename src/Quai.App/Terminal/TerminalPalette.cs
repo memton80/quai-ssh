@@ -7,6 +7,11 @@ namespace Quai.App.Terminal;
 /// <summary>Couleurs du terminal, une palette par thème de l'application.</summary>
 internal static class TerminalPalette
 {
+    // Fond « Fluent » : SolidBackgroundFillColorTertiary de WinUI, la couleur de l'onglet actif et de la zone de
+    // contenu du TabView (TabViewItemHeaderBackgroundSelected) ; le terminal se fond ainsi dans son onglet.
+    private const string FluentDarkBackground = "#282828";
+    private const string FluentLightBackground = "#f9f9f9";
+
     // Thème sombre : palette « Campbell » de Windows Terminal.
     private static readonly Palette Dark = new(
         Background: "#0c0c0c",
@@ -30,12 +35,13 @@ internal static class TerminalPalette
         ]);
 
     /// <summary>Thème transmis au moteur de Windows Terminal.</summary>
-    public static TerminalNative.TerminalTheme For(ElementTheme theme)
+    /// <param name="fluent">Fond à la couleur de surface de Windows 11 plutôt que celui de la palette.</param>
+    public static TerminalNative.TerminalTheme For(ElementTheme theme, bool fluent)
     {
         var palette = Pick(theme);
         return new TerminalNative.TerminalTheme
         {
-            DefaultBackground = ToColorRef(palette.Background),
+            DefaultBackground = ToColorRef(BackgroundOf(theme, fluent)),
             DefaultForeground = ToColorRef(palette.Foreground),
             DefaultSelectionBackground = ToColorRef(palette.Selection),
             CursorStyle = TerminalNative.CursorStyle.BlinkingBar,
@@ -44,13 +50,17 @@ internal static class TerminalPalette
     }
 
     /// <summary>Fond du terminal, pour la marge XAML qui l'entoure.</summary>
-    public static Color Background(ElementTheme theme)
+    public static Color Background(ElementTheme theme, bool fluent)
     {
-        var (r, g, b) = Parse(Pick(theme).Background);
+        var (r, g, b) = Parse(BackgroundOf(theme, fluent));
         return Color.FromArgb(255, r, g, b);
     }
 
     private static Palette Pick(ElementTheme theme) => theme == ElementTheme.Light ? Light : Dark;
+
+    private static string BackgroundOf(ElementTheme theme, bool fluent) => fluent
+        ? theme == ElementTheme.Light ? FluentLightBackground : FluentDarkBackground
+        : Pick(theme).Background;
 
     private static uint ToColorRef(string hex)
     {
