@@ -888,4 +888,7 @@
   <data name="Terminal_Snippets" xml:space="preserve">
     <value>Snippets… (Ctrl+Maj+P)</value>
   </data>
+  <data name="Terminal_SftpHere" xml:space="preserve">
+    <value>Ouvrir le SFTP dans ce dossier</value>
+  </data>
 </root>

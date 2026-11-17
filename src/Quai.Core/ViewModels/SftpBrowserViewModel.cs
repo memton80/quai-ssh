@@ -51,7 +51,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         IUiDispatcher dispatcher,
         ILocalRecycler? recycler = null,
         ILogger? logger = null,
-        string? initialLocalPath = null)
+        string? initialLocalPath = null,
+        string? initialRemotePath = null)
     {
         Profile = profile;
         _factory = factory;
@@ -65,7 +66,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         Status = SftpStatus.Idle;
         StatusText = string.Empty;
         LocalPath = initialLocalPath ?? LocalFileSystem.HomeDirectory;
-        RemotePath = string.Empty;
+        // Dossier distant demandé (ouverture depuis un terminal) ; s'il est illisible, la connexion se rabat sur le dossier personnel.
+        RemotePath = initialRemotePath ?? string.Empty;
         LoadLocal(LocalPath, reportErrors: false);
     }
 

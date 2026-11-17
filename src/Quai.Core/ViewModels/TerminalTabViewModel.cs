@@ -54,6 +54,9 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     // Dernière cause de déconnexion, reprise dans le compte à rebours.
     private string _lastFailure = string.Empty;
+
+    // Dossier courant annoncé par le shell (OSC 7) ; alimenté depuis le fil de lecture de la session.
+    private readonly WorkingDirectoryTracker _directory = new();
     private int _columns = 80;
     private int _rows = 24;
     private bool _disposed;
@@ -211,6 +214,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
                 return ConnectOutcome.Final;
             }
 
+            _directory.Reset();
             _session = session;
             session.DataReceived += OnDataReceived;
             session.Closed += OnSessionClosed;
@@ -410,7 +414,38 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         return session;
     }
 
-    private void OnDataReceived(byte[] data) => Output?.Invoke(data);
+    private void OnDataReceived(byte[] data)
+    {
+        _directory.Feed(data);
+        Output?.Invoke(data);
+    }
+
+    /// <summary>
+    /// Dossier courant du shell distant, pour ouvrir l'explorateur SFTP au même endroit : celui que le shell annonce
+    /// (OSC 7), sinon celui que la session sait lire (SSH), sinon <c>null</c> (dossier personnel).
+    /// </summary>
+    public async Task<string?> GetWorkingDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (_session is not { } session || !IsConnected || IsSerial)
+        {
+            return null;
+        }
+
+        if (_directory.Current is { } announced)
+        {
+            return announced;
+        }
+
+        try
+        {
+            return await session.QueryWorkingDirectoryAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _logger.LogInformation("Dossier courant du shell illisible ({Error})", ex.GetType().Name);
+            return null;
+        }
+    }
 
     private void OnSessionClosed(Exception? error)
     {

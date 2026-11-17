@@ -33,4 +33,16 @@ public sealed class SessionLauncher : ISessionLauncher
         _sftp.Open(profile);
         _navigator.NavigateTo(AppPage.Sftp);
     }
+
+    public async Task OpenSftpHereAsync(TerminalTabViewModel tab)
+    {
+        if (tab.IsSerial)
+        {
+            return;
+        }
+
+        var directory = await tab.GetWorkingDirectoryAsync();
+        await _sftp.OpenAtAsync(tab.Profile, directory);
+        _navigator.NavigateTo(AppPage.Sftp);
+    }
 }

@@ -24,6 +24,9 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
     /// <summary>Réponse de l'appareil simulé à un signal « break ».</summary>
     public const string BreakAnswer = "[break reçu]";
 
+    /// <summary>Dossier courant annoncé par le shell de démonstration (ouverture du SFTP depuis le terminal).</summary>
+    public const string WorkingDirectory = "/home/quai/www";
+
     /// <summary>Ports « détectés » proposés par la fiche de connexion.</summary>
     public static readonly IReadOnlyList<string> SerialPorts = ["COM1", "COM3"];
 
@@ -38,7 +41,8 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
             $"\u001b[1;36m{Banner}\u001b[0m ({columns}x{rows})\r\n" +
             "Couleurs : \u001b[31mrouge\u001b[0m \u001b[32mvert\u001b[0m \u001b[33mjaune\u001b[0m \u001b[34mbleu\u001b[0m — accents : é è à ç\r\n" +
             $"\u001b[32m{profile.Username}@{profile.Host}\u001b[0m:\u001b[34m~\u001b[0m$ ",
-            Track()));
+            Track(),
+            workingDirectory: WorkingDirectory));
 
     public Task<ITerminalSession> OpenAsync(SerialSettings settings, CancellationToken cancellationToken = default) =>
         Task.FromResult<ITerminalSession>(new EchoSession(
@@ -84,7 +88,16 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
         public string HomeDirectory => Home;
 
         public Task<IReadOnlyList<RemoteEntry>> ListAsync(string path, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<RemoteEntry>>(path == Home ? [.. _entries] : []);
+            Task.FromResult<IReadOnlyList<RemoteEntry>>(path switch
+            {
+                Home => [.. _entries],
+                WorkingDirectory =>
+                [
+                    new("index.html", WorkingDirectory + "/index.html", false, false, 1_204, Stamp, 0b110_100_100),
+                    new("style.css", WorkingDirectory + "/style.css", false, false, 3_872, Stamp, 0b110_100_100),
+                ],
+                _ => [],
+            });
 
         public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default) =>
             Task.FromResult(path == Home || _entries.Any(e => e.FullPath == path));
@@ -135,8 +148,12 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
     }
 
     /// <summary>Affiche une bannière puis renvoie la saisie ; <paramref name="breakAnswer"/> : sait recevoir un « break ».</summary>
-    private sealed class EchoSession(string banner, Action onClosed, string? breakAnswer = null) : ITerminalSession
+    private sealed class EchoSession(string banner, Action onClosed, string? breakAnswer = null, string? workingDirectory = null)
+        : ITerminalSession
     {
+        public Task<string?> QueryWorkingDirectoryAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(workingDirectory);
+
         public event Action<byte[]>? DataReceived;
 
         public event Action<Exception?>? Closed;

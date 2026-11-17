@@ -180,5 +180,7 @@ public sealed class QuickConnectTests : IDisposable
         public void OpenSftp(ConnectionProfile profile)
         {
         }
+
+        public Task OpenSftpHereAsync(TerminalTabViewModel tab) => Task.CompletedTask;
     }
 }

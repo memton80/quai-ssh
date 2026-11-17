@@ -30,6 +30,14 @@
                         ToolTipService.ToolTip="{l:Str Key=Terminal_Snippets}">
                         <FontIcon FontSize="14" Glyph="&#xE943;" />
                     </Button>
+                    <Button
+                        x:Name="SftpHereButton"
+                        AutomationProperties.Name="{l:Str Key=Terminal_SftpHere}"
+                        Click="OnSftpHereClick"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Terminal_SftpHere}">
+                        <FontIcon FontSize="14" Glyph="&#xE8B7;" />
+                    </Button>
                 </StackPanel>
             </TabView.TabStripFooter>
         </TabView>

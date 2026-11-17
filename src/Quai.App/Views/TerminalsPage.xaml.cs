@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Quai.App.Localization;
@@ -17,13 +18,16 @@ public sealed partial class TerminalsPage : UserControl
     private const string WarningGlyph = "";
     private const string BreakGlyph = "";
     private const string SnippetGlyph = "\uE943";
+    private const string FolderGlyph = "\uE8B7";
 
     private readonly IShellNavigator _navigator;
+    private readonly ISessionLauncher _launcher;
 
     public TerminalsPage()
     {
         ViewModel = App.Current.Services.GetRequiredService<TerminalsViewModel>();
         _navigator = App.Current.Services.GetRequiredService<IShellNavigator>();
+        _launcher = App.Current.Services.GetRequiredService<ISessionLauncher>();
         InitializeComponent();
 
         foreach (var tab in ViewModel.Tabs)
@@ -89,7 +93,13 @@ public sealed partial class TerminalsPage : UserControl
         var snippets = new MenuFlyoutItem { Text = Loc.Get("Terminal_Snippets"), Icon = new FontIcon { Glyph = SnippetGlyph } };
         snippets.Click += async (_, _) => await RunSnippetAsync(item);
         menu.Items.Add(snippets);
-        if (tab.IsSerial)
+        if (!tab.IsSerial)
+        {
+            var sftp = new MenuFlyoutItem { Text = Loc.Get("Terminal_SftpHere"), Icon = new FontIcon { Glyph = FolderGlyph } };
+            sftp.Click += async (_, _) => await OpenSftpHereAsync(tab);
+            menu.Items.Add(sftp);
+        }
+        else
         {
             menu.Items.Add(new MenuFlyoutItem
             {
@@ -160,6 +170,7 @@ public sealed partial class TerminalsPage : UserControl
         if (Tabs.SelectedItem is TabViewItem { Tag: TerminalTabViewModel tab } item)
         {
             ViewModel.SelectedTab = tab;
+            SftpHereButton.IsEnabled = !tab.IsSerial;
             (item.Content as TerminalView)?.FocusTerminal();
         }
     }
@@ -176,6 +187,26 @@ public sealed partial class TerminalsPage : UserControl
         (item?.Content as TerminalView)?.RunSnippetAsync() ?? Task.CompletedTask;
 
     private async void OnSnippetsClick(object sender, RoutedEventArgs e) => await RunSnippetAsync(Tabs.SelectedItem as TabViewItem);
+
+    /// <summary>Explorateur SFTP de la connexion de l'onglet, ouvert dans le dossier courant de son shell.</summary>
+    internal async Task OpenSftpHereAsync(TerminalTabViewModel? tab)
+    {
+        if (tab is null || tab.IsSerial)
+        {
+            return;
+        }
+
+        try
+        {
+            await _launcher.OpenSftpHereAsync(tab);
+        }
+        catch (Exception ex)
+        {
+            App.Current.Services.GetRequiredService<ILogger<TerminalsPage>>().LogError(ex, "Ouverture de l'explorateur SFTP impossible");
+        }
+    }
+
+    private async void OnSftpHereClick(object sender, RoutedEventArgs e) => await OpenSftpHereAsync(ViewModel.SelectedTab);
 
     private void OnAddTabClick(TabView sender, object args) => _navigator.NavigateTo(AppPage.Connections);
 

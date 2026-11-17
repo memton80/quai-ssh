@@ -8,6 +8,8 @@ internal sealed class SshTerminalSession : ITerminalSession
 {
     public const string TerminalName = "xterm-256color";
 
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(5);
+
     private readonly SshClient _client;
     private readonly ShellStream _stream;
     private readonly Lock _writeGate = new();
@@ -75,6 +77,30 @@ internal sealed class SshTerminalSession : ITerminalSession
         catch (Exception ex) when (ex is ObjectDisposedException or Renci.SshNet.Common.SshException or IOException)
         {
             // Session en cours de fermeture : rien à redimensionner.
+        }
+    }
+
+    public async Task<string?> QueryWorkingDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsOpen)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var command = _client.CreateCommand(WorkingDirectoryProbe.Command);
+            command.CommandTimeout = ProbeTimeout;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(ProbeTimeout);
+            await command.ExecuteAsync(timeout.Token).ConfigureAwait(false);
+            return WorkingDirectoryProbe.Parse(command.Result);
+        }
+        catch (Exception ex) when (ex is Renci.SshNet.Common.SshException or IOException or ObjectDisposedException
+            or OperationCanceledException or InvalidOperationException)
+        {
+            // Serveur qui refuse un canal de plus, connexion en train de tomber… : on ouvrira le dossier personnel.
+            return null;
         }
     }
 

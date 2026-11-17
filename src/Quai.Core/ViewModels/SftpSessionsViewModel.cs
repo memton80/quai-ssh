@@ -43,8 +43,8 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    /// <summary>Ajoute un onglet et lance la connexion.</summary>
-    public SftpBrowserViewModel Open(ConnectionProfile profile)
+    /// <summary>Ajoute un onglet et lance la connexion, dans <paramref name="remotePath"/> s'il est donné.</summary>
+    public SftpBrowserViewModel Open(ConnectionProfile profile, string? remotePath = null)
     {
         var tab = new SftpBrowserViewModel(
             profile.Clone(),
@@ -53,12 +53,34 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
             _strings,
             _dispatcher,
             _recycler,
-            _loggerFactory?.CreateLogger<SftpBrowserViewModel>());
+            _loggerFactory?.CreateLogger<SftpBrowserViewModel>(),
+            initialRemotePath: remotePath);
         Tabs.Add(tab);
         SelectedTab = tab;
         IsEmpty = false;
         _ = tab.ConnectAsync();
         return tab;
+    }
+
+    /// <summary>
+    /// Ouverture depuis un terminal : un explorateur déjà connecté à la même connexion est réutilisé (il passe au
+    /// dossier demandé), sinon un nouvel onglet s'ouvre dans ce dossier.
+    /// </summary>
+    public async Task<SftpBrowserViewModel> OpenAtAsync(ConnectionProfile profile, string? remotePath)
+    {
+        var existing = Tabs.FirstOrDefault(t => t.Profile.Id == profile.Id && t.IsConnected);
+        if (existing is null)
+        {
+            return Open(profile, remotePath);
+        }
+
+        SelectedTab = existing;
+        if (!string.IsNullOrEmpty(remotePath) && remotePath != existing.RemotePath)
+        {
+            await existing.NavigateRemoteAsync(remotePath);
+        }
+
+        return existing;
     }
 
     public async Task CloseAsync(SftpBrowserViewModel? tab)
