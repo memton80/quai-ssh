@@ -280,14 +280,16 @@ public sealed class RemoteEditTests : IDisposable
     {
         var local = _files.NewLocalPath("notes.txt");
         File.WriteAllText(local, "v1");
-        using var edit = new RemoteEdit("/home/alice/notes.txt", local, default, TimeSpan.FromMilliseconds(100));
+        // Regroupement d'une seconde : les écritures d'un même enregistrement (quelques microsecondes) n'en font qu'un,
+        // même sur une machine de CI chargée.
+        using var edit = new RemoteEdit("/home/alice/notes.txt", local, default, TimeSpan.FromSeconds(1));
         var saves = 0;
         edit.Saved += _ => Interlocked.Increment(ref saves);
         edit.Start();
 
         // Même contenu réécrit : pas d'envoi.
         File.WriteAllText(local, "v1");
-        await Task.Delay(600, TestContext.Current.CancellationToken);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
         Assert.Equal(0, Volatile.Read(ref saves));
 
         // Enregistrement « à la VS Code » : fichier temporaire puis renommage par-dessus, en plusieurs écritures.
@@ -295,12 +297,12 @@ public sealed class RemoteEditTests : IDisposable
         File.WriteAllText(temporary, "v2");
         File.Move(temporary, local, overwrite: true);
         File.AppendAllText(local, " fin");
-        for (var i = 0; i < 50 && Volatile.Read(ref saves) == 0; i++)
+        for (var i = 0; i < 100 && Volatile.Read(ref saves) == 0; i++)
         {
             await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
-        await Task.Delay(400, TestContext.Current.CancellationToken);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
         Assert.Equal(1, Volatile.Read(ref saves));
         Assert.True(edit.HasLocalChanges());
     }

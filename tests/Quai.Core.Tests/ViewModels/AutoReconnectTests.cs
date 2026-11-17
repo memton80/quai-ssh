@@ -26,13 +26,36 @@ public class AutoReconnectTests
         return (tab, session);
     }
 
-    /// <summary>Avance l'horloge seconde par seconde (les continuations s'exécutent entre deux pas).</summary>
+    /// <summary>
+    /// Avance l'horloge seconde par seconde ; avant chaque pas, attend que la boucle de reconnexion soit de nouveau
+    /// en attente sur l'horloge (ses continuations peuvent passer par un autre fil : pas de délai fixe).
+    /// </summary>
     private async Task AdvanceAsync(int seconds)
     {
         for (var i = 0; i < seconds; i++)
         {
+            await SettleAsync();
             _time.Advance(TimeSpan.FromSeconds(1));
-            await Task.Delay(5, TestContext.Current.CancellationToken);
+        }
+
+        await SettleAsync();
+    }
+
+    /// <summary>Laisse s'exécuter ce qui est prêt : jusqu'à ce que plus rien ne change pendant quelques millisecondes.</summary>
+    private static async Task SettleAsync()
+    {
+        for (var i = 0; i < 4; i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>Attend (5 s au plus) qu'une condition devienne vraie.</summary>
+    private static async Task UntilAsync(Func<bool> condition)
+    {
+        for (var i = 0; i < 500 && !condition(); i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
     }
 
@@ -53,6 +76,7 @@ public class AutoReconnectTests
         Assert.Single(_factory.TerminalRequests);
 
         await AdvanceAsync(1);
+        await UntilAsync(() => tab.IsConnected);
 
         Assert.True(tab.IsConnected);
         Assert.False(tab.IsAutoReconnecting);
@@ -113,6 +137,7 @@ public class AutoReconnectTests
         Assert.Equal("Terminal_ReconnectIn(Terminal_ConnectFailed(injoignable),5,2,6)", tab.StatusText);
 
         await AdvanceAsync(5);
+        await UntilAsync(() => !tab.IsAutoReconnecting);
 
         Assert.False(tab.IsAutoReconnecting);
         Assert.Equal(TerminalStatus.Failed, tab.Status);
@@ -131,6 +156,7 @@ public class AutoReconnectTests
 
         session.Close(new IOException("réseau"));
         await AdvanceAsync((int)TerminalTabViewModel.ReconnectDelays.Sum(d => d.TotalSeconds));
+        await UntilAsync(() => !tab.IsAutoReconnecting);
 
         Assert.False(tab.IsAutoReconnecting);
         Assert.Equal("Terminal_ReconnectGaveUp(Terminal_ConnectFailed(injoignable),6)", tab.StatusText);
@@ -189,6 +215,7 @@ public class AutoReconnectTests
         _factory.Terminals.Enqueue(() => second);
         session.Close(new IOException("réseau"));
         await AdvanceAsync(2);
+        await UntilAsync(() => tab.IsConnected);
         Assert.True(tab.IsConnected);
 
         second.Close(new IOException("encore"));
