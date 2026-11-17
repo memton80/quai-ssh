@@ -374,7 +374,17 @@ jobs:
             Get-Content $log | Select-String -CaseSensitive -Pattern 'Setup command line:', 'RestartManager', 'Installation process', '-- Run entry --', 'Filename: ', 'Parameters: ', 'Process exit code' |
               ForEach-Object { $_.Line }
           }
-          if ($relaunched) { $relaunched | Stop-Process -Force; Start-Sleep -Seconds 2 }
+          # Arrêt de toutes les instances lancées après la fermeture pour mise à jour, relues maintenant : l'installateur
+          # lance d'abord le préchauffage (--warmup, moins d'une seconde) puis Quai (--after-update), et la liste vue
+          # pendant l'attente peut ne contenir que le préchauffage. Un Quai resté ouvert verrouille ses fichiers et
+          # ferait échouer la désinstallation qui suit.
+          if ($process.HasExited) {
+            $started = @(Get-Process -Name Quai -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $process.ExitTime })
+            if ($started) {
+              $started | Stop-Process -Force -ErrorAction SilentlyContinue
+              $started | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
+            }
+          }
           if ($failure) {
             if (Test-Path (Join-Path $out 'smoke-error.txt')) { Get-Content (Join-Path $out 'smoke-error.txt') }
             Get-ChildItem (Join-Path $out 'data/logs') -Filter 'quai-*.log' -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 40 }
