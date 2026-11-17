@@ -22,12 +22,29 @@ Se connecter à un serveur ne devrait pas demander trois logiciels et un post-it
 
 - **Tous vos serveurs, bien rangés.** Ajoutez une connexion une fois, retrouvez-la en un clic : dossiers, étiquettes et recherche instantanée.
 - **Un vrai terminal, rapide et net.** Quai utilise le moteur de Windows Terminal, celui de Microsoft. Plusieurs onglets, copier-coller comme d'habitude.
-- **Vos fichiers par glisser-déposer.** Votre PC à gauche, le serveur à droite : faites glisser, c'est envoyé. Un fichier de configuration à retoucher ? Ouvrez-le dans votre éditeur habituel, chaque enregistrement repart sur le serveur.
-- **Moins de répétitions.** Connexion rapide sans fiche, commandes favorites envoyées en deux touches, explorateur ouvert directement dans le dossier où vous êtes, reconnexion automatique après une coupure ou une mise en veille.
+- **Vos fichiers par glisser-déposer.** Votre PC à gauche, le serveur à droite : faites glisser, c'est envoyé.
 - **Aussi pour vos petits appareils.** Routeur, switch, Arduino, Raspberry Pi : branchez le câble, choisissez le port, c'est parti.
 - **Toujours à jour, en un clic.** Quand une nouvelle version sort, un bouton suffit : Quai se met à jour et redémarre tout seul.
 
 ![Le terminal de Quai en thème sombre](docs/images/terminal.png)
+
+## Moins de gestes répétitifs
+
+**Connexion rapide.** Tapez `alice@serveur` dans le champ en haut du carnet et appuyez sur Entrée : le terminal s'ouvre, sans fiche à remplir. Si la connexion vous plaît, un bouton l'ajoute au carnet.
+
+**Vos commandes favorites en deux touches.** Enregistrez une fois les commandes que vous tapez souvent, puis envoyez-les dans le terminal avec `Ctrl+Maj+P`.
+
+![Le choix d'une commande enregistrée, ouvert avec Ctrl+Maj+P](docs/images/snippets.png)
+
+**Un fichier du serveur à retoucher ?** Clic droit, « Modifier » : il s'ouvre dans votre éditeur habituel (Bloc-notes, VS Code…), et chaque enregistrement repart sur le serveur. Si quelqu'un l'a changé entre-temps, Quai vous demande avant d'écraser.
+
+![Un fichier du serveur ouvert dans un éditeur, ses modifications renvoyées automatiquement](docs/images/edition.png)
+
+**Le bon dossier, tout de suite.** Depuis le terminal, un bouton ouvre l'explorateur de fichiers là où vous êtes, sans rien taper.
+
+**Une coupure ? Quai se reconnecte.** Wi-Fi qui saute, PC sorti de veille : Quai retente la connexion tout seul et vous montre où il en est.
+
+![Le terminal qui se reconnecte tout seul après une coupure](docs/images/reconnexion.png)
 
 ## Vos secrets restent chez vous
 
@@ -44,6 +61,8 @@ Se connecter à un serveur ne devrait pas demander trois logiciels et un post-it
 3. C'est prêt : Quai vous attend dans le menu Démarrer.
 
 > Au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur » : Quai est un projet indépendant et ses fichiers ne sont pas encore signés. Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
+>
+> Chaque version est analysée par [VirusTotal](https://www.virustotal.com) : les liens vers les analyses et les empreintes des fichiers sont dans les notes de la release.
 
 Fonctionne sur Windows 10 et Windows 11. Une version portable (zip, sans installation) est aussi proposée.
 
