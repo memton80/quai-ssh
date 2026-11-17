@@ -167,13 +167,14 @@ internal static class SmokeTest
                 report.Add($"page {tag} : OK");
             }
 
-            Metrics.Snapshot("4 pages ouvertes");
+            Metrics.Snapshot($"{MainWindow.PageTags.Count} pages ouvertes");
 
             await ConnectionBookAsync(window, services, directory, report);
             await TerminalAsync(window, services, directory, "terminal", report);
             report.Add("terminal (moteur Windows Terminal) : OK");
             await SerialTerminalAsync(window, services, directory, report);
             await SftpAsync(window, services, directory, report);
+            await SessionFeaturesAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
             await SettingsAsync(window, services, directory, report);
             await UpdateBannerAsync(window, services, directory, report);
@@ -532,6 +533,159 @@ internal static class SmokeTest
         report.Add("dialogues SFTP (droits, renommer) : OK");
 
         await sessions.CloseAsync(tab);
+    }
+
+    /// <summary>
+    /// Connexion rapide, coupure puis reconnexion automatique, snippets (page, fiche, sélecteur, envoi), explorateur
+    /// SFTP ouvert dans le dossier du shell, puis modification d'un fichier distant renvoyée à l'enregistrement.
+    /// </summary>
+    private static async Task SessionFeaturesAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        var terminals = services.GetRequiredService<TerminalsViewModel>();
+        var factory = services.GetRequiredService<ISshSessionFactory>() as SmokeSessionFactory
+            ?? throw new InvalidOperationException("Le test de fumée doit utiliser les sessions de démonstration.");
+        var dialogs = services.GetRequiredService<DialogService>();
+
+        // Connexion rapide : onglet hors carnet, qui propose d'être ajouté au carnet.
+        const string QuickAddress = "quai@rapide.example.org:2222";
+        var connections = services.GetRequiredService<ConnectionsViewModel>();
+        window.NavigateTo(MainWindow.ConnectionsTag);
+        connections.QuickConnectText = QuickAddress;
+        await Task.Delay(500);
+        await CaptureAsync(window.Root, Path.Combine(directory, "quick-connect-field.png"));
+        await connections.QuickConnectCommand.ExecuteAsync(null);
+        var tab = terminals.SelectedTab ?? throw new InvalidOperationException("La connexion rapide n'a ouvert aucun onglet.");
+        if (!tab.IsQuickConnect || tab.Endpoint != QuickAddress)
+        {
+            throw new InvalidOperationException($"La connexion rapide a ouvert « {tab.Endpoint} » (connexion rapide : {tab.IsQuickConnect}).");
+        }
+
+        await WaitUntilAsync(() => Task.FromResult(tab.IsConnected), TimeSpan.FromSeconds(60), "La connexion rapide ne s'est pas connectée.");
+        var page = window.FindPage(MainWindow.TerminalsTag) as Views.TerminalsPage
+            ?? throw new InvalidOperationException("Page des terminaux introuvable.");
+        var view = page.SelectedTerminal ?? throw new InvalidOperationException("Vue du terminal introuvable.");
+        await WaitUntilAsync(
+            () => Task.FromResult(view.ReadScreenText().Contains(SmokeSessionFactory.Banner, StringComparison.Ordinal)),
+            TimeSpan.FromSeconds(20),
+            "La connexion rapide n'affiche pas la session.");
+        if (!tab.ShowSaveOffer)
+        {
+            throw new InvalidOperationException("L'onglet de la connexion rapide ne propose pas de l'ajouter au carnet.");
+        }
+
+        await Task.Delay(600);
+        await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, "quick-connect-tab.png"));
+        report.Add("connexion rapide (onglet hors carnet, « Ajouter au carnet… ») : OK");
+
+        // Coupure simulée : compte à rebours, puis reconnexion automatique.
+        factory.DropLastTerminal();
+        await WaitUntilAsync(
+            () => Task.FromResult(tab.IsAutoReconnecting),
+            TimeSpan.FromSeconds(10),
+            "Une coupure ne déclenche pas la reconnexion automatique.");
+        await Task.Delay(500);
+        await ScreenCapture.SaveAsync(windowHandle, Path.Combine(directory, "terminal-reconnecting.png"));
+        await WaitUntilAsync(
+            () => Task.FromResult(tab.IsConnected && !tab.IsAutoReconnecting),
+            TimeSpan.FromSeconds(30),
+            $"La reconnexion automatique n'a pas abouti ({tab.StatusText}).");
+        report.Add("reconnexion automatique après une coupure : OK");
+
+        // Snippets : page, fiche, puis envoi depuis le terminal par le sélecteur (Ctrl+Maj+P).
+        var snippets = services.GetRequiredService<ISnippetRepository>();
+        snippets.Save(new Snippet { Name = "Espace disque", Command = "df -h" });
+        snippets.Save(new Snippet { Name = "Derniers journaux", Command = "journalctl -n 50 --no-pager
+uptime", Run = false });
+        window.NavigateTo(MainWindow.SnippetsTag);
+        await Task.Delay(800);
+        await CaptureAsync(window.Root, Path.Combine(directory, "snippets.png"));
+        if (services.GetRequiredService<SnippetsViewModel>().Items.Count != 2)
+        {
+            throw new InvalidOperationException("La page des snippets n'affiche pas les snippets enregistrés.");
+        }
+
+        await ShowAndCaptureAsync(
+            dialogs,
+            () => dialogs.EditSnippetAsync(new SnippetEditorViewModel(
+                services.GetRequiredService<IStrings>(),
+                snippets.GetAll()[0],
+                services.GetRequiredService<IConnectionRepository>().GetAll())),
+            Path.Combine(directory, "snippet-editor.png"));
+
+        window.NavigateTo(MainWindow.TerminalsTag);
+        await WaitUntilAsync(() => Task.FromResult(view.IsTerminalShown), TimeSpan.FromSeconds(10), "Le terminal ne réapparaît pas.");
+        var running = view.RunSnippetAsync();
+        await WaitUntilAsync(
+            () => Task.FromResult(dialogs.Current is Views.SnippetPickerDialog),
+            TimeSpan.FromSeconds(10),
+            "Le choix d'un snippet ne s'ouvre pas.");
+        await Task.Delay(900);
+        var picker = (Views.SnippetPickerDialog)dialogs.Current!;
+        await CaptureAsync(picker, Path.Combine(directory, "snippet-picker.png"));
+        picker.ViewModel.Filter = "disque";
+        if (picker.ViewModel.Selected?.Command != "df -h")
+        {
+            throw new InvalidOperationException("Le filtre du sélecteur ne retrouve pas le snippet.");
+        }
+
+        picker.SendForTest();
+        await running;
+        await WaitUntilAsync(
+            () => Task.FromResult(view.ReadScreenText().Contains("df -h", StringComparison.Ordinal)),
+            TimeSpan.FromSeconds(20),
+            "Le snippet envoyé n'apparaît pas dans le terminal.");
+        report.Add("snippets (page, fiche, sélecteur, envoi dans le terminal) : OK");
+
+        // Explorateur SFTP ouvert dans le dossier courant du shell.
+        var sftp = services.GetRequiredService<SftpSessionsViewModel>();
+        await page.OpenSftpHereAsync(tab);
+        var browser = sftp.SelectedTab ?? throw new InvalidOperationException("Aucun explorateur SFTP ouvert depuis le terminal.");
+        await WaitUntilAsync(
+            () => Task.FromResult(browser.IsConnected && browser.RemotePath == SmokeSessionFactory.WorkingDirectory),
+            TimeSpan.FromSeconds(20),
+            $"L'explorateur ne s'est pas ouvert dans le dossier du shell ({browser.RemotePath}).");
+        if (!browser.RemoteItems.Any(i => i.Name == "index.html"))
+        {
+            throw new InvalidOperationException("Le dossier du shell ouvert dans l'explorateur est vide.");
+        }
+
+        await Task.Delay(700);
+        await CaptureAsync(window.Root, Path.Combine(directory, "sftp-here.png"));
+        report.Add("SFTP ouvert dans le dossier courant du shell : OK");
+
+        // Modifier un fichier distant : copie locale « ouverte », enregistrée, renvoyée sur le serveur.
+        await browser.NavigateRemoteAsync("/home/quai");
+        await browser.EditRemoteAsync(browser.RemoteItems.Single(i => i.Name == "notes.txt"));
+        var local = services.GetRequiredService<SmokeFileLauncher>().Opened.LastOrDefault()
+            ?? throw new InvalidOperationException("Le fichier distant n'a pas été ouvert pour modification.");
+        await File.WriteAllTextAsync(local, "modifié par le test de fumée
+");
+        await WaitUntilAsync(
+            () => Task.FromResult(browser.Transfers.Any(t => t.Name == "notes.txt" && t.Status == TransferStatus.Completed)),
+            TimeSpan.FromSeconds(20),
+            "L'enregistrement du fichier modifié n'a pas été renvoyé sur le serveur.");
+        var sent = browser.RemoteItems.Single(i => i.Name == "notes.txt").Size;
+        if (sent != new FileInfo(local).Length || !browser.HasEdits)
+        {
+            throw new InvalidOperationException($"Le fichier renvoyé ne correspond pas à la copie modifiée ({sent} octets).");
+        }
+
+        await Task.Delay(600);
+        await CaptureAsync(window.Root, Path.Combine(directory, "sftp-edit.png"));
+        await sftp.CloseAsync(browser);
+        if (File.Exists(local))
+        {
+            throw new InvalidOperationException("La copie locale n'est pas supprimée à la fermeture de l'explorateur.");
+        }
+
+        report.Add("modification d'un fichier distant (copie locale, renvoi à l'enregistrement, nettoyage) : OK");
+
+        await terminals.CloseAsync(tab);
+        if (!terminals.IsEmpty)
+        {
+            throw new InvalidOperationException("L'onglet de la connexion rapide ne s'est pas fermé.");
+        }
     }
 
     /// <summary>Réglages : passage au thème sombre et changement de police, appliqués à chaud (terminal compris).</summary>

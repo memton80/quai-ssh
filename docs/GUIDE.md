@@ -8,9 +8,13 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 - Serveurs SSH et ports série dans le même carnet.
 - Créer, modifier, dupliquer, supprimer ; rangement par dossiers (`Prod/Web`, repliables d'un clic sur le chevron ou avec les flèches ← →) et par tags ; recherche instantanée (nom, hôte, utilisateur, port série, tag, notes — sans tenir compte des accents).
 - Authentification par mot de passe ou par clé privée (OpenSSH, PEM, PuTTY ; passphrase prise en charge).
+- **Connexion rapide** : tapez `utilisateur@hôte:port` dans le champ en haut du carnet puis `Entrée`, sans créer de fiche (sont aussi acceptés `hôte`, `[::1]:22`, `ssh://…` ou une commande collée comme `ssh -p 2222 alice@serveur`). Utilisateur oublié : Quai le demande. Une fois connecté, l'onglet propose **« Ajouter au carnet… »**. Aucun mot de passe n'est mémorisé pour une connexion rapide tant qu'elle n'est pas dans le carnet.
 
 **Terminal SSH**
 - Onglets, moteur natif de **Windows Terminal** (le même que l'application de Microsoft : rendu DirectWrite / Direct3D, couleurs, UTF-8, redimensionnement), reconnexion en un clic. Aucun navigateur embarqué.
+- **Reconnexion automatique** après une coupure (réseau, Wi-Fi, mise en veille) : six tentatives espacées sur deux minutes environ, compte à rebours affiché, « Reconnecter » pour ne pas attendre, « Arrêter les tentatives » pour abandonner. Un `exit` normal n'est jamais relancé ; un mot de passe refusé arrête les tentatives. L'historique affiché reste en place. Désactivable dans les réglages, comme le **maintien de la connexion** (keepalive, 30 s par défaut).
+- **Snippets** : commandes enregistrées (page « Snippets »), envoyées dans le terminal avec **`Ctrl+Maj+P`**, le bouton « Snippets » de la barre d'onglets ou le clic droit sur l'onglet. Filtre au clavier, `Entrée` envoie. Un snippet peut servir à toutes les connexions ou à une seule ; plusieurs lignes = plusieurs commandes ; « Exécuter tout de suite » ajoute `Entrée` à la fin. Ils sont enregistrés en clair : n'y mettez pas de mot de passe.
+- **SFTP dans le dossier du shell** : le bouton « Ouvrir le SFTP dans ce dossier » (barre d'onglets ou clic droit) ouvre l'explorateur là où vous êtes dans le terminal, sans rien taper. Quai lit le dossier annoncé par le shell (séquence OSC 7) ou, à défaut, celui du shell lui-même par un canal séparé de la même connexion (serveurs Linux) ; sinon, le dossier personnel. Un explorateur déjà ouvert sur la même connexion est réutilisé.
 - Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+Maj+C` copie, `Ctrl+V` ou `Maj+Inser` colle, clic droit copie ou colle. Collage multiligne protégé quand le shell le permet (« bracketed paste »).
 - Historique : molette, barre de défilement, `Ctrl+Maj+↑ / ↓ / Pg.Préc / Pg.Suiv / Début / Fin`.
 
@@ -24,10 +28,12 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 - Envoi et téléchargement de fichiers et de dossiers entiers, par boutons ou par **glisser-déposer** (entre les panneaux, ou depuis l'Explorateur Windows vers le serveur).
 - File de transferts avec progression et **annulation** ; confirmation avant tout écrasement.
 - Renommer, nouveau dossier, **droits** (cases à cocher + notation octale), supprimer — toujours avec confirmation côté serveur, via la corbeille côté local.
-- Clavier : `Entrée` ouvre, `Retour arrière` remonte, `F2` renomme, `F5` actualise, `Suppr` supprime.
+- **Modifier un fichier du serveur dans votre éditeur** (comme WinSCP) : clic droit → « Modifier » (`F4`) ouvre le fichier dans l'application associée (Bloc-notes, VS Code…), « Modifier avec… » laisse choisir. Chaque enregistrement est renvoyé sur le serveur, à sa place (droits conservés). Si le fichier a changé sur le serveur entre-temps, Quai demande avant de l'écraser ; si la connexion est coupée, la modification part à la reconnexion. Le suivi dure tant que l'onglet SFTP reste ouvert (bandeau en haut de l'explorateur) ; la copie locale est ensuite effacée.
+- Clavier : `Entrée` ouvre, `Retour arrière` remonte, `F2` renomme, `F4` modifie, `F5` actualise, `Suppr` supprime.
 
 **Réglages**
 - Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), fond « Fluent » du terminal (couleur de surface de Windows 11, comme l'onglet actif) ou fond classique de Windows Terminal, police et taille du terminal, appliqués immédiatement.
+- Connexions SSH : reconnexion automatique (activée par défaut) et intervalle du maintien de connexion (keepalive, 5 à 600 s, 0 = désactivé ; s'applique aux nouvelles connexions).
 
 **Fermeture et mises à jour**
 - Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
@@ -64,14 +70,18 @@ Dans `%LOCALAPPDATA%\Quai` :
 | Fichier | Contenu |
 |---|---|
 | `connections.json` | Le carnet (aucun secret). |
+| `snippets.json` | Les snippets (en clair). |
 | `settings.json` | Les réglages. |
 | `known_hosts` | Les clés d'hôte acceptées (format OpenSSH). |
 | `logs\` | Journaux des 7 derniers jours (et celui de la dernière mise à jour). |
+| `edits\` | Copies locales des fichiers distants ouverts pour modification (effacées à la fermeture de l'onglet SFTP). |
 
 ## Limites connues
 
 - Pas encore de tunnels / redirection de ports, de rebond (jump host), d'agent OpenSSH, ni d'import `ssh_config` / PuTTY.
 - Port série : noms `COMn` uniquement, pas de nom « parlant » de l'adaptateur dans la liste, ni écho local, ni conversion des fins de ligne (Entrée envoie CR, comme PuTTY), ni journal de session.
 - Un seul transfert à la fois par onglet SFTP, sans reprise après interruption.
+- Connexion rapide : mot de passe uniquement (pour une clé privée, ajoutez la connexion au carnet). Pas de reconnexion automatique pour un port série.
+- « Ouvrir le SFTP dans ce dossier » sans annonce du shell : serveurs Linux seulement (lecture de `/proc`) ; ailleurs, ou dans un shell `sudo`, l'explorateur s'ouvre dans le dossier personnel ou celui du dernier shell lisible.
 - Pas de glisser-déposer du serveur vers l'Explorateur Windows (passer par le panneau local).
 - Interface en français uniquement pour l'instant.

@@ -554,13 +554,16 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
 
             edit.MarkSent(copy.Hash);
             edit.RemoteStamp = await session.GetStampAsync(edit.RemotePath);
-            transfer.TransferredBytes = copy.Size;
-            transfer.Status = TransferStatus.Completed;
-            transfer.Detail = _strings.Format("Sftp_EditSent", _sizes.Format(copy.Size));
+
+            // Comme pour un transfert : le panneau distant est à jour quand l'envoi est annoncé terminé.
             if (IsConnected && edit.RemoteDirectory == RemotePath)
             {
                 await LoadRemoteAsync(RemotePath, reportErrors: false);
             }
+
+            transfer.TransferredBytes = copy.Size;
+            transfer.Status = TransferStatus.Completed;
+            transfer.Detail = _strings.Format("Sftp_EditSent", _sizes.Format(copy.Size));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
