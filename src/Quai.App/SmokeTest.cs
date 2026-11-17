@@ -649,6 +649,9 @@ internal static class SmokeTest
             throw new InvalidOperationException("Le dossier du shell ouvert dans l'explorateur est vide.");
         }
 
+        // Panneau local reproductible pour les captures (sinon le dossier personnel du runner).
+        browser.NavigateLocal(Path.Combine(directory, "data", "exemple"));
+
         await Task.Delay(700);
         await CaptureAsync(window.Root, Path.Combine(directory, "sftp-here.png"));
         report.Add("SFTP ouvert dans le dossier courant du shell : OK");

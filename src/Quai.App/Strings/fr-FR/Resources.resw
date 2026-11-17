@@ -751,7 +751,7 @@
     <value>Connexion rapide</value>
   </data>
   <data name="QuickConnect_Placeholder" xml:space="preserve">
-    <value>Connexion rapide : utilisateur@hôte:port</value>
+    <value>Connexion rapide : alice@serveur</value>
   </data>
   <data name="QuickConnect_Tooltip" xml:space="preserve">
     <value>Se connecter sans créer de fiche (Entrée). Formes acceptées : alice@serveur, alice@192.168.1.20:2222, [::1]:22, ssh -p 2222 alice@serveur.</value>
