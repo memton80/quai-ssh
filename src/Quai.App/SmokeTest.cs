@@ -595,8 +595,7 @@ internal static class SmokeTest
         // Snippets : page, fiche, puis envoi depuis le terminal par le sélecteur (Ctrl+Maj+P).
         var snippets = services.GetRequiredService<ISnippetRepository>();
         snippets.Save(new Snippet { Name = "Espace disque", Command = "df -h" });
-        snippets.Save(new Snippet { Name = "Derniers journaux", Command = "journalctl -n 50 --no-pager
-uptime", Run = false });
+        snippets.Save(new Snippet { Name = "Derniers journaux", Command = "journalctl -n 50 --no-pager\nuptime", Run = false });
         window.NavigateTo(MainWindow.SnippetsTag);
         await Task.Delay(800);
         await CaptureAsync(window.Root, Path.Combine(directory, "snippets.png"));
@@ -659,8 +658,7 @@ uptime", Run = false });
         await browser.EditRemoteAsync(browser.RemoteItems.Single(i => i.Name == "notes.txt"));
         var local = services.GetRequiredService<SmokeFileLauncher>().Opened.LastOrDefault()
             ?? throw new InvalidOperationException("Le fichier distant n'a pas été ouvert pour modification.");
-        await File.WriteAllTextAsync(local, "modifié par le test de fumée
-");
+        await File.WriteAllTextAsync(local, "modifié par le test de fumée\n");
         await WaitUntilAsync(
             () => Task.FromResult(browser.Transfers.Any(t => t.Name == "notes.txt" && t.Status == TransferStatus.Completed)),
             TimeSpan.FromSeconds(20),
