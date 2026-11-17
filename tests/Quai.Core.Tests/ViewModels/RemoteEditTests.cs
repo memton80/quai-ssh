@@ -190,6 +190,27 @@ public sealed class RemoteEditTests : IDisposable
     }
 
     [Fact]
+    public async Task Closing_the_tab_waits_for_an_upload_in_progress()
+    {
+        var (vm, edit) = await EditingAsync();
+        File.WriteAllText(edit.LocalPath, "worker_processes 6;");
+        _remote.TransferGate = new TaskCompletionSource();
+        var upload = vm.UploadEditAsync(edit);
+
+        var closing = vm.DisposeAsync().AsTask();
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.False(closing.IsCompleted);
+        Assert.False(_remote.Disposed);
+
+        _remote.TransferGate.SetResult();
+        await upload;
+        await closing;
+
+        Assert.Equal("worker_processes 6;", _remote.ReadText("/home/alice/nginx.conf"));
+        Assert.Contains("upload /home/alice/nginx.conf", _remote.OperationsAtDispose!);
+    }
+
+    [Fact]
     public async Task Stop_ends_the_follow_up_without_touching_the_server()
     {
         var (vm, _) = await EditingAsync();

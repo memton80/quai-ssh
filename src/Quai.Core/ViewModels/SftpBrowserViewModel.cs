@@ -42,6 +42,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     private readonly IFileLauncher? _launcher;
     private readonly RemoteEditFiles? _editFiles;
     private readonly List<RemoteEdit> _edits = [];
+    private readonly HashSet<Task> _editUploads = [];
     private ISftpSession? _session;
     private SftpTransferEngine? _engine;
     private CancellationTokenSource? _connectCancellation;
@@ -482,7 +483,9 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     /// Renvoie la copie locale enregistrée. Si le fichier a changé sur le serveur depuis son ouverture, l'utilisateur
     /// choisit d'écraser ou non. Envoi en place (droits et propriétaire conservés), non interruptible.
     /// </summary>
-    internal async Task UploadEditAsync(RemoteEdit edit)
+    internal Task UploadEditAsync(RemoteEdit edit) => Track(UploadEditCoreAsync(edit));
+
+    private async Task UploadEditCoreAsync(RemoteEdit edit)
     {
         if (_disposed || !_edits.Contains(edit))
         {
@@ -587,10 +590,22 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
                 edit.UploadAgain = false;
                 if (edit.HasLocalChanges())
                 {
-                    await UploadEditAsync(edit);
+                    await UploadEditCoreAsync(edit);
                 }
             }
         }
+    }
+
+    /// <summary>Renvoi en cours : la fermeture de l'onglet l'attend (un envoi coupé laisserait un fichier tronqué).</summary>
+    private Task Track(Task upload)
+    {
+        if (!upload.IsCompleted)
+        {
+            _editUploads.Add(upload);
+            _ = upload.ContinueWith(done => _dispatcher.Post(() => _editUploads.Remove(done)), TaskScheduler.Default);
+        }
+
+        return upload;
     }
 
     private async Task LaunchAsync(IFileLauncher launcher, RemoteEdit edit, bool chooseApplication)
@@ -717,15 +732,15 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
 
         _disposed = true;
         _connectCancellation?.Cancel();
-        StopEdits();
         foreach (var transfer in Transfers)
         {
             transfer.Cancel();
         }
 
-        // Le transfert interrompu supprime son fichier incomplet avec la session encore ouverte :
-        // on lui laisse le temps de le faire (borné, la connexion peut ne plus répondre) avant de la fermer.
-        await Task.WhenAny(_pump, Task.Delay(TransferCleanupTimeout));
+        // Le transfert interrompu supprime son fichier incomplet avec la session encore ouverte, et un fichier modifié
+        // en cours de renvoi doit arriver entier : on leur laisse le temps (borné, la connexion peut ne plus répondre).
+        await Task.WhenAny(Task.WhenAll([_pump, .. _editUploads]), Task.Delay(TransferCleanupTimeout));
+        StopEdits();
 
         var session = Detach();
         if (session is not null)
