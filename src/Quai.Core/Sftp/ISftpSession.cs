@@ -16,6 +16,9 @@ public interface ISftpSession : IAsyncDisposable
 
     Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default);
 
+    /// <summary>Taille et date de modification d'un fichier (liens suivis) ; sert à voir s'il a changé sur le serveur.</summary>
+    Task<RemoteFileStamp> GetStampAsync(string path, CancellationToken cancellationToken = default);
+
     /// <summary>Envoie un fichier (remplace la destination). <paramref name="progress"/> reçoit le cumul d'octets.</summary>
     Task UploadFileAsync(string localPath, string remotePath, IProgress<long>? progress = null, CancellationToken cancellationToken = default);
 

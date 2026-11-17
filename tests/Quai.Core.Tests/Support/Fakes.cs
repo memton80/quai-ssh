@@ -90,6 +90,18 @@ public sealed class FakeDialogService : IDialogService
 
     public Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor) =>
         Task.FromResult(OnEditPermissions?.Invoke(editor) ?? false);
+
+    /// <summary>Appelé à l'ouverture de la fiche d'un snippet ; retourne vrai pour « Enregistrer ».</summary>
+    public Func<SnippetEditorViewModel, bool>? OnEditSnippet { get; set; }
+
+    /// <summary>Appelé à l'ouverture du choix d'un snippet.</summary>
+    public Func<SnippetPickerViewModel, SnippetPickerResult>? OnPickSnippet { get; set; }
+
+    public Task<bool> EditSnippetAsync(SnippetEditorViewModel editor) =>
+        Task.FromResult(OnEditSnippet?.Invoke(editor) ?? false);
+
+    public Task<SnippetPickerResult> PickSnippetAsync(SnippetPickerViewModel picker) =>
+        Task.FromResult(OnPickSnippet?.Invoke(picker) ?? SnippetPickerResult.Cancelled);
 }
 
 /// <summary>Installation scriptée d'une mise à jour : enregistre ce qui serait lancé.</summary>
@@ -122,4 +134,23 @@ public sealed class FakeUpdateInstaller : Quai.Core.Updates.IUpdateInstaller
     }
 
     public void OpenReleasePage(Uri page) => OpenedPages.Add(page);
+}
+
+/// <summary>Réglages en mémoire.</summary>
+public sealed class InMemorySettingsService : Quai.Core.Storage.ISettingsService
+{
+    private Quai.Core.Models.AppSettings _settings = new();
+
+    public event EventHandler? Changed;
+
+    public Quai.Core.Models.AppSettings Current => _settings.Clone();
+
+    public void Update(Action<Quai.Core.Models.AppSettings> change)
+    {
+        var updated = _settings.Clone();
+        change(updated);
+        updated.Normalize();
+        _settings = updated;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }

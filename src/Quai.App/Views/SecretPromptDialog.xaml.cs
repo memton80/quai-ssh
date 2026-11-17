@@ -20,6 +20,13 @@ public sealed partial class SecretPromptDialog : ContentDialog
             : Loc.Format("Secret_PassphraseMessage", profile.PrivateKeyPath ?? string.Empty);
         SecretBox.PlaceholderText = Loc.Get(isPassword ? "Editor_Password" : "Editor_Passphrase");
 
+        // Connexion rapide (hors carnet) : rien n'est mémorisé dans le coffre, le secret y resterait orphelin.
+        if (profile.IsTransient)
+        {
+            RememberBox.IsChecked = false;
+            RememberBox.Visibility = Visibility.Collapsed;
+        }
+
         if (isRetry)
         {
             RetryInfo.Message = Loc.Get(isPassword ? "Secret_PasswordRejected" : "Secret_PassphraseRejected");

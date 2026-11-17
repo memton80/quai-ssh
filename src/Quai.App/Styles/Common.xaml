@@ -90,6 +90,31 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
+    <!-- Commande (snippet) : police à chasse fixe, comme dans le terminal. -->
+    <FontFamily x:Key="CodeFontFamily">Cascadia Mono, Consolas</FontFamily>
+
+    <Style
+        x:Key="CodeCaptionStyle"
+        BasedOn="{StaticResource SecondaryCaptionStyle}"
+        TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource CodeFontFamily}" />
+    </Style>
+
+    <Style
+        x:Key="CodeTextBoxStyle"
+        BasedOn="{StaticResource DefaultTextBoxStyle}"
+        TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource CodeFontFamily}" />
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="IsSpellCheckEnabled" Value="False" />
+        <Setter Property="IsTextPredictionEnabled" Value="False" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="MinHeight" Value="96" />
+        <Setter Property="MaxHeight" Value="220" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    </Style>
+
     <!-- État vide centré (icône, titre, explication). -->
     <Style x:Key="EmptyStatePanelStyle" TargetType="StackPanel">
         <Setter Property="HorizontalAlignment" Value="Center" />

@@ -25,6 +25,7 @@ namespace Quai.Core.Storage;
     ])]
 [JsonSerializable(typeof(AppSettings))]
 [JsonSerializable(typeof(ConnectionDocument))]
+[JsonSerializable(typeof(SnippetDocument))]
 internal sealed partial class QuaiJsonContext : JsonSerializerContext;
 
 /// <summary>Énumération écrite en texte camelCase (<c>"privateKey"</c>) ; les nombres restent acceptés en lecture.</summary>

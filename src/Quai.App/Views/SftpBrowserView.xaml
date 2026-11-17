@@ -41,6 +41,17 @@
                 IsOpen="{x:Bind ViewModel.IsConnecting, Mode=OneWay}"
                 Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
                 Severity="Informational" />
+
+            <!-- Fichiers distants ouverts dans un éditeur local : leurs enregistrements sont renvoyés. -->
+            <InfoBar
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.HasEdits, Mode=OneWay}"
+                Message="{x:Bind ViewModel.EditsText, Mode=OneWay}"
+                Severity="Informational">
+                <InfoBar.ActionButton>
+                    <Button Command="{x:Bind ViewModel.StopEditsCommand}" Content="{l:Str Key=Sftp_StopEdits}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
         </StackPanel>
 
         <Grid Grid.Row="1" Padding="16,12,16,12">
@@ -334,6 +345,21 @@
                     </ListView.Header>
                     <ListView.ContextFlyout>
                         <MenuFlyout>
+                            <!-- Modifier dans un éditeur local : chaque enregistrement est renvoyé sur le serveur. -->
+                            <MenuFlyoutItem
+                                Click="OnRemoteEditClick"
+                                KeyboardAcceleratorTextOverride="F4"
+                                Text="{l:Str Key=Sftp_Edit}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE70F;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Click="OnRemoteEditWithClick" Text="{l:Str Key=Sftp_EditWith}">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE7AC;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
                             <MenuFlyoutItem Click="OnRemoteTransferClick" Text="{l:Str Key=Sftp_Download}">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE896;" />

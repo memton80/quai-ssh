@@ -77,6 +77,17 @@ public sealed class FakeTerminalSession : ITerminalSession
 
     public void SendBreak() => Breaks++;
 
+    /// <summary>Réponse à la lecture du dossier courant (canal séparé) ; <c>null</c> = inconnu.</summary>
+    public string? WorkingDirectory { get; set; }
+
+    public int WorkingDirectoryQueries { get; private set; }
+
+    public Task<string?> QueryWorkingDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        WorkingDirectoryQueries++;
+        return Task.FromResult(WorkingDirectory);
+    }
+
     public void Emit(string text) => DataReceived?.Invoke(System.Text.Encoding.UTF8.GetBytes(text));
 
     public void Close(Exception? error = null)

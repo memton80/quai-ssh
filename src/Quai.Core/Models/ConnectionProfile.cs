@@ -46,6 +46,13 @@ public sealed class ConnectionProfile
     public bool IsSerial => Protocol == ConnectionProtocol.Serial;
 
     /// <summary>
+    /// Connexion rapide, absente du carnet : jamais enregistrée telle quelle, et aucun secret n'est mémorisé
+    /// dans le coffre pour elle (il resterait orphelin si elle n'est pas ajoutée au carnet).
+    /// </summary>
+    [JsonIgnore]
+    public bool IsTransient { get; set; }
+
+    /// <summary>
     /// « utilisateur@hôte », suivi du port s'il n'est pas standard ; pour une connexion série,
     /// « COM3 · 9600 8N1 » (voir <see cref="SerialSettings.Summary"/>).
     /// </summary>
@@ -84,6 +91,7 @@ public sealed class ConnectionProfile
         Notes = Notes,
         CreatedAt = CreatedAt,
         LastConnectedAt = LastConnectedAt,
+        IsTransient = IsTransient,
     };
 
     /// <summary>

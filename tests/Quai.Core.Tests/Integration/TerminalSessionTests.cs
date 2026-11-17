@@ -60,6 +60,55 @@ public sealed class TerminalSessionTests : IDisposable
     }
 
     [Fact]
+    public async Task A_dropped_connection_is_reported_as_an_error_not_as_a_normal_exit()
+    {
+        SshTestServer.SkipUnlessAvailable();
+        var cancellation = TestContext.Current.CancellationToken;
+        var closed = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var session = await _factory.OpenTerminalAsync(SshTestServer.KeyProfile(SshTestServer.KeyFile), 80, 24, cancellation);
+        session.Closed += error => closed.TrySetResult(error);
+        session.Start();
+
+        // Le processus sshd de la connexion disparaît sans fermer proprement la session SSH (comme une coupure réseau).
+        session.Send(Encoding.UTF8.GetBytes("kill -9 $PPID\n"));
+        var error = await closed.Task.WaitAsync(TimeSpan.FromSeconds(15), cancellation);
+
+        Assert.NotNull(error);
+        Assert.False(session.IsOpen);
+    }
+
+    [Fact]
+    public async Task The_shell_working_directory_is_read_without_typing_anything()
+    {
+        SshTestServer.SkipUnlessAvailable();
+        var cancellation = TestContext.Current.CancellationToken;
+        var output = new StringBuilder();
+        await using var session = await _factory.OpenTerminalAsync(SshTestServer.KeyProfile(SshTestServer.KeyFile), 80, 24, cancellation);
+        session.DataReceived += data =>
+        {
+            lock (output)
+            {
+                output.Append(Encoding.UTF8.GetString(data));
+            }
+        };
+        session.Start();
+
+        session.Send(Encoding.UTF8.GetBytes("cd /usr/share && echo pret-1\n"));
+        await WaitForAsync(output, "pret-1", cancellation);
+        Assert.Equal("/usr/share", await session.QueryWorkingDirectoryAsync(cancellation));
+
+        // Sous-shell au premier plan : c'est son dossier qui compte.
+        session.Send(Encoding.UTF8.GetBytes("sh\n"));
+        session.Send(Encoding.UTF8.GetBytes("cd /etc && echo pret-2\n"));
+        await WaitForAsync(output, "pret-2", cancellation);
+        Assert.Equal("/etc", await session.QueryWorkingDirectoryAsync(cancellation));
+
+        // Rien n'a été tapé dans le terminal par la sonde.
+        Assert.DoesNotContain("QUAI_CWD", Snapshot(output));
+        Assert.True(session.IsOpen);
+    }
+
+    [Fact]
     public async Task Disposing_the_session_does_not_report_an_error()
     {
         SshTestServer.SkipUnlessAvailable();

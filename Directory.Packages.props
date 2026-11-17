@@ -37,5 +37,7 @@
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- Tests -->
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
+    <!-- Horloge simulée (TimeProvider) : tentatives de reconnexion sans attendre réellement. -->
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
   </ItemGroup>
 </Project>

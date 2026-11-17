@@ -24,17 +24,30 @@ public sealed partial class TransferItemViewModel : ObservableObject
 {
     private readonly CancellationTokenSource _cancellation = new();
 
-    public TransferItemViewModel(TransferDirection direction, string name, string source, string destinationDirectory, RemoteEntry? remote = null)
+    /// <param name="cancellable">
+    /// Faux pour le renvoi d'un fichier modifié : interrompu, il laisserait sur le serveur un fichier tronqué à la
+    /// place de l'original.
+    /// </param>
+    public TransferItemViewModel(
+        TransferDirection direction,
+        string name,
+        string source,
+        string destinationDirectory,
+        RemoteEntry? remote = null,
+        bool cancellable = true)
     {
         Direction = direction;
         Name = name;
         Source = source;
         DestinationDirectory = destinationDirectory;
         Remote = remote;
+        IsCancellable = cancellable;
         Status = TransferStatus.Pending;
         Detail = string.Empty;
-        CancelCommand = new RelayCommand(Cancel, () => IsActive);
+        CancelCommand = new RelayCommand(Cancel, () => IsActive && IsCancellable);
     }
+
+    public bool IsCancellable { get; }
 
     public TransferDirection Direction { get; }
 
@@ -84,7 +97,7 @@ public sealed partial class TransferItemViewModel : ObservableObject
 
     public void Cancel()
     {
-        if (!IsActive)
+        if (!IsActive || !IsCancellable)
         {
             return;
         }

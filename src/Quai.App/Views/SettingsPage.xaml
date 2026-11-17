@@ -78,6 +78,29 @@
                 <Button Command="{x:Bind ViewModel.ResetTerminalFontCommand}" Content="{l:Str Key=Settings_ResetFont}" />
             </tk:SettingsCard>
 
+            <!-- Connexions SSH -->
+            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="{l:Str Key=Settings_Connections}" />
+            <tk:SettingsCard Description="{l:Str Key=Settings_AutoReconnectDescription}" Header="{l:Str Key=Settings_AutoReconnect}">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE72C;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ToggleSwitch AutomationProperties.Name="{l:Str Key=Settings_AutoReconnect}" IsOn="{x:Bind ViewModel.AutoReconnect, Mode=TwoWay}" />
+            </tk:SettingsCard>
+            <tk:SettingsCard Description="{l:Str Key=Settings_KeepAliveDescription}" Header="{l:Str Key=Settings_KeepAlive}">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE703;" />
+                </tk:SettingsCard.HeaderIcon>
+                <NumberBox
+                    Width="160"
+                    AutomationProperties.Name="{l:Str Key=Settings_KeepAlive}"
+                    LargeChange="30"
+                    Maximum="{x:Bind ViewModel.MaxKeepAliveSeconds}"
+                    Minimum="0"
+                    SmallChange="5"
+                    SpinButtonPlacementMode="Inline"
+                    Value="{x:Bind ViewModel.KeepAliveSeconds, Mode=TwoWay}" />
+            </tk:SettingsCard>
+
             <!-- À propos -->
             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="{l:Str Key=Settings_About}" />
             <tk:SettingsCard Description="{l:Str Key=Settings_AboutDescription}" Header="{x:Bind VersionText}">

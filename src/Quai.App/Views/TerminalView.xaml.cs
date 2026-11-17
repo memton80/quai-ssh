@@ -278,6 +278,9 @@ public sealed partial class TerminalView : UserControl
         native.Scrolled += OnTerminalScrolled;
         native.CopyRequested += CopySelection;
         native.PasteRequested += () => _ = PasteAsync();
+
+        // Raccourci reçu dans la procédure de fenêtre du moteur : le dialogue s'ouvre juste après.
+        native.SnippetsRequested += () => DispatcherQueue.TryEnqueue(() => _ = RunSnippetAsync());
         native.FocusChanged += OnTerminalFocusChanged;
         _native = native;
         ApplyAppearance();
@@ -486,6 +489,51 @@ public sealed partial class TerminalView : UserControl
     }
 
     private void OnAreaPointerPressed(object sender, PointerRoutedEventArgs e) => FocusTerminal();
+
+    /// <summary><c>Ctrl+Maj+P</c> ou bouton « Snippets » : choix d'un snippet, envoyé comme s'il était tapé.</summary>
+    public async Task RunSnippetAsync()
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        try
+        {
+            if (await App.Current.Services.GetRequiredService<SnippetsViewModel>().RunInAsync(ViewModel))
+            {
+                _native?.ScrollTo(int.MaxValue);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Envoi d'un snippet impossible");
+        }
+
+        FocusTerminal();
+    }
+
+    /// <summary>Connexion rapide : fiche de création préremplie, puis l'onglet adopte la connexion enregistrée.</summary>
+    private async void OnSaveToBookClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var connections = App.Current.Services.GetRequiredService<ConnectionsViewModel>();
+            var saved = await connections.SaveQuickConnectionAsync(ViewModel.Profile);
+            if (saved is not null)
+            {
+                ViewModel.AdoptSavedProfile(saved);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ajout de la connexion rapide au carnet impossible");
+        }
+
+        FocusTerminal();
+    }
+
+    private void OnSaveOfferClosed(InfoBar sender, object args) => ViewModel.SaveOfferDismissed = true;
 
     private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
     {

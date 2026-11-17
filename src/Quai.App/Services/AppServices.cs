@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Security;
 using Quai.Core.Serial;
+using Quai.Core.Sftp;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
 using Quai.Core;
@@ -41,9 +42,22 @@ internal static class AppServices
 
         // Stockage et secrets
         services.AddSingleton<IConnectionRepository, JsonConnectionRepository>();
+        services.AddSingleton<ISnippetRepository, JsonSnippetRepository>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ISecretStore, PasswordVaultSecretStore>();
         services.AddSingleton<ILocalRecycler, RecycleBin>();
+        if (smokeTest)
+        {
+            // Le test de fumée ne lance aucune application (pas de Bloc-notes ouvert sur le runner).
+            services.AddSingleton<SmokeFileLauncher>();
+            services.AddSingleton<IFileLauncher>(provider => provider.GetRequiredService<SmokeFileLauncher>());
+        }
+        else
+        {
+            services.AddSingleton<IFileLauncher, ShellFileLauncher>();
+        }
+
+        services.AddSingleton(new RemoteEditFiles(paths.EditsDirectory));
 
         // Interface
         services.AddSingleton<IStrings, ReswStrings>();
@@ -81,6 +95,7 @@ internal static class AppServices
         services.AddSingleton<ISessionLauncher, SessionLauncher>();
         services.AddSingleton<ConnectionsViewModel>();
         services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<SnippetsViewModel>();
         services.AddSingleton<AppShutdown>();
 
         // Mises à jour : une requête à l'API publique de GitHub, puis, sur demande, le téléchargement de l'installateur

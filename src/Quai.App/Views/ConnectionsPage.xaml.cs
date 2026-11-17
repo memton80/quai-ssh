@@ -22,6 +22,13 @@ public sealed partial class ConnectionsPage : UserControl
 
     public ConnectionsViewModel ViewModel { get; }
 
+    /// <summary>Entrée (ou loupe) dans le champ « Connexion rapide ».</summary>
+    private async void OnQuickConnectSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        ViewModel.QuickConnectText = args.QueryText;
+        await ViewModel.QuickConnectCommand.ExecuteAsync(null);
+    }
+
     private void OnRowMenuOpening(object? sender, object e) =>
         _menuTarget = ((sender as FlyoutBase)?.Target as FrameworkElement)?.DataContext as ConnectionItemViewModel;
 

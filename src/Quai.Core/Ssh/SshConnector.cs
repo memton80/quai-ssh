@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Quai.Core.Models;
 using Quai.Core.Security;
+using Quai.Core.Storage;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
@@ -15,12 +16,12 @@ public sealed class SshConnector
 {
     private const int MaxAuthenticationAttempts = 3;
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan KeepAlive = TimeSpan.FromSeconds(30);
 
     private readonly IKnownHostsStore _knownHosts;
     private readonly ISecretStore _secrets;
     private readonly IHostKeyPrompt _hostKeyPrompt;
     private readonly ICredentialPrompt _credentialPrompt;
+    private readonly ISettingsService? _settings;
     private readonly ILogger _logger;
 
     public SshConnector(
@@ -28,14 +29,19 @@ public sealed class SshConnector
         ISecretStore secrets,
         IHostKeyPrompt hostKeyPrompt,
         ICredentialPrompt credentialPrompt,
-        ILogger<SshConnector>? logger = null)
+        ILogger<SshConnector>? logger = null,
+        ISettingsService? settings = null)
     {
         _knownHosts = knownHosts;
         _secrets = secrets;
         _hostKeyPrompt = hostKeyPrompt;
         _credentialPrompt = credentialPrompt;
+        _settings = settings;
         _logger = logger ?? NullLogger<SshConnector>.Instance;
     }
+
+    /// <summary>Maintien de connexion des réglages (lu à chaque connexion), 30 s sans réglages.</summary>
+    internal TimeSpan KeepAliveInterval => (_settings?.Current ?? new AppSettings()).KeepAliveInterval;
 
     /// <summary>
     /// Connecte un client SSH.NET (<see cref="SshClient"/>, <see cref="SftpClient"/>…).
@@ -128,7 +134,8 @@ public sealed class SshConnector
             switch (attempt.Outcome)
             {
                 case AttemptOutcome.Connected:
-                    RememberSecret(secretKey, typed, storedSecret);
+                    // Connexion rapide : rien dans le coffre (le secret resterait orphelin hors du carnet).
+                    RememberSecret(secretKey, profile.IsTransient && typed is not null ? typed with { Remember = false } : typed, storedSecret);
                     _logger.LogInformation("Connecté à {Endpoint}", profile.Endpoint);
                     return attempt.Client!;
 
@@ -178,7 +185,7 @@ public sealed class SshConnector
         where TClient : BaseClient
     {
         var client = create(connectionInfo);
-        client.KeepAliveInterval = KeepAlive;
+        client.KeepAliveInterval = KeepAliveInterval;
 
         HostKeyInfo? presented = null;
         var status = HostKeyStatus.Trusted;

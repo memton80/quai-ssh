@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Services;
+using Quai.Core.Sftp;
 using Quai.Core.Ssh;
 
 namespace Quai.Core.ViewModels;
@@ -17,14 +18,20 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
     private readonly IUiDispatcher _dispatcher;
     private readonly ILocalRecycler? _recycler;
     private readonly ILoggerFactory? _loggerFactory;
+    private readonly IFileLauncher? _launcher;
+    private readonly RemoteEditFiles? _editFiles;
 
+    /// <param name="launcher">Ouverture des fichiers dans un éditeur (« Modifier ») ; absent, la commande n'est pas proposée.</param>
+    /// <param name="editFiles">Dossier des copies en cours de modification ; vidé ici (restes d'une session précédente).</param>
     public SftpSessionsViewModel(
         ISshSessionFactory factory,
         IDialogService dialogs,
         IStrings strings,
         IUiDispatcher dispatcher,
         ILocalRecycler? recycler = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        IFileLauncher? launcher = null,
+        RemoteEditFiles? editFiles = null)
     {
         _factory = factory;
         _dialogs = dialogs;
@@ -32,6 +39,9 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
         _dispatcher = dispatcher;
         _recycler = recycler;
         _loggerFactory = loggerFactory;
+        _launcher = launcher;
+        _editFiles = editFiles;
+        _editFiles?.CleanUp();
         IsEmpty = true;
     }
 
@@ -43,8 +53,8 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    /// <summary>Ajoute un onglet et lance la connexion.</summary>
-    public SftpBrowserViewModel Open(ConnectionProfile profile)
+    /// <summary>Ajoute un onglet et lance la connexion, dans <paramref name="remotePath"/> s'il est donné.</summary>
+    public SftpBrowserViewModel Open(ConnectionProfile profile, string? remotePath = null)
     {
         var tab = new SftpBrowserViewModel(
             profile.Clone(),
@@ -53,12 +63,51 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
             _strings,
             _dispatcher,
             _recycler,
-            _loggerFactory?.CreateLogger<SftpBrowserViewModel>());
+            _loggerFactory?.CreateLogger<SftpBrowserViewModel>(),
+            initialRemotePath: remotePath,
+            launcher: _launcher,
+            editFiles: _editFiles);
         Tabs.Add(tab);
         SelectedTab = tab;
         IsEmpty = false;
         _ = tab.ConnectAsync();
         return tab;
+    }
+
+    /// <summary>
+    /// Ouverture depuis un terminal : un explorateur déjà connecté à la même connexion est réutilisé (il passe au
+    /// dossier demandé), sinon un nouvel onglet s'ouvre dans ce dossier.
+    /// </summary>
+    public async Task<SftpBrowserViewModel> OpenAtAsync(ConnectionProfile profile, string? remotePath)
+    {
+        var existing = Tabs.FirstOrDefault(t => t.Profile.Id == profile.Id && t.IsConnected);
+        if (existing is null)
+        {
+            return Open(profile, remotePath);
+        }
+
+        SelectedTab = existing;
+        if (!string.IsNullOrEmpty(remotePath) && remotePath != existing.RemotePath)
+        {
+            await existing.NavigateRemoteAsync(remotePath);
+        }
+
+        return existing;
+    }
+
+    /// <summary>
+    /// Fermeture d'un onglet demandée par l'utilisateur : des fichiers modifiés pas encore renvoyés sont d'abord
+    /// envoyés, ou leur perte confirmée. Retourne faux si l'onglet reste ouvert.
+    /// </summary>
+    public async Task<bool> RequestCloseAsync(SftpBrowserViewModel? tab)
+    {
+        if (tab is null || !await tab.PrepareCloseAsync())
+        {
+            return false;
+        }
+
+        await CloseAsync(tab);
+        return true;
     }
 
     public async Task CloseAsync(SftpBrowserViewModel? tab)

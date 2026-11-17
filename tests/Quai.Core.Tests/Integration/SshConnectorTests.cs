@@ -142,6 +142,19 @@ public sealed class SshConnectorTests : IDisposable
     }
 
     [Fact]
+    public async Task A_quick_connection_never_stores_its_password_even_if_asked()
+    {
+        SshTestServer.SkipUnlessAvailable();
+        var profile = SshTestServer.PasswordProfile();
+        profile.IsTransient = true;
+        _prompts.Secrets.Enqueue(new SecretInput(SshTestServer.Password, Remember: true));
+
+        Assert.Equal(SshTestServer.User, await RunAsync(profile, "id -un"));
+
+        Assert.Empty(_secrets.Items);
+    }
+
+    [Fact]
     public async Task A_wrong_stored_password_triggers_a_retry_prompt()
     {
         SshTestServer.SkipUnlessAvailable();

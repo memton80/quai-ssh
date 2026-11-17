@@ -1,6 +1,7 @@
 using System.Text;
 using Quai.Core.Models;
 using Quai.Core.Serial;
+using Quai.Core.Services;
 using Quai.Core.Sftp;
 using Quai.Core.Ssh;
 using Quai.Core.Terminal;
@@ -24,21 +25,29 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
     /// <summary>Réponse de l'appareil simulé à un signal « break ».</summary>
     public const string BreakAnswer = "[break reçu]";
 
+    /// <summary>Dossier courant annoncé par le shell de démonstration (ouverture du SFTP depuis le terminal).</summary>
+    public const string WorkingDirectory = "/home/quai/www";
+
     /// <summary>Ports « détectés » proposés par la fiche de connexion.</summary>
     public static readonly IReadOnlyList<string> SerialPorts = ["COM1", "COM3"];
 
     private int _liveSessions;
+    private EchoSession? _lastTerminal;
+
+    /// <summary>Coupure simulée de la dernière session SSH ouverte (test de la reconnexion automatique).</summary>
+    public void DropLastTerminal() => _lastTerminal?.Drop(new IOException("Connexion interrompue (coupure simulée)"));
 
     public Task<ITerminalSession> OpenTerminalAsync(
         ConnectionProfile profile,
         int columns,
         int rows,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult<ITerminalSession>(new EchoSession(
+        Task.FromResult<ITerminalSession>(_lastTerminal = new EchoSession(
             $"\u001b[1;36m{Banner}\u001b[0m ({columns}x{rows})\r\n" +
             "Couleurs : \u001b[31mrouge\u001b[0m \u001b[32mvert\u001b[0m \u001b[33mjaune\u001b[0m \u001b[34mbleu\u001b[0m — accents : é è à ç\r\n" +
             $"\u001b[32m{profile.Username}@{profile.Host}\u001b[0m:\u001b[34m~\u001b[0m$ ",
-            Track()));
+            Track(),
+            workingDirectory: WorkingDirectory));
 
     public Task<ITerminalSession> OpenAsync(SerialSettings settings, CancellationToken cancellationToken = default) =>
         Task.FromResult<ITerminalSession>(new EchoSession(
@@ -84,10 +93,24 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
         public string HomeDirectory => Home;
 
         public Task<IReadOnlyList<RemoteEntry>> ListAsync(string path, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<RemoteEntry>>(path == Home ? [.. _entries] : []);
+            Task.FromResult<IReadOnlyList<RemoteEntry>>(path switch
+            {
+                Home => [.. _entries],
+                WorkingDirectory =>
+                [
+                    new("index.html", WorkingDirectory + "/index.html", false, false, 1_204, Stamp, 0b110_100_100),
+                    new("style.css", WorkingDirectory + "/style.css", false, false, 3_872, Stamp, 0b110_100_100),
+                ],
+                _ => [],
+            });
 
         public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default) =>
             Task.FromResult(path == Home || _entries.Any(e => e.FullPath == path));
+
+        public Task<RemoteFileStamp> GetStampAsync(string path, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_entries.FirstOrDefault(e => e.FullPath == path) is { } entry
+                ? new RemoteFileStamp(entry.Size, entry.LastWriteTime.ToUniversalTime())
+                : new RemoteFileStamp(0, Stamp.ToUniversalTime()));
 
         public async Task UploadFileAsync(string localPath, string remotePath, IProgress<long>? progress = null, CancellationToken cancellationToken = default)
         {
@@ -135,8 +158,12 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
     }
 
     /// <summary>Affiche une bannière puis renvoie la saisie ; <paramref name="breakAnswer"/> : sait recevoir un « break ».</summary>
-    private sealed class EchoSession(string banner, Action onClosed, string? breakAnswer = null) : ITerminalSession
+    private sealed class EchoSession(string banner, Action onClosed, string? breakAnswer = null, string? workingDirectory = null)
+        : ITerminalSession
     {
+        public Task<string?> QueryWorkingDirectoryAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(workingDirectory);
+
         public event Action<byte[]>? DataReceived;
 
         public event Action<Exception?>? Closed;
@@ -163,17 +190,36 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
 
         public ValueTask DisposeAsync()
         {
+            Drop(null);
+            return ValueTask.CompletedTask;
+        }
+
+        /// <summary>Fin de session : normale (<c>null</c>) ou coupure.</summary>
+        public void Drop(Exception? error)
+        {
             if (IsOpen)
             {
                 IsOpen = false;
                 onClosed();
-                Closed?.Invoke(null);
+                Closed?.Invoke(error);
             }
-
-            return ValueTask.CompletedTask;
         }
 
         private void Emit(string text) => DataReceived?.Invoke(Encoding.UTF8.GetBytes(text));
+    }
+}
+
+/// <summary>Test de fumée : aucune application n'est lancée, l'ouverture est seulement notée.</summary>
+internal sealed class SmokeFileLauncher : IFileLauncher
+{
+    private readonly List<string> _opened = [];
+
+    public IReadOnlyList<string> Opened => _opened;
+
+    public Task<bool> OpenAsync(string path, bool chooseApplication)
+    {
+        _opened.Add(path);
+        return Task.FromResult(File.Exists(path));
     }
 }
 

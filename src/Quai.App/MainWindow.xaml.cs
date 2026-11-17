@@ -20,10 +20,11 @@ public sealed partial class MainWindow : Window
     public const string ConnectionsTag = "connections";
     public const string TerminalsTag = "terminals";
     public const string SftpTag = "sftp";
+    public const string SnippetsTag = "snippets";
     public const string SettingsTag = "settings";
 
     /// <summary>Toutes les pages, dans l'ordre de la navigation.</summary>
-    public static readonly IReadOnlyList<string> PageTags = [ConnectionsTag, TerminalsTag, SftpTag, SettingsTag];
+    public static readonly IReadOnlyList<string> PageTags = [ConnectionsTag, TerminalsTag, SftpTag, SnippetsTag, SettingsTag];
 
     // Largeur à partir de laquelle le volet est posé à côté du contenu (ExpandedModeThresholdWidth du XAML).
     private const double ExpandedModeThreshold = 1400;
@@ -69,6 +70,7 @@ public sealed partial class MainWindow : Window
         {
             AppPage.Terminals => TerminalsTag,
             AppPage.Sftp => SftpTag,
+            AppPage.Snippets => SnippetsTag,
             AppPage.Settings => SettingsTag,
             _ => ConnectionsTag,
         });
@@ -214,7 +216,7 @@ public sealed partial class MainWindow : Window
                 Loc.Get("Shutdown_Title"),
                 shutdown.Describe(open),
                 Loc.Get("Shutdown_Confirm"),
-                isDestructive: open.ActiveTransfers > 0);
+                isDestructive: open.LosesWork);
             if (!confirmed)
             {
                 return;
@@ -281,6 +283,7 @@ public sealed partial class MainWindow : Window
         ConnectionsTag => new ConnectionsPage(),
         TerminalsTag => new TerminalsPage(),
         SftpTag => new SftpPage(),
+        SnippetsTag => new SnippetsPage(),
         SettingsTag => new SettingsPage(),
         _ => throw new ArgumentOutOfRangeException(nameof(tag), tag, "Page inconnue."),
     };

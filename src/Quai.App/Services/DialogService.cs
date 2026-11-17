@@ -72,6 +72,23 @@ internal sealed class DialogService : IDialogService, IHostKeyPrompt, ICredentia
     public Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor) =>
         OnUiAsync(async () => await ShowAsync(new PermissionsDialog(editor)) == ContentDialogResult.Primary);
 
+    public Task<bool> EditSnippetAsync(SnippetEditorViewModel editor) =>
+        OnUiAsync(async () => await ShowAsync(new SnippetEditorDialog(editor)) == ContentDialogResult.Primary);
+
+    public Task<SnippetPickerResult> PickSnippetAsync(SnippetPickerViewModel picker) =>
+        OnUiAsync(async () =>
+        {
+            var dialog = new SnippetPickerDialog(picker);
+            return await ShowAsync(dialog) switch
+            {
+                ContentDialogResult.Primary => SnippetPickerResult.Send,
+                ContentDialogResult.Secondary => SnippetPickerResult.Manage,
+
+                // Entrée dans le champ de recherche ou double-clic : le dialogue se ferme lui-même.
+                _ => dialog.SendRequested ? SnippetPickerResult.Send : SnippetPickerResult.Cancelled,
+            };
+        });
+
     public Task<bool> ConfirmUnknownHostAsync(HostKeyInfo presented) =>
         OnUiAsync(async () =>
             await ShowAsync(HostKeyDialog.ForUnknownHost(presented)) == ContentDialogResult.Primary);

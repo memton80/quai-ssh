@@ -13,10 +13,11 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- En-tête : titre, recherche, nouvelle connexion -->
+        <!-- En-tête : titre, connexion rapide, recherche, nouvelle connexion -->
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
@@ -24,16 +25,32 @@
                 VerticalAlignment="Center"
                 Style="{StaticResource PageTitleStyle}"
                 Text="{l:Str Key=Connections_Title}" />
+            <!-- Connexion rapide : utilisateur@hôte:port puis Entrée, sans créer de fiche. -->
             <AutoSuggestBox
+                x:Name="QuickConnectBox"
                 Grid.Column="1"
-                Width="300"
+                Width="280"
+                VerticalAlignment="Center"
+                AutomationProperties.HelpText="{l:Str Key=QuickConnect_Tooltip}"
+                AutomationProperties.Name="{l:Str Key=QuickConnect_Title}"
+                PlaceholderText="{l:Str Key=QuickConnect_Placeholder}"
+                QuerySubmitted="OnQuickConnectSubmitted"
+                Text="{x:Bind ViewModel.QuickConnectText, Mode=TwoWay}"
+                ToolTipService.ToolTip="{l:Str Key=QuickConnect_Tooltip}">
+                <AutoSuggestBox.QueryIcon>
+                    <FontIcon Glyph="&#xE756;" />
+                </AutoSuggestBox.QueryIcon>
+            </AutoSuggestBox>
+            <AutoSuggestBox
+                Grid.Column="2"
+                Width="260"
                 VerticalAlignment="Center"
                 AutomationProperties.Name="{l:Str Key=Connections_SearchPlaceholder}"
                 PlaceholderText="{l:Str Key=Connections_SearchPlaceholder}"
                 QueryIcon="Find"
                 Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" />
             <Button
-                Grid.Column="2"
+                Grid.Column="3"
                 VerticalAlignment="Center"
                 Command="{x:Bind ViewModel.NewCommand}"
                 Style="{StaticResource AccentButtonStyle}">

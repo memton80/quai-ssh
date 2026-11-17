@@ -25,4 +25,10 @@ public interface ITerminalSession : IAsyncDisposable
     void SendBreak()
     {
     }
+
+    /// <summary>
+    /// Dossier courant du shell, lu sans rien taper dans le terminal (SSH : canal séparé sur la même connexion).
+    /// <c>null</c> si la session ne sait pas le dire.
+    /// </summary>
+    Task<string?> QueryWorkingDirectoryAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
 }
