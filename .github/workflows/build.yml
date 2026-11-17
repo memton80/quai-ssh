@@ -474,6 +474,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Clé de l'API publique (gratuite) de VirusTotal, dans les secrets du dépôt. Sans elle, l'analyse est sautée.
+      VT_API_KEY: ${{ secrets.VT_API_KEY }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -481,13 +484,62 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # Installateurs et zips envoyés à VirusTotal (fichiers de plus de 32 Mo compris) : empreintes et analyses
+      # publiques. API publique : 4 requêtes par minute au plus. Ne bloque jamais la publication.
+      - name: VirusTotal
+        id: virustotal
+        if: env.VT_API_KEY != ''
+        continue-on-error: true
+        uses: crazy-max/ghaction-virustotal@v5
+        with:
+          vt_api_key: ${{ env.VT_API_KEY }}
+          request_rate: 4
+          files: |
+            dist/*.exe
+            dist/*.zip
+
+      # En tête des notes de la release : chaque fichier, son SHA-256 et, s'il a été envoyé, le lien vers son
+      # analyse (page permanente de VirusTotal, adressée par l'empreinte).
+      - name: Notes de la release (empreintes, analyses VirusTotal)
+        id: notes
+        shell: bash
+        env:
+          SCANNED: ${{ steps.virustotal.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'body<<QUAI_NOTES_EOF'
+            echo '### Fichiers'
+            echo
+            if [ "$SCANNED" = true ]; then
+              echo '| Fichier | SHA-256 | VirusTotal |'
+              echo '|---|---|---|'
+            else
+              echo '| Fichier | SHA-256 |'
+              echo '|---|---|'
+            fi
+            for file in dist/*.exe dist/*.zip; do
+              hash=$(sha256sum "$file" | cut -d' ' -f1)
+              name=$(basename "$file")
+              if [ "$SCANNED" = true ]; then
+                echo "| \`$name\` | \`$hash\` | [analyse](https://www.virustotal.com/gui/file/$hash) |"
+              else
+                echo "| \`$name\` | \`$hash\` |"
+              fi
+            done
+            echo
+            echo 'QUAI_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "Analyse VirusTotal : ${{ steps.virustotal.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+
       # Le tag est créé sur le commit construit s'il n'existe pas encore (créé par ce jeton, il ne relance pas le
-      # workflow : la construction est déjà faite).
+      # workflow : la construction est déjà faite). Le corps passe avant les notes générées par GitHub.
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Quai ${{ needs.version.outputs.version }}
+          body: ${{ steps.notes.outputs.body }}
           files: |
             dist/*.exe
             dist/*.zip

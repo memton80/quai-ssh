@@ -59,6 +59,8 @@ L'installateur est un seul fichier qui contient tout (.NET et Windows App SDK co
 
 > Les exécutables ne sont pas signés : au premier lancement, Windows SmartScreen peut afficher « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires** puis **Exécuter quand même**.
 
+Les notes de chaque release donnent l'empreinte **SHA-256** de chaque fichier et un lien vers son **analyse VirusTotal** (les fichiers y sont envoyés automatiquement à la publication). Pour vérifier un fichier téléchargé : `Get-FileHash .\Quai-Setup-x64.exe` dans PowerShell, à comparer avec l'empreinte publiée.
+
 **Désinstaller** : Paramètres de Windows → Applications → Applications installées → Quai → Désinstaller. Le désinstallateur demande s'il faut aussi effacer vos données (connexions, réglages, hôtes connus et secrets du coffre Windows) ; par défaut elles sont conservées.
 
 **Prérequis** : Windows 10 (1809) ou Windows 11, rien d'autre : le moteur du terminal est fourni avec Quai.
