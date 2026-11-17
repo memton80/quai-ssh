@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Services;
+using Quai.Core.Sftp;
 using Quai.Core.Ssh;
 
 namespace Quai.Core.ViewModels;
@@ -17,14 +18,20 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
     private readonly IUiDispatcher _dispatcher;
     private readonly ILocalRecycler? _recycler;
     private readonly ILoggerFactory? _loggerFactory;
+    private readonly IFileLauncher? _launcher;
+    private readonly RemoteEditFiles? _editFiles;
 
+    /// <param name="launcher">Ouverture des fichiers dans un éditeur (« Modifier ») ; absent, la commande n'est pas proposée.</param>
+    /// <param name="editFiles">Dossier des copies en cours de modification ; vidé ici (restes d'une session précédente).</param>
     public SftpSessionsViewModel(
         ISshSessionFactory factory,
         IDialogService dialogs,
         IStrings strings,
         IUiDispatcher dispatcher,
         ILocalRecycler? recycler = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        IFileLauncher? launcher = null,
+        RemoteEditFiles? editFiles = null)
     {
         _factory = factory;
         _dialogs = dialogs;
@@ -32,6 +39,9 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
         _dispatcher = dispatcher;
         _recycler = recycler;
         _loggerFactory = loggerFactory;
+        _launcher = launcher;
+        _editFiles = editFiles;
+        _editFiles?.CleanUp();
         IsEmpty = true;
     }
 
@@ -54,7 +64,9 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
             _dispatcher,
             _recycler,
             _loggerFactory?.CreateLogger<SftpBrowserViewModel>(),
-            initialRemotePath: remotePath);
+            initialRemotePath: remotePath,
+            launcher: _launcher,
+            editFiles: _editFiles);
         Tabs.Add(tab);
         SelectedTab = tab;
         IsEmpty = false;

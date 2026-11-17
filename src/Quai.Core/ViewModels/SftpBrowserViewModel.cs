@@ -29,6 +29,9 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
 {
     private static readonly TimeSpan TransferCleanupTimeout = TimeSpan.FromSeconds(5);
 
+    /// <summary>Au-delà, ouvrir un fichier dans un éditeur demande confirmation (téléchargement complet).</summary>
+    public const long LargeEditSize = 50L * 1024 * 1024;
+
     private readonly ISshSessionFactory _factory;
     private readonly IDialogService _dialogs;
     private readonly IStrings _strings;
@@ -36,6 +39,9 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     private readonly ILocalRecycler? _recycler;
     private readonly ILogger _logger;
     private readonly FileSizeFormatter _sizes;
+    private readonly IFileLauncher? _launcher;
+    private readonly RemoteEditFiles? _editFiles;
+    private readonly List<RemoteEdit> _edits = [];
     private ISftpSession? _session;
     private SftpTransferEngine? _engine;
     private CancellationTokenSource? _connectCancellation;
@@ -52,7 +58,9 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         ILocalRecycler? recycler = null,
         ILogger? logger = null,
         string? initialLocalPath = null,
-        string? initialRemotePath = null)
+        string? initialRemotePath = null,
+        IFileLauncher? launcher = null,
+        RemoteEditFiles? editFiles = null)
     {
         Profile = profile;
         _factory = factory;
@@ -62,9 +70,12 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         _recycler = recycler;
         _logger = logger ?? NullLogger.Instance;
         _sizes = new FileSizeFormatter(strings);
+        _launcher = launcher;
+        _editFiles = editFiles;
 
         Status = SftpStatus.Idle;
         StatusText = string.Empty;
+        EditsText = string.Empty;
         LocalPath = initialLocalPath ?? LocalFileSystem.HomeDirectory;
         // Dossier distant demandé (ouverture depuis un terminal) ; s'il est illisible, la connexion se rabat sur le dossier personnel.
         RemotePath = initialRemotePath ?? string.Empty;
@@ -106,6 +117,17 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     [ObservableProperty]
     public partial bool HasTransfers { get; set; }
 
+    /// <summary>Des fichiers distants sont ouverts dans un éditeur : leurs enregistrements sont renvoyés.</summary>
+    [ObservableProperty]
+    public partial bool HasEdits { get; set; }
+
+    /// <summary>« notes.txt est ouvert pour modification… » (bandeau de l'explorateur).</summary>
+    [ObservableProperty]
+    public partial string EditsText { get; set; }
+
+    /// <summary>« Modifier » est possible (fichier distant, application capable d'ouvrir un éditeur).</summary>
+    public bool CanEdit => _launcher is not null && _editFiles is not null;
+
     public bool IsConnected => Status == SftpStatus.Connected;
 
     public bool IsConnecting => Status == SftpStatus.Connecting;
@@ -146,6 +168,12 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             if (!await LoadRemoteAsync(start, reportErrors: false) && start != session.HomeDirectory)
             {
                 await LoadRemoteAsync(session.HomeDirectory, reportErrors: true);
+            }
+
+            // Fichiers modifiés pendant la coupure : renvoyés maintenant.
+            foreach (var edit in _edits.Where(e => e.Pending).ToList())
+            {
+                await UploadEditAsync(edit);
             }
         }
         catch (OperationCanceledException)
@@ -377,6 +405,236 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         await RunRemoteAsync(() => session.ChangePermissionsAsync(entry.FullPath, editor.Mode));
     }
 
+    // ---- Modification d'un fichier distant dans un éditeur local --------------------------------
+
+    /// <summary>
+    /// « Modifier » : télécharge le fichier dans un dossier temporaire, l'ouvre dans l'application associée (ou au
+    /// choix), puis renvoie chaque enregistrement sur le serveur tant que l'onglet reste ouvert.
+    /// </summary>
+    public async Task EditRemoteAsync(FileItemViewModel? item, bool chooseApplication = false)
+    {
+        if (item?.Remote is not { IsDirectory: false } entry || _session is not { } session || !IsConnected
+            || _launcher is not { } launcher || _editFiles is not { } files)
+        {
+            return;
+        }
+
+        // Déjà ouvert : on rouvre la même copie (une seule copie par fichier, pas d'enregistrements concurrents).
+        if (_edits.FirstOrDefault(e => e.RemotePath == entry.FullPath) is { } open)
+        {
+            await LaunchAsync(launcher, open, chooseApplication);
+            return;
+        }
+
+        if (entry.Size > LargeEditSize && !await _dialogs.ConfirmAsync(
+            _strings.Get("Sftp_EditLargeTitle"),
+            _strings.Format("Sftp_EditLargeMessage", entry.Name, _sizes.Format(entry.Size)),
+            _strings.Get("Sftp_Edit")))
+        {
+            return;
+        }
+
+        string local;
+        RemoteFileStamp stamp;
+        IsRemoteLoading = true;
+        try
+        {
+            local = files.NewLocalPath(entry.Name);
+            await session.DownloadFileAsync(entry.FullPath, local);
+            stamp = await session.GetStampAsync(entry.FullPath);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _logger.LogWarning("Ouverture pour modification impossible ({Error})", ex.GetType().Name);
+            await _dialogs.ShowErrorAsync(_strings.Get("Sftp_ErrorTitle"), _strings.Format("Sftp_RemoteError", Describe(ex)));
+            return;
+        }
+        finally
+        {
+            IsRemoteLoading = false;
+        }
+
+        var edit = new RemoteEdit(entry.FullPath, local, stamp);
+        edit.Saved += saved => _dispatcher.Post(() => _ = UploadEditAsync(saved));
+        edit.Start();
+        _edits.Add(edit);
+        UpdateEdits();
+        await LaunchAsync(launcher, edit, chooseApplication);
+    }
+
+    /// <summary>Arrête de suivre les fichiers ouverts : les prochains enregistrements ne sont plus renvoyés.</summary>
+    [RelayCommand]
+    public void StopEdits()
+    {
+        foreach (var edit in _edits)
+        {
+            edit.Dispose();
+        }
+
+        _edits.Clear();
+        UpdateEdits();
+    }
+
+    /// <summary>Test : fichiers ouverts pour modification.</summary>
+    internal IReadOnlyList<RemoteEdit> Edits => _edits;
+
+    /// <summary>
+    /// Renvoie la copie locale enregistrée. Si le fichier a changé sur le serveur depuis son ouverture, l'utilisateur
+    /// choisit d'écraser ou non. Envoi en place (droits et propriétaire conservés), non interruptible.
+    /// </summary>
+    internal async Task UploadEditAsync(RemoteEdit edit)
+    {
+        if (_disposed || !_edits.Contains(edit))
+        {
+            return;
+        }
+
+        if (edit.Uploading)
+        {
+            edit.UploadAgain = true;
+            return;
+        }
+
+        if (_session is not { } session || !IsConnected)
+        {
+            edit.Pending = true;
+            UpdateEdits();
+            return;
+        }
+
+        edit.Uploading = true;
+        var transfer = new TransferItemViewModel(TransferDirection.Upload, edit.Name, edit.LocalPath, edit.RemoteDirectory, cancellable: false)
+        {
+            Status = TransferStatus.Running,
+            Detail = _strings.Get("Sftp_EditSending"),
+        };
+        try
+        {
+            RemoteFileStamp? current;
+            try
+            {
+                current = await session.GetStampAsync(edit.RemotePath);
+            }
+            catch (SftpPathNotFoundException)
+            {
+                current = null;
+            }
+
+            if (current is not { } now || !now.SameAs(edit.RemoteStamp))
+            {
+                var confirmed = await _dialogs.ConfirmAsync(
+                    _strings.Get("Sftp_EditConflictTitle"),
+                    _strings.Format(current is null ? "Sftp_EditDeletedMessage" : "Sftp_EditConflictMessage", edit.Name),
+                    _strings.Get("Sftp_EditOverwrite"),
+                    isDestructive: true);
+                if (!confirmed || _disposed || !_edits.Contains(edit))
+                {
+                    // Le prochain enregistrement reposera la question.
+                    return;
+                }
+            }
+
+            var snapshot = await Task.Run(edit.Snapshot);
+            if (snapshot is not { } copy)
+            {
+                throw new IOException(_strings.Format("Sftp_EditUnreadable", edit.Name));
+            }
+
+            Transfers.Add(transfer);
+            HasTransfers = true;
+            transfer.TotalBytes = copy.Size;
+            try
+            {
+                await session.UploadFileAsync(copy.Path, edit.RemotePath);
+            }
+            finally
+            {
+                TryDelete(copy.Path);
+            }
+
+            edit.MarkSent(copy.Hash);
+            edit.RemoteStamp = await session.GetStampAsync(edit.RemotePath);
+            transfer.TransferredBytes = copy.Size;
+            transfer.Status = TransferStatus.Completed;
+            transfer.Detail = _strings.Format("Sftp_EditSent", _sizes.Format(copy.Size));
+            if (IsConnected && edit.RemoteDirectory == RemotePath)
+            {
+                await LoadRemoteAsync(RemotePath, reportErrors: false);
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _logger.LogWarning("Renvoi d'un fichier modifié en échec ({Error})", ex.GetType().Name);
+            edit.Pending = true;
+            if (!Transfers.Contains(transfer))
+            {
+                Transfers.Add(transfer);
+                HasTransfers = true;
+            }
+
+            transfer.Status = TransferStatus.Failed;
+            transfer.Detail = _strings.Format("Sftp_EditFailed", Describe(ex));
+        }
+        finally
+        {
+            edit.Uploading = false;
+            UpdateEdits();
+            if (edit.UploadAgain)
+            {
+                edit.UploadAgain = false;
+                if (edit.HasLocalChanges())
+                {
+                    await UploadEditAsync(edit);
+                }
+            }
+        }
+    }
+
+    private async Task LaunchAsync(IFileLauncher launcher, RemoteEdit edit, bool chooseApplication)
+    {
+        bool launched;
+        try
+        {
+            launched = await launcher.OpenAsync(edit.LocalPath, chooseApplication);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _logger.LogWarning("Lancement de l'éditeur impossible ({Error})", ex.GetType().Name);
+            launched = false;
+        }
+
+        if (!launched)
+        {
+            await _dialogs.ShowErrorAsync(_strings.Get("Sftp_ErrorTitle"), _strings.Format("Sftp_EditLaunchFailed", edit.Name));
+        }
+    }
+
+    private void UpdateEdits()
+    {
+        HasEdits = _edits.Count > 0;
+        var pending = _edits.Count(e => e.Pending);
+        EditsText = _edits.Count switch
+        {
+            0 => string.Empty,
+            1 => _strings.Format(pending > 0 ? "Sftp_EditsOnePending" : "Sftp_EditsOne", _edits[0].Name),
+            _ => pending > 0
+                ? _strings.Format("Sftp_EditsManyPending", _edits.Count, pending)
+                : _strings.Format("Sftp_EditsMany", _edits.Count, string.Join(", ", _edits.Take(3).Select(e => e.Name)) + (_edits.Count > 3 ? ", …" : string.Empty)),
+        };
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Copie temporaire : supprimée avec son dossier à la fin de la modification.
+        }
+    }
+
     // ---- Transferts --------------------------------------------------------------------------
 
     /// <summary>Envoie des fichiers ou dossiers locaux dans le dossier distant affiché.</summary>
@@ -456,6 +714,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
 
         _disposed = true;
         _connectCancellation?.Cancel();
+        StopEdits();
         foreach (var transfer in Transfers)
         {
             transfer.Cancel();

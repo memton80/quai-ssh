@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Security;
 using Quai.Core.Serial;
+using Quai.Core.Sftp;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
 using Quai.Core;
@@ -45,6 +46,8 @@ internal static class AppServices
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ISecretStore, PasswordVaultSecretStore>();
         services.AddSingleton<ILocalRecycler, RecycleBin>();
+        services.AddSingleton<IFileLauncher, ShellFileLauncher>();
+        services.AddSingleton(new RemoteEditFiles(paths.EditsDirectory));
 
         // Interface
         services.AddSingleton<IStrings, ReswStrings>();

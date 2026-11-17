@@ -75,12 +75,24 @@ public sealed class FakeSftpSession : ISftpSession
     public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default) =>
         Task.FromResult(_nodes.ContainsKey(path));
 
+    public Task<RemoteFileStamp> GetStampAsync(string path, CancellationToken cancellationToken = default) =>
+        _nodes.TryGetValue(path, out var node)
+            ? Task.FromResult(new RemoteFileStamp(node.Content.Length, node.Modified.ToUniversalTime()))
+            : Task.FromException<RemoteFileStamp>(new SftpPathNotFoundException("No such file"));
+
+    /// <summary>Modification faite sur le serveur par quelqu'un d'autre (contenu et date changent).</summary>
+    public void ChangeOnServer(string path, string content) =>
+        _nodes[path] = new Node { Content = System.Text.Encoding.UTF8.GetBytes(content), Mode = _nodes[path].Mode, Modified = _nodes[path].Modified.AddMinutes(5) };
+
     public async Task UploadFileAsync(string localPath, string remotePath, IProgress<long>? progress = null, CancellationToken cancellationToken = default)
     {
         ThrowPending();
         var content = await File.ReadAllBytesAsync(localPath, cancellationToken);
         await SimulateTransferAsync(content.Length, progress, cancellationToken);
-        _nodes[remotePath] = new Node { Content = content };
+        // Écriture en place, comme un vrai serveur : les droits d'un fichier existant sont conservés, la date avance.
+        var mode = _nodes.TryGetValue(remotePath, out var existing) ? existing.Mode : 0b110_100_100;
+        var modified = existing is null ? DateTime.Now : existing.Modified.AddSeconds(10);
+        _nodes[remotePath] = new Node { Content = content, Mode = mode, Modified = modified };
         Operations.Add($"upload {remotePath}");
     }
 

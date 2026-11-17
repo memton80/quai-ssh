@@ -891,4 +891,58 @@
   <data name="Terminal_SftpHere" xml:space="preserve">
     <value>Ouvrir le SFTP dans ce dossier</value>
   </data>
+  <data name="Sftp_Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="Sftp_EditWith" xml:space="preserve">
+    <value>Modifier avec…</value>
+  </data>
+  <data name="Sftp_EditLargeTitle" xml:space="preserve">
+    <value>Fichier volumineux</value>
+  </data>
+  <data name="Sftp_EditLargeMessage" xml:space="preserve">
+    <value>« {0} » fait {1}. Il sera téléchargé en entier pour être ouvert dans un éditeur. Continuer ?</value>
+  </data>
+  <data name="Sftp_EditSending" xml:space="preserve">
+    <value>Renvoi de la version modifiée…</value>
+  </data>
+  <data name="Sftp_EditSent" xml:space="preserve">
+    <value>Modification renvoyée ({0})</value>
+  </data>
+  <data name="Sftp_EditFailed" xml:space="preserve">
+    <value>Modification non renvoyée : {0} — elle le sera au prochain enregistrement ou à la reconnexion.</value>
+  </data>
+  <data name="Sftp_EditUnreadable" xml:space="preserve">
+    <value>« {0} » est illisible (encore verrouillé par l'éditeur ?).</value>
+  </data>
+  <data name="Sftp_EditLaunchFailed" xml:space="preserve">
+    <value>Aucune application n'a pu ouvrir « {0} ».</value>
+  </data>
+  <data name="Sftp_EditConflictTitle" xml:space="preserve">
+    <value>Fichier modifié sur le serveur</value>
+  </data>
+  <data name="Sftp_EditConflictMessage" xml:space="preserve">
+    <value>« {0} » a changé sur le serveur depuis son ouverture. Le remplacer par votre version ? Les changements faits sur le serveur seront perdus.</value>
+  </data>
+  <data name="Sftp_EditDeletedMessage" xml:space="preserve">
+    <value>« {0} » n'existe plus sur le serveur. Le recréer avec votre version ?</value>
+  </data>
+  <data name="Sftp_EditOverwrite" xml:space="preserve">
+    <value>Remplacer</value>
+  </data>
+  <data name="Sftp_EditsOne" xml:space="preserve">
+    <value>« {0} » est ouvert dans un éditeur : chaque enregistrement est renvoyé sur le serveur tant que cet onglet reste ouvert.</value>
+  </data>
+  <data name="Sftp_EditsOnePending" xml:space="preserve">
+    <value>« {0} » est ouvert dans un éditeur ; sa dernière modification n'est pas encore renvoyée (connexion perdue ?).</value>
+  </data>
+  <data name="Sftp_EditsMany" xml:space="preserve">
+    <value>{0} fichiers ouverts dans un éditeur ({1}) : chaque enregistrement est renvoyé sur le serveur tant que cet onglet reste ouvert.</value>
+  </data>
+  <data name="Sftp_EditsManyPending" xml:space="preserve">
+    <value>{0} fichiers ouverts dans un éditeur, dont {1} pas encore renvoyé(s) (connexion perdue ?).</value>
+  </data>
+  <data name="Sftp_StopEdits" xml:space="preserve">
+    <value>Arrêter le suivi</value>
+  </data>
 </root>

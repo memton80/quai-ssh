@@ -58,6 +58,12 @@ internal sealed class SshSftpSession : ISftpSession
     public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default) =>
         _client.ExistsAsync(path, cancellationToken);
 
+    public async Task<RemoteFileStamp> GetStampAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var attributes = await _client.GetAttributesAsync(path, cancellationToken).ConfigureAwait(false);
+        return new RemoteFileStamp(attributes.Size, attributes.LastWriteTimeUtc);
+    }
+
     public async Task UploadFileAsync(string localPath, string remotePath, IProgress<long>? progress = null, CancellationToken cancellationToken = default)
     {
         await using var input = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, useAsync: true);

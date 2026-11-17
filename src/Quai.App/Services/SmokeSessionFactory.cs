@@ -102,6 +102,11 @@ internal sealed class SmokeSessionFactory : ISshSessionFactory, ISerialSessionFa
         public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default) =>
             Task.FromResult(path == Home || _entries.Any(e => e.FullPath == path));
 
+        public Task<RemoteFileStamp> GetStampAsync(string path, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_entries.FirstOrDefault(e => e.FullPath == path) is { } entry
+                ? new RemoteFileStamp(entry.Size, entry.LastWriteTime.ToUniversalTime())
+                : new RemoteFileStamp(0, Stamp.ToUniversalTime()));
+
         public async Task UploadFileAsync(string localPath, string remotePath, IProgress<long>? progress = null, CancellationToken cancellationToken = default)
         {
             var size = new FileInfo(localPath).Length;

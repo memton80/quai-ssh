@@ -145,6 +145,12 @@ public sealed partial class SftpBrowserView : UserControl
 
     private async void OnRemoteTransferClick(object sender, RoutedEventArgs e) => await ViewModel.DownloadAsync(Selection(RemoteList));
 
+    private async void OnRemoteEditClick(object sender, RoutedEventArgs e) =>
+        await ViewModel.EditRemoteAsync(Selection(RemoteList).FirstOrDefault());
+
+    private async void OnRemoteEditWithClick(object sender, RoutedEventArgs e) =>
+        await ViewModel.EditRemoteAsync(Selection(RemoteList).FirstOrDefault(), chooseApplication: true);
+
     private async void OnRemoteRenameClick(object sender, RoutedEventArgs e) =>
         await ViewModel.RenameRemoteAsync(Selection(RemoteList).FirstOrDefault());
 
@@ -173,6 +179,11 @@ public sealed partial class SftpBrowserView : UserControl
             case VirtualKey.F2 when selection.Count == 1:
                 e.Handled = true;
                 await ViewModel.RenameRemoteAsync(selection[0]);
+                break;
+            case VirtualKey.F4 when selection.Count == 1:
+                // Comme WinSCP : F4 ouvre le fichier dans un éditeur.
+                e.Handled = true;
+                await ViewModel.EditRemoteAsync(selection[0]);
                 break;
             case VirtualKey.Delete when selection.Count > 0:
                 e.Handled = true;
