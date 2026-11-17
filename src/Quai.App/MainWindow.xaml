@@ -87,6 +87,11 @@
                         <SymbolIcon Symbol="Folder" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="{l:Str Key=Nav_Snippets}" Tag="snippets">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE943;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <Grid x:Name="PageHost" />

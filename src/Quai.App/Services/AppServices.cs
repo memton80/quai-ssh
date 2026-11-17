@@ -41,6 +41,7 @@ internal static class AppServices
 
         // Stockage et secrets
         services.AddSingleton<IConnectionRepository, JsonConnectionRepository>();
+        services.AddSingleton<ISnippetRepository, JsonSnippetRepository>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<ISecretStore, PasswordVaultSecretStore>();
         services.AddSingleton<ILocalRecycler, RecycleBin>();
@@ -81,6 +82,7 @@ internal static class AppServices
         services.AddSingleton<ISessionLauncher, SessionLauncher>();
         services.AddSingleton<ConnectionsViewModel>();
         services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<SnippetsViewModel>();
         services.AddSingleton<AppShutdown>();
 
         // Mises à jour : une requête à l'API publique de GitHub, puis, sur demande, le téléchargement de l'installateur

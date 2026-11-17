@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Quai.App.Views.SnippetEditorDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:Quai.App.Localization"
+    xmlns:vm="using:Quai.Core.ViewModels"
+    Title="{x:Bind ViewModel.Title}"
+    CloseButtonText="{l:Str Key=Common_Cancel}"
+    DefaultButton="Primary"
+    PrimaryButtonClick="OnPrimaryButtonClick"
+    PrimaryButtonText="{l:Str Key=Common_Save}"
+    Style="{StaticResource DefaultContentDialogStyle}">
+
+    <StackPanel Width="460" Spacing="12">
+        <InfoBar
+            IsClosable="False"
+            IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+            Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+            Severity="Error" />
+
+        <TextBox
+            x:Name="NameBox"
+            Header="{l:Str Key=Snippets_Name}"
+            PlaceholderText="{l:Str Key=Snippets_NamePlaceholder}"
+            Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <StackPanel Spacing="4">
+            <TextBox
+                Header="{l:Str Key=Snippets_Command}"
+                PlaceholderText="{l:Str Key=Snippets_CommandPlaceholder}"
+                Style="{StaticResource CodeTextBoxStyle}"
+                Text="{x:Bind ViewModel.Command, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Style="{StaticResource FieldHintStyle}" Text="{l:Str Key=Snippets_CommandHint}" />
+        </StackPanel>
+
+        <ComboBox
+            HorizontalAlignment="Stretch"
+            Header="{l:Str Key=Snippets_Scope}"
+            ItemsSource="{x:Bind ViewModel.Scopes}"
+            SelectedIndex="{x:Bind ViewModel.ScopeIndex, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SnippetScope">
+                    <TextBlock Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <CheckBox Content="{l:Str Key=Snippets_Run}" IsChecked="{x:Bind ViewModel.Run, Mode=TwoWay}" />
+    </StackPanel>
+</ContentDialog>

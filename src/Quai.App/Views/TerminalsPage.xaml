@@ -15,7 +15,24 @@
             SelectionChanged="OnSelectionChanged"
             TabCloseRequested="OnTabCloseRequested"
             TabWidthMode="SizeToContent"
-            Visibility="{x:Bind ui:UiHelpers.CollapsedIf(ViewModel.IsEmpty), Mode=OneWay}" />
+            Visibility="{x:Bind ui:UiHelpers.CollapsedIf(ViewModel.IsEmpty), Mode=OneWay}">
+            <!-- Actions sur l'onglet sélectionné (aussi dans le menu du clic droit sur l'onglet). -->
+            <TabView.TabStripFooter>
+                <StackPanel
+                    Padding="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="2">
+                    <Button
+                        AutomationProperties.Name="{l:Str Key=Terminal_Snippets}"
+                        Click="OnSnippetsClick"
+                        Style="{StaticResource RowIconButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Terminal_Snippets}">
+                        <FontIcon FontSize="14" Glyph="&#xE943;" />
+                    </Button>
+                </StackPanel>
+            </TabView.TabStripFooter>
+        </TabView>
 
         <!-- Aucun terminal ouvert -->
         <StackPanel Style="{StaticResource EmptyStatePanelStyle}" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">

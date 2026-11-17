@@ -16,6 +16,7 @@ public sealed partial class TerminalsPage : UserControl
     private const string SerialGlyph = "";
     private const string WarningGlyph = "";
     private const string BreakGlyph = "";
+    private const string SnippetGlyph = "\uE943";
 
     private readonly IShellNavigator _navigator;
 
@@ -82,18 +83,23 @@ public sealed partial class TerminalsPage : UserControl
             Tag = tab,
         };
         ToolTipService.SetToolTip(item, tab.Endpoint);
+
+        // Clic droit sur l'onglet (dans le terminal, le clic droit copie ou colle, comme Windows Terminal).
+        var menu = new MenuFlyout();
+        var snippets = new MenuFlyoutItem { Text = Loc.Get("Terminal_Snippets"), Icon = new FontIcon { Glyph = SnippetGlyph } };
+        snippets.Click += async (_, _) => await RunSnippetAsync(item);
+        menu.Items.Add(snippets);
         if (tab.IsSerial)
         {
-            // Clic droit sur l'onglet (dans le terminal, le clic droit copie ou colle, comme Windows Terminal).
-            var menu = new MenuFlyout();
             menu.Items.Add(new MenuFlyoutItem
             {
                 Text = Loc.Get("Terminal_SendBreak"),
                 Command = tab.SendBreakCommand,
                 Icon = new FontIcon { Glyph = BreakGlyph },
             });
-            item.ContextFlyout = menu;
         }
+
+        item.ContextFlyout = menu;
 
         tab.PropertyChanged += OnTabPropertyChanged;
         Tabs.TabItems.Add(item);
@@ -165,6 +171,11 @@ public sealed partial class TerminalsPage : UserControl
             await ViewModel.CloseAsync(tab);
         }
     }
+
+    private static Task RunSnippetAsync(TabViewItem? item) =>
+        (item?.Content as TerminalView)?.RunSnippetAsync() ?? Task.CompletedTask;
+
+    private async void OnSnippetsClick(object sender, RoutedEventArgs e) => await RunSnippetAsync(Tabs.SelectedItem as TabViewItem);
 
     private void OnAddTabClick(TabView sender, object args) => _navigator.NavigateTo(AppPage.Connections);
 

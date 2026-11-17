@@ -18,4 +18,21 @@ public interface IDialogService
 
     /// <summary>Ouvre l'éditeur de droits ; retourne vrai si l'utilisateur a validé.</summary>
     Task<bool> EditPermissionsAsync(PermissionsEditorViewModel editor);
+
+    /// <summary>Ouvre la fiche d'un snippet ; retourne vrai si l'utilisateur a validé.</summary>
+    Task<bool> EditSnippetAsync(SnippetEditorViewModel editor);
+
+    /// <summary>Choix d'un snippet à envoyer (<see cref="SnippetPickerViewModel.Selected"/>).</summary>
+    Task<SnippetPickerResult> PickSnippetAsync(SnippetPickerViewModel picker);
+}
+
+public enum SnippetPickerResult
+{
+    Cancelled,
+
+    /// <summary>Envoyer le snippet choisi.</summary>
+    Send,
+
+    /// <summary>Ouvrir la page des snippets.</summary>
+    Manage,
 }

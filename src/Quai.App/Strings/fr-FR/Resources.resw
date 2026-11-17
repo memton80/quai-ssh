@@ -801,4 +801,91 @@
   <data name="Settings_KeepAliveDescription" xml:space="preserve">
     <value>Message discret envoyé au serveur quand rien ne se passe, pour éviter qu'un pare-feu coupe la session et détecter une coupure. 0 = désactivé. S'applique aux nouvelles connexions.</value>
   </data>
+  <data name="Nav_Snippets" xml:space="preserve">
+    <value>Snippets</value>
+  </data>
+  <data name="Snippets_Title" xml:space="preserve">
+    <value>Snippets</value>
+  </data>
+  <data name="Snippets_Hint" xml:space="preserve">
+    <value>Commandes enregistrées, envoyées dans le terminal avec Ctrl+Maj+P.</value>
+  </data>
+  <data name="Snippets_SearchPlaceholder" xml:space="preserve">
+    <value>Rechercher (nom, commande, connexion…)</value>
+  </data>
+  <data name="Snippets_New" xml:space="preserve">
+    <value>Nouveau snippet</value>
+  </data>
+  <data name="Snippets_TitleNew" xml:space="preserve">
+    <value>Nouveau snippet</value>
+  </data>
+  <data name="Snippets_TitleEdit" xml:space="preserve">
+    <value>Modifier le snippet</value>
+  </data>
+  <data name="Snippets_Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Snippets_NamePlaceholder" xml:space="preserve">
+    <value>Par exemple : Espace disque</value>
+  </data>
+  <data name="Snippets_Command" xml:space="preserve">
+    <value>Commande</value>
+  </data>
+  <data name="Snippets_CommandPlaceholder" xml:space="preserve">
+    <value>df -h</value>
+  </data>
+  <data name="Snippets_CommandHint" xml:space="preserve">
+    <value>Plusieurs lignes = plusieurs commandes, chacune validée par Entrée. Pas de mot de passe ici : les snippets sont enregistrés en clair.</value>
+  </data>
+  <data name="Snippets_CommandRequired" xml:space="preserve">
+    <value>Saisissez la commande à envoyer.</value>
+  </data>
+  <data name="Snippets_Scope" xml:space="preserve">
+    <value>Disponible pour</value>
+  </data>
+  <data name="Snippets_ScopeAll" xml:space="preserve">
+    <value>Toutes les connexions</value>
+  </data>
+  <data name="Snippets_ScopeMissing" xml:space="preserve">
+    <value>Connexion supprimée</value>
+  </data>
+  <data name="Snippets_Run" xml:space="preserve">
+    <value>Exécuter tout de suite (Entrée après la dernière ligne)</value>
+  </data>
+  <data name="Snippets_EmptyTitle" xml:space="preserve">
+    <value>Aucun snippet</value>
+  </data>
+  <data name="Snippets_EmptyHint" xml:space="preserve">
+    <value>Enregistrez les commandes que vous tapez souvent, puis envoyez-les dans un terminal avec Ctrl+Maj+P.</value>
+  </data>
+  <data name="Snippets_NoResults" xml:space="preserve">
+    <value>Aucun snippet ne correspond</value>
+  </data>
+  <data name="Snippets_DeleteTitle" xml:space="preserve">
+    <value>Supprimer le snippet ?</value>
+  </data>
+  <data name="Snippets_DeleteMessage" xml:space="preserve">
+    <value>Le snippet « {0} » sera supprimé.</value>
+  </data>
+  <data name="Snippets_PickerTitle" xml:space="preserve">
+    <value>Snippet pour {0}</value>
+  </data>
+  <data name="Snippets_FilterPlaceholder" xml:space="preserve">
+    <value>Filtrer (nom ou commande)…</value>
+  </data>
+  <data name="Snippets_Send" xml:space="preserve">
+    <value>Envoyer</value>
+  </data>
+  <data name="Snippets_Manage" xml:space="preserve">
+    <value>Gérer les snippets</value>
+  </data>
+  <data name="Snippets_PickerEmpty" xml:space="preserve">
+    <value>Aucun snippet pour cette connexion. « Gérer les snippets » pour en créer.</value>
+  </data>
+  <data name="Snippets_PickerNoMatch" xml:space="preserve">
+    <value>Aucun snippet ne correspond.</value>
+  </data>
+  <data name="Terminal_Snippets" xml:space="preserve">
+    <value>Snippets… (Ctrl+Maj+P)</value>
+  </data>
 </root>

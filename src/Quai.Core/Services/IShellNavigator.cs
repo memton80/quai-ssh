@@ -5,6 +5,7 @@ public enum AppPage
     Connections,
     Terminals,
     Sftp,
+    Snippets,
     Settings,
 }
 

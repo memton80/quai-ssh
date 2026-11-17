@@ -68,6 +68,9 @@ internal sealed class NativeTerminal : IDisposable
 
     public event Action? PasteRequested;
 
+    /// <summary><c>Ctrl+Maj+P</c> : choisir un snippet à envoyer.</summary>
+    public event Action? SnippetsRequested;
+
     /// <summary>Focus clavier gagné ou perdu ; le second argument indique une perte au profit d'une autre application.</summary>
     public event Action<bool, bool>? FocusChanged;
 
@@ -657,6 +660,12 @@ internal sealed class NativeTerminal : IDisposable
 
                 case 'V':
                     PasteRequested?.Invoke();
+                    _swallowChar = true;
+                    return true;
+
+                // Ctrl+Maj+P (comme la palette de commandes de Windows Terminal) ; Ctrl+P seul reste au shell.
+                case 'P' when shift:
+                    SnippetsRequested?.Invoke();
                     _swallowChar = true;
                     return true;
 
