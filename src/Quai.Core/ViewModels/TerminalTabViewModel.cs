@@ -8,6 +8,7 @@ using Quai.Core.Models;
 using Quai.Core.Serial;
 using Quai.Core.Services;
 using Quai.Core.Ssh;
+using Quai.Core.Storage;
 using Quai.Core.Terminal;
 
 namespace Quai.Core.ViewModels;
@@ -27,30 +28,67 @@ public enum TerminalStatus
 /// </summary>
 public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
 {
+    /// <summary>
+    /// Attente avant chaque tentative de reconnexion automatique (environ deux minutes en tout) : de quoi laisser
+    /// le réseau revenir après une sortie de veille ou un changement de Wi-Fi, sans insister indéfiniment.
+    /// </summary>
+    public static readonly IReadOnlyList<TimeSpan> ReconnectDelays =
+    [
+        TimeSpan.FromSeconds(2),
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromSeconds(20),
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(60),
+    ];
+
     private readonly ITerminalSessionFactory _factory;
     private readonly IStrings _strings;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger _logger;
+    private readonly ISettingsService? _settings;
+    private readonly TimeProvider _time;
     private ITerminalSession? _session;
     private CancellationTokenSource? _connectCancellation;
+    private CancellationTokenSource? _autoReconnect;
+
+    // Dernière cause de déconnexion, reprise dans le compte à rebours.
+    private string _lastFailure = string.Empty;
     private int _columns = 80;
     private int _rows = 24;
     private bool _disposed;
 
+    /// <param name="settings">Réglages (reconnexion automatique) ; sans réglages, pas de reconnexion automatique.</param>
+    /// <param name="time">Horloge des tentatives de reconnexion (remplacée dans les tests).</param>
     public TerminalTabViewModel(
         ConnectionProfile profile,
         ITerminalSessionFactory factory,
         IStrings strings,
         IUiDispatcher dispatcher,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        ISettingsService? settings = null,
+        TimeProvider? time = null)
     {
         Profile = profile;
         _factory = factory;
         _strings = strings;
         _dispatcher = dispatcher;
         _logger = logger ?? NullLogger.Instance;
+        _settings = settings;
+        _time = time ?? TimeProvider.System;
         Status = TerminalStatus.Idle;
         StatusText = string.Empty;
+    }
+
+    private enum ConnectOutcome
+    {
+        Connected,
+
+        /// <summary>Échec qui peut venir du réseau : une nouvelle tentative a un sens.</summary>
+        Retryable,
+
+        /// <summary>Refus (authentification, clé d'hôte), saisie annulée, onglet fermé : on n'insiste pas.</summary>
+        Final,
     }
 
     /// <summary>Octets à écrire dans l'émulateur (peut être déclenché depuis n'importe quel fil).</summary>
@@ -78,6 +116,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
     [NotifyPropertyChangedFor(nameof(IsConnected))]
     [NotifyPropertyChangedFor(nameof(IsConnecting))]
     [NotifyPropertyChangedFor(nameof(CanReconnect))]
+    [NotifyPropertyChangedFor(nameof(ShowReconnectBar))]
     [NotifyPropertyChangedFor(nameof(CanSendBreak))]
     [NotifyPropertyChangedFor(nameof(ShowSaveOffer))]
     [NotifyCanExecuteChangedFor(nameof(SendBreakCommand))]
@@ -103,6 +142,15 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
     [ObservableProperty]
     public partial string StatusText { get; set; }
 
+    /// <summary>Connexion perdue : des tentatives automatiques sont programmées (compte à rebours dans <see cref="StatusText"/>).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowReconnectBar))]
+    [NotifyCanExecuteChangedFor(nameof(CancelAutoReconnectCommand))]
+    public partial bool IsAutoReconnecting { get; set; }
+
+    /// <summary>Bandeau « déconnecté » : session fermée, ou tentatives automatiques en cours (y compris pendant une tentative).</summary>
+    public bool ShowReconnectBar => CanReconnect || IsAutoReconnecting;
+
     public bool IsConnected => Status == TerminalStatus.Connected;
 
     public bool IsConnecting => Status == TerminalStatus.Connecting;
@@ -115,12 +163,39 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
     /// <summary>Ouvre la session ; appelé par la vue dès que l'émulateur connaît sa taille.</summary>
     public async Task ConnectAsync(int columns, int rows)
     {
+        Remember(columns, rows);
+        await ConnectCoreAsync();
+    }
+
+    /// <summary>« Reconnecter » : tentative immédiate (les tentatives automatiques programmées sont abandonnées).</summary>
+    [RelayCommand]
+    public async Task ReconnectAsync()
+    {
+        if (CanReconnect)
+        {
+            StopAutoReconnect();
+            await ConnectCoreAsync();
+        }
+    }
+
+    /// <summary>Arrête les tentatives de reconnexion automatique ; l'onglet reste déconnecté.</summary>
+    [RelayCommand(CanExecute = nameof(IsAutoReconnecting))]
+    public void CancelAutoReconnect()
+    {
+        if (IsAutoReconnecting)
+        {
+            StopAutoReconnect();
+            StatusText = _strings.Format("Terminal_ReconnectStopped", _lastFailure);
+        }
+    }
+
+    private async Task<ConnectOutcome> ConnectCoreAsync()
+    {
         if (_disposed || Status is TerminalStatus.Connecting or TerminalStatus.Connected)
         {
-            return;
+            return ConnectOutcome.Final;
         }
 
-        Remember(columns, rows);
         Status = TerminalStatus.Connecting;
         StatusText = _strings.Format(IsSerial ? "Terminal_SerialOpening" : "Terminal_Connecting", Endpoint);
         WriteNotice(StatusText);
@@ -133,7 +208,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
             if (_disposed)
             {
                 await session.DisposeAsync();
-                return;
+                return ConnectOutcome.Final;
             }
 
             _session = session;
@@ -149,6 +224,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
             session.Start();
             session.Resize(_columns, _rows);
+            return ConnectOutcome.Connected;
         }
         catch (OperationCanceledException)
         {
@@ -180,16 +256,86 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         {
             _logger.LogWarning("Ouverture du terminal vers {Endpoint} impossible ({Error})", Endpoint, ex.GetType().Name);
             Fail(TerminalStatus.Failed, _strings.Format("Terminal_ConnectFailed", ex.Message));
+            return ConnectOutcome.Retryable;
         }
         finally
         {
             _connectCancellation = null;
             cancellation.Dispose();
         }
+
+        return ConnectOutcome.Final;
     }
 
-    [RelayCommand]
-    public Task ReconnectAsync() => CanReconnect ? ConnectAsync(_columns, _rows) : Task.CompletedTask;
+    private bool AutoReconnectEnabled => !IsSerial && _settings?.Current.AutoReconnect == true;
+
+    /// <summary>Connexion perdue : tentatives espacées (<see cref="ReconnectDelays"/>), compte à rebours affiché.</summary>
+    private void StartAutoReconnect()
+    {
+        StopAutoReconnect();
+        var cancellation = new CancellationTokenSource();
+        _autoReconnect = cancellation;
+        IsAutoReconnecting = true;
+        _ = AutoReconnectAsync(cancellation);
+    }
+
+    private void StopAutoReconnect()
+    {
+        var cancellation = _autoReconnect;
+        _autoReconnect = null;
+        IsAutoReconnecting = false;
+        if (cancellation is not null)
+        {
+            cancellation.Cancel();
+            cancellation.Dispose();
+        }
+    }
+
+    private async Task AutoReconnectAsync(CancellationTokenSource cancellation)
+    {
+        var token = cancellation.Token;
+        try
+        {
+            for (var attempt = 1; attempt <= ReconnectDelays.Count; attempt++)
+            {
+                for (var remaining = (int)Math.Ceiling(ReconnectDelays[attempt - 1].TotalSeconds); remaining > 0; remaining--)
+                {
+                    StatusText = _strings.Format("Terminal_ReconnectIn", _lastFailure, remaining, attempt, ReconnectDelays.Count);
+                    await Task.Delay(TimeSpan.FromSeconds(1), _time, token);
+                }
+
+                if (token.IsCancellationRequested || _disposed || !CanReconnect)
+                {
+                    return;
+                }
+
+                _logger.LogInformation("Reconnexion automatique à {Endpoint} (tentative {Attempt})", Endpoint, attempt);
+                var outcome = await ConnectCoreAsync();
+                if (outcome != ConnectOutcome.Retryable || token.IsCancellationRequested)
+                {
+                    // Reconnecté, ou refus qui ne se réglera pas tout seul (mot de passe, clé d'hôte, saisie annulée).
+                    return;
+                }
+
+                _lastFailure = StatusText;
+            }
+
+            StatusText = _strings.Format("Terminal_ReconnectGaveUp", _lastFailure, ReconnectDelays.Count);
+        }
+        catch (OperationCanceledException)
+        {
+            // Arrêté : « Annuler », « Reconnecter » ou fermeture de l'onglet.
+        }
+        finally
+        {
+            if (ReferenceEquals(_autoReconnect, cancellation))
+            {
+                _autoReconnect = null;
+                IsAutoReconnecting = false;
+                cancellation.Dispose();
+            }
+        }
+    }
 
     /// <summary>Signal « break » sur la liaison série (console de routeur, retour au moniteur de démarrage…).</summary>
     [RelayCommand(CanExecute = nameof(CanSendBreak))]
@@ -233,6 +379,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         }
 
         _disposed = true;
+        StopAutoReconnect();
         _connectCancellation?.Cancel();
         var session = Detach();
         if (session is not null)
@@ -282,6 +429,13 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
             }
 
             Fail(TerminalStatus.Disconnected, ClosedMessage(error));
+
+            // Coupure (réseau, veille) et non fin normale de la session (« exit ») : on retente tout seul.
+            if (error is not null && AutoReconnectEnabled)
+            {
+                _lastFailure = StatusText;
+                StartAutoReconnect();
+            }
         });
     }
 

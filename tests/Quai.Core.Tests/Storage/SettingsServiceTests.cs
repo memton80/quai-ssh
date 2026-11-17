@@ -185,4 +185,64 @@ public class SettingsServiceTests
         Assert.Matches(@"^\d+\.\d+\.\d+", AppInfo.Version);
         Assert.DoesNotContain("+", AppInfo.Version);
     }
+
+    [Theory]
+    [InlineData(30, 30)]
+    [InlineData(0, 0)]
+    [InlineData(-4, 0)]
+    [InlineData(2, 5)]
+    [InlineData(9000, 600)]
+    public void Keepalive_is_kept_within_bounds_and_zero_disables_it(int typed, int applied)
+    {
+        using var temp = new TempDirectory();
+        var service = new JsonSettingsService(temp.File("settings.json"));
+
+        service.Update(s => s.KeepAliveSeconds = typed);
+
+        Assert.Equal(applied, service.Current.KeepAliveSeconds);
+        Assert.Equal(applied, new JsonSettingsService(temp.File("settings.json")).Current.KeepAliveSeconds);
+        Assert.Equal(applied == 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(applied), service.Current.KeepAliveInterval);
+    }
+
+    [Fact]
+    public void Older_files_get_the_default_keepalive_and_automatic_reconnection()
+    {
+        using var temp = new TempDirectory();
+        var path = temp.File("settings.json");
+        File.WriteAllText(path, """{ "theme": "dark", "terminalFontSize": 14 }""");
+
+        var settings = new JsonSettingsService(path).Current;
+
+        Assert.Equal(AppSettings.DefaultKeepAliveSeconds, settings.KeepAliveSeconds);
+        Assert.True(settings.AutoReconnect);
+    }
+
+    [Fact]
+    public void The_connector_reads_the_keepalive_from_the_settings_at_each_connection()
+    {
+        using var temp = new TempDirectory();
+        var service = new JsonSettingsService(temp.File("settings.json"));
+        var prompts = new ScriptedPrompts();
+        var connector = new Quai.Core.Ssh.SshConnector(
+            new Quai.Core.Ssh.KnownHostsStore(temp.File("known_hosts")), new InMemorySecretStore(), prompts, prompts, settings: service);
+
+        Assert.Equal(TimeSpan.FromSeconds(30), connector.KeepAliveInterval);
+        service.Update(s => s.KeepAliveSeconds = 0);
+        Assert.Equal(Timeout.InfiniteTimeSpan, connector.KeepAliveInterval);
+    }
+
+    [Fact]
+    public void The_settings_page_shows_the_keepalive_actually_applied()
+    {
+        using var temp = new TempDirectory();
+        var service = new JsonSettingsService(temp.File("settings.json"));
+        var page = new SettingsViewModel(service, new AppPaths(temp.Path));
+
+        page.KeepAliveSeconds = 2;
+        Assert.Equal(5, page.KeepAliveSeconds);
+        page.AutoReconnect = false;
+
+        Assert.Equal(5, service.Current.KeepAliveSeconds);
+        Assert.False(service.Current.AutoReconnect);
+    }
 }

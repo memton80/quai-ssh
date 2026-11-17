@@ -60,6 +60,24 @@ public sealed class TerminalSessionTests : IDisposable
     }
 
     [Fact]
+    public async Task A_dropped_connection_is_reported_as_an_error_not_as_a_normal_exit()
+    {
+        SshTestServer.SkipUnlessAvailable();
+        var cancellation = TestContext.Current.CancellationToken;
+        var closed = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var session = await _factory.OpenTerminalAsync(SshTestServer.KeyProfile(SshTestServer.KeyFile), 80, 24, cancellation);
+        session.Closed += error => closed.TrySetResult(error);
+        session.Start();
+
+        // Le processus sshd de la connexion disparaît sans fermer proprement la session SSH (comme une coupure réseau).
+        session.Send(Encoding.UTF8.GetBytes("kill -9 $PPID\n"));
+        var error = await closed.Task.WaitAsync(TimeSpan.FromSeconds(15), cancellation);
+
+        Assert.NotNull(error);
+        Assert.False(session.IsOpen);
+    }
+
+    [Fact]
     public async Task Disposing_the_session_does_not_report_an_error()
     {
         SshTestServer.SkipUnlessAvailable();

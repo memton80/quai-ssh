@@ -774,4 +774,31 @@
   <data name="QuickConnect_Save" xml:space="preserve">
     <value>Ajouter au carnet…</value>
   </data>
+  <data name="Terminal_ReconnectIn" xml:space="preserve">
+    <value>{0} — nouvelle tentative dans {1} s ({2}/{3}).</value>
+  </data>
+  <data name="Terminal_ReconnectGaveUp" xml:space="preserve">
+    <value>{0} — reconnexion automatique abandonnée après {1} tentatives.</value>
+  </data>
+  <data name="Terminal_ReconnectStopped" xml:space="preserve">
+    <value>{0} — reconnexion automatique arrêtée.</value>
+  </data>
+  <data name="Terminal_CancelAutoReconnect" xml:space="preserve">
+    <value>Arrêter les tentatives</value>
+  </data>
+  <data name="Settings_Connections" xml:space="preserve">
+    <value>Connexions SSH</value>
+  </data>
+  <data name="Settings_AutoReconnect" xml:space="preserve">
+    <value>Reconnexion automatique</value>
+  </data>
+  <data name="Settings_AutoReconnectDescription" xml:space="preserve">
+    <value>Après une coupure (réseau, mise en veille), le terminal retente la connexion tout seul, six fois en deux minutes environ. Une fermeture normale (exit) n'est jamais relancée.</value>
+  </data>
+  <data name="Settings_KeepAlive" xml:space="preserve">
+    <value>Maintien de la connexion (secondes)</value>
+  </data>
+  <data name="Settings_KeepAliveDescription" xml:space="preserve">
+    <value>Message discret envoyé au serveur quand rien ne se passe, pour éviter qu'un pare-feu coupe la session et détecter une coupure. 0 = désactivé. S'applique aux nouvelles connexions.</value>
+  </data>
 </root>

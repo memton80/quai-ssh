@@ -84,6 +84,8 @@ public sealed class JsonSettingsService : ISettingsService
         && a.TerminalFontSize == b.TerminalFontSize
         && a.TerminalFluentBackground == b.TerminalFluentBackground
         && a.CheckForUpdates == b.CheckForUpdates
+        && a.KeepAliveSeconds == b.KeepAliveSeconds
+        && a.AutoReconnect == b.AutoReconnect
         && string.Equals(a.TerminalFontFamily, b.TerminalFontFamily, StringComparison.Ordinal);
 
     private AppSettings Load()

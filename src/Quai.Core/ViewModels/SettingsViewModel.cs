@@ -37,6 +37,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public double MaxTerminalFontSize => AppSettings.MaxTerminalFontSize;
 
+    public double MaxKeepAliveSeconds => AppSettings.MaxKeepAliveSeconds;
+
     public string Version => AppInfo.Version;
 
     public string DataDirectory { get; }
@@ -60,6 +62,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Taille en <see cref="double"/> pour se lier directement à un <c>NumberBox</c>.</summary>
     [ObservableProperty]
     public partial double TerminalFontSize { get; set; }
+
+    /// <summary>Intervalle du keepalive SSH en secondes (0 = désactivé), en <see cref="double"/> pour un <c>NumberBox</c>.</summary>
+    [ObservableProperty]
+    public partial double KeepAliveSeconds { get; set; }
+
+    /// <summary>Reconnexion automatique d'un terminal SSH après une coupure.</summary>
+    [ObservableProperty]
+    public partial bool AutoReconnect { get; set; }
 
     [RelayCommand]
     public void ResetTerminalFont()
@@ -110,6 +120,39 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    partial void OnKeepAliveSecondsChanged(double value)
+    {
+        if (_loading || double.IsNaN(value))
+        {
+            return;
+        }
+
+        _settings.Update(s => s.KeepAliveSeconds = (int)Math.Round(value));
+
+        // Valeur ramenée dans ses bornes (1 à 4 s deviennent 5 s) : le champ affiche ce qui est réellement appliqué.
+        var applied = _settings.Current.KeepAliveSeconds;
+        if (applied != value)
+        {
+            _loading = true;
+            try
+            {
+                KeepAliveSeconds = applied;
+            }
+            finally
+            {
+                _loading = false;
+            }
+        }
+    }
+
+    partial void OnAutoReconnectChanged(bool value)
+    {
+        if (!_loading)
+        {
+            _settings.Update(s => s.AutoReconnect = value);
+        }
+    }
+
     private void Load()
     {
         _loading = true;
@@ -121,6 +164,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             TerminalFontSize = current.TerminalFontSize;
             TerminalFluentBackground = current.TerminalFluentBackground;
             CheckForUpdates = current.CheckForUpdates;
+            KeepAliveSeconds = current.KeepAliveSeconds;
+            AutoReconnect = current.AutoReconnect;
         }
         finally
         {

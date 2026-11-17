@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Services;
+using Quai.Core.Storage;
 using Quai.Core.Terminal;
 
 namespace Quai.Core.ViewModels;
@@ -15,17 +16,20 @@ public sealed partial class TerminalsViewModel : ObservableObject
     private readonly IStrings _strings;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILoggerFactory? _loggerFactory;
+    private readonly ISettingsService? _settings;
 
     public TerminalsViewModel(
         ITerminalSessionFactory factory,
         IStrings strings,
         IUiDispatcher dispatcher,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        ISettingsService? settings = null)
     {
         _factory = factory;
         _strings = strings;
         _dispatcher = dispatcher;
         _loggerFactory = loggerFactory;
+        _settings = settings;
         IsEmpty = true;
     }
 
@@ -45,7 +49,8 @@ public sealed partial class TerminalsViewModel : ObservableObject
             _factory,
             _strings,
             _dispatcher,
-            _loggerFactory?.CreateLogger<TerminalTabViewModel>());
+            _loggerFactory?.CreateLogger<TerminalTabViewModel>(),
+            _settings);
         Tabs.Add(tab);
         SelectedTab = tab;
         IsEmpty = false;

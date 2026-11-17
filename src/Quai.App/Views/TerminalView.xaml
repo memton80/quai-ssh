@@ -3,7 +3,8 @@
     x:Class="Quai.App.Views.TerminalView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:l="using:Quai.App.Localization">
+    xmlns:l="using:Quai.App.Localization"
+    xmlns:ui="using:Quai.App">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -12,15 +13,20 @@
         </Grid.RowDefinitions>
 
         <StackPanel>
-            <!-- Session fermée ou en échec : explication + reconnexion. -->
+            <!-- Session fermée ou en échec : explication + reconnexion (compte à rebours des tentatives automatiques). -->
             <InfoBar
                 IsClosable="False"
-                IsOpen="{x:Bind ViewModel.CanReconnect, Mode=OneWay}"
+                IsOpen="{x:Bind ViewModel.ShowReconnectBar, Mode=OneWay}"
                 Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
                 Severity="Warning">
                 <InfoBar.ActionButton>
                     <Button Command="{x:Bind ViewModel.ReconnectCommand}" Content="{l:Str Key=Terminal_Reconnect}" />
                 </InfoBar.ActionButton>
+                <Button
+                    Margin="0,0,0,12"
+                    Command="{x:Bind ViewModel.CancelAutoReconnectCommand}"
+                    Content="{l:Str Key=Terminal_CancelAutoReconnect}"
+                    Visibility="{x:Bind ui:UiHelpers.VisibleIf(ViewModel.IsAutoReconnecting), Mode=OneWay}" />
             </InfoBar>
 
             <!-- Connexion rapide établie : proposer de l'ajouter au carnet. -->

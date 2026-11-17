@@ -133,7 +133,7 @@ public sealed class QuickConnectTests : IDisposable
     }
 
     [Fact]
-    public void A_terminal_tab_offers_to_save_a_connected_quick_connection_then_adopts_the_saved_one()
+    public async Task A_terminal_tab_offers_to_save_a_connected_quick_connection_then_adopts_the_saved_one()
     {
         Assert.True(QuickConnectTarget.TryParse("alice@serveur", out var target));
         var factory = new FakeSessionFactory();
@@ -141,7 +141,7 @@ public sealed class QuickConnectTests : IDisposable
         var tab = new TerminalTabViewModel(target.ToProfile(), factory, new KeyStrings(), new ImmediateDispatcher());
         Assert.False(tab.ShowSaveOffer);
 
-        tab.ConnectAsync(80, 24).GetAwaiter().GetResult();
+        await tab.ConnectAsync(80, 24);
         Assert.True(tab.ShowSaveOffer);
 
         var saved = tab.Profile.Clone();
@@ -158,13 +158,13 @@ public sealed class QuickConnectTests : IDisposable
     }
 
     [Fact]
-    public void Dismissing_the_offer_hides_it()
+    public async Task Dismissing_the_offer_hides_it()
     {
         Assert.True(QuickConnectTarget.TryParse("alice@serveur", out var target));
         var factory = new FakeSessionFactory();
         factory.Terminals.Enqueue(() => new FakeTerminalSession());
         var tab = new TerminalTabViewModel(target.ToProfile(), factory, new KeyStrings(), new ImmediateDispatcher());
-        tab.ConnectAsync(80, 24).GetAwaiter().GetResult();
+        await tab.ConnectAsync(80, 24);
 
         tab.SaveOfferDismissed = true;
 
