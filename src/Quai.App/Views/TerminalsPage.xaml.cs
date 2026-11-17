@@ -130,12 +130,22 @@ public sealed partial class TerminalsPage : UserControl
         }
     }
 
-    /// <summary>L'icône de l'onglet signale une session fermée ou en échec.</summary>
+    /// <summary>L'icône de l'onglet signale une session fermée ou en échec ; son titre suit la fiche (connexion rapide ajoutée au carnet).</summary>
     private void OnTabPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(TerminalTabViewModel.Status) && sender is TerminalTabViewModel tab && FindItem(tab) is { } item)
+        if (sender is not TerminalTabViewModel tab || FindItem(tab) is not { } item)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(TerminalTabViewModel.Status))
         {
             item.IconSource = Icon(GlyphOf(tab));
+        }
+        else if (e.PropertyName == nameof(TerminalTabViewModel.Title))
+        {
+            item.Header = tab.Title;
+            ToolTipService.SetToolTip(item, tab.Endpoint);
         }
     }
 

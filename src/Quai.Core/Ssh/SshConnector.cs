@@ -128,7 +128,8 @@ public sealed class SshConnector
             switch (attempt.Outcome)
             {
                 case AttemptOutcome.Connected:
-                    RememberSecret(secretKey, typed, storedSecret);
+                    // Connexion rapide : rien dans le coffre (le secret resterait orphelin hors du carnet).
+                    RememberSecret(secretKey, profile.IsTransient && typed is not null ? typed with { Remember = false } : typed, storedSecret);
                     _logger.LogInformation("Connecté à {Endpoint}", profile.Endpoint);
                     return attempt.Client!;
 

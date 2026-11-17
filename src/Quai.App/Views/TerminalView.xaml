@@ -23,6 +23,18 @@
                 </InfoBar.ActionButton>
             </InfoBar>
 
+            <!-- Connexion rapide établie : proposer de l'ajouter au carnet. -->
+            <InfoBar
+                CloseButtonClick="OnSaveOfferClosed"
+                IsClosable="True"
+                IsOpen="{x:Bind ViewModel.ShowSaveOffer, Mode=OneWay}"
+                Message="{l:Str Key=QuickConnect_SaveOffer}"
+                Severity="Informational">
+                <InfoBar.ActionButton>
+                    <Button Click="OnSaveToBookClick" Content="{l:Str Key=QuickConnect_Save}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
             <!-- Moteur de terminal (Microsoft.Terminal.Control.dll) absent ou inutilisable. -->
             <InfoBar
                 x:Name="EngineError"

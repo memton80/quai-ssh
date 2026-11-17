@@ -747,4 +747,31 @@
   <data name="Update_ProgressName" xml:space="preserve">
     <value>Progression du téléchargement de la mise à jour</value>
   </data>
+  <data name="QuickConnect_Title" xml:space="preserve">
+    <value>Connexion rapide</value>
+  </data>
+  <data name="QuickConnect_Placeholder" xml:space="preserve">
+    <value>Connexion rapide : utilisateur@hôte:port</value>
+  </data>
+  <data name="QuickConnect_Tooltip" xml:space="preserve">
+    <value>Se connecter sans créer de fiche (Entrée). Formes acceptées : alice@serveur, alice@192.168.1.20:2222, [::1]:22, ssh -p 2222 alice@serveur.</value>
+  </data>
+  <data name="QuickConnect_Invalid" xml:space="preserve">
+    <value>« {0} » n'est pas une adresse reconnue. Exemples : alice@serveur.example.org, alice@192.168.1.20:2222, ssh -p 2222 alice@serveur.</value>
+  </data>
+  <data name="QuickConnect_UserTitle" xml:space="preserve">
+    <value>Utilisateur sur {0}</value>
+  </data>
+  <data name="QuickConnect_UserLabel" xml:space="preserve">
+    <value>Nom d'utilisateur</value>
+  </data>
+  <data name="QuickConnect_Connect" xml:space="preserve">
+    <value>Se connecter</value>
+  </data>
+  <data name="QuickConnect_SaveOffer" xml:space="preserve">
+    <value>Connexion rapide : cette connexion n'est pas dans le carnet.</value>
+  </data>
+  <data name="QuickConnect_Save" xml:space="preserve">
+    <value>Ajouter au carnet…</value>
+  </data>
 </root>

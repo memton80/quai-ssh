@@ -56,7 +56,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
     /// <summary>Octets à écrire dans l'émulateur (peut être déclenché depuis n'importe quel fil).</summary>
     public event Action<byte[]>? Output;
 
-    public ConnectionProfile Profile { get; }
+    public ConnectionProfile Profile { get; private set; }
 
     public string Title => Profile.DisplayName;
 
@@ -64,13 +64,40 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     public bool IsSerial => Profile.IsSerial;
 
+    /// <summary>Connexion rapide : l'onglet n'est relié à aucune fiche du carnet.</summary>
+    public bool IsQuickConnect => Profile.IsTransient;
+
+    /// <summary>Connexion rapide établie : proposer de l'ajouter au carnet (tant que l'utilisateur n'a pas refusé).</summary>
+    public bool ShowSaveOffer => IsQuickConnect && IsConnected && !SaveOfferDismissed;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowSaveOffer))]
+    public partial bool SaveOfferDismissed { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsConnected))]
     [NotifyPropertyChangedFor(nameof(IsConnecting))]
     [NotifyPropertyChangedFor(nameof(CanReconnect))]
     [NotifyPropertyChangedFor(nameof(CanSendBreak))]
+    [NotifyPropertyChangedFor(nameof(ShowSaveOffer))]
     [NotifyCanExecuteChangedFor(nameof(SendBreakCommand))]
     public partial TerminalStatus Status { get; set; }
+
+    /// <summary>
+    /// La connexion rapide vient d'être ajoutée au carnet : l'onglet prend la fiche enregistrée (nom, réglages
+    /// modifiés dans la fiche), utilisée à la prochaine reconnexion.
+    /// </summary>
+    public void AdoptSavedProfile(ConnectionProfile saved)
+    {
+        ArgumentNullException.ThrowIfNull(saved);
+        Profile = saved.Clone();
+        Profile.IsTransient = false;
+        OnPropertyChanged(nameof(Profile));
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Endpoint));
+        OnPropertyChanged(nameof(IsQuickConnect));
+        OnPropertyChanged(nameof(ShowSaveOffer));
+    }
 
     /// <summary>Message affiché quand la session n'est pas (ou plus) connectée.</summary>
     [ObservableProperty]

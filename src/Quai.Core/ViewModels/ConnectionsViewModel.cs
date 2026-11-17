@@ -41,6 +41,7 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         _serialPorts = serialPorts;
         _logger = logger ?? NullLogger<ConnectionsViewModel>.Instance;
         SearchText = string.Empty;
+        QuickConnectText = string.Empty;
         Reload();
     }
 
@@ -59,6 +60,10 @@ public sealed partial class ConnectionsViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string SearchText { get; set; }
+
+    /// <summary>Champ « Connexion rapide » : <c>utilisateur@hôte:port</c>, sans passer par une fiche.</summary>
+    [ObservableProperty]
+    public partial string QuickConnectText { get; set; }
 
     /// <summary>Le carnet ne contient aucune connexion (état vide initial).</summary>
     [ObservableProperty]
@@ -169,6 +174,65 @@ public sealed partial class ConnectionsViewModel : ObservableObject
         {
             await SaveAsync(editor);
         }
+    }
+
+    /// <summary>
+    /// Connexion rapide : ouvre un terminal sur l'adresse saisie sans créer de fiche (l'onglet proposera ensuite de
+    /// l'ajouter au carnet). Si l'adresse est déjà dans le carnet, c'est sa fiche qui est ouverte (clé privée comprise).
+    /// </summary>
+    [RelayCommand]
+    public async Task QuickConnectAsync()
+    {
+        var text = QuickConnectText?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+        {
+            return;
+        }
+
+        if (!QuickConnectTarget.TryParse(text, out var target))
+        {
+            await _dialogs.ShowErrorAsync(_strings.Get("QuickConnect_Title"), _strings.Format("QuickConnect_Invalid", text));
+            return;
+        }
+
+        var username = target.Username;
+        if (!target.HasUsername)
+        {
+            username = (await _dialogs.PromptTextAsync(
+                _strings.Format("QuickConnect_UserTitle", target.Host),
+                _strings.Get("QuickConnect_UserLabel"),
+                Environment.UserName,
+                _strings.Get("QuickConnect_Connect")))?.Trim();
+            if (string.IsNullOrEmpty(username))
+            {
+                return;
+            }
+        }
+
+        var saved = _repository.GetAll().FirstOrDefault(p =>
+            !p.IsSerial
+            && p.Port == target.Port
+            && string.Equals(p.Host, target.Host, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(p.Username, username, StringComparison.Ordinal));
+        _launcher?.OpenTerminal(saved ?? target.ToProfile(username));
+        QuickConnectText = string.Empty;
+    }
+
+    /// <summary>
+    /// Ajoute une connexion rapide au carnet : fiche de création préremplie (même identifiant, pour que l'onglet
+    /// ouvert corresponde à la fiche). Retourne la connexion enregistrée, ou <c>null</c> si l'utilisateur annule.
+    /// </summary>
+    public async Task<ConnectionProfile?> SaveQuickConnectionAsync(ConnectionProfile transient)
+    {
+        ArgumentNullException.ThrowIfNull(transient);
+        var editor = new ConnectionEditorViewModel(_strings, null, GetKnownFolders(), serialPorts: _serialPorts, template: transient);
+        if (!await _dialogs.EditConnectionAsync(editor))
+        {
+            return null;
+        }
+
+        await SaveAsync(editor);
+        return _repository.Find(editor.Id);
     }
 
     /// <summary>Ouvre un terminal (SSH ou série) sur la connexion, dans sa version enregistrée la plus récente.</summary>

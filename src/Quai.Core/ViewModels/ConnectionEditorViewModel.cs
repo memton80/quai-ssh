@@ -22,12 +22,17 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         IEnumerable<string>? knownFolders = null,
         bool hasStoredPassword = false,
         bool hasStoredPassphrase = false,
-        ISerialPortCatalog? serialPorts = null)
+        ISerialPortCatalog? serialPorts = null,
+        ConnectionProfile? template = null)
     {
         _strings = strings;
         _serialPorts = serialPorts;
         IsNew = existing is null;
-        _original = existing?.Clone() ?? new ConnectionProfile();
+
+        // Modèle d'une nouvelle connexion (connexion rapide à ajouter au carnet) : ses champs et son identifiant
+        // sont repris, la fiche reste une création.
+        _original = existing?.Clone() ?? template?.Clone() ?? new ConnectionProfile();
+        _original.IsTransient = false;
         KnownFolders = [.. knownFolders ?? []];
         HasStoredPassword = hasStoredPassword;
         HasStoredPassphrase = hasStoredPassphrase;
