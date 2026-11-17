@@ -108,7 +108,7 @@ public sealed partial class SftpPage : UserControl
     {
         if (args.Tab.Tag is SftpBrowserViewModel tab)
         {
-            await ViewModel.CloseAsync(tab);
+            await ViewModel.RequestCloseAsync(tab);
         }
     }
 

@@ -215,10 +215,95 @@ public sealed class RemoteEditTests : IDisposable
     {
         var (vm, _) = await EditingAsync();
 
-        vm.StopEditsCommand.Execute(null);
+        await vm.StopEditsCommand.ExecuteAsync(null);
 
         Assert.False(vm.HasEdits);
         Assert.Equal(string.Empty, vm.EditsText);
+    }
+
+    [Fact]
+    public async Task A_change_made_on_the_server_during_the_download_is_not_overwritten_silently()
+    {
+        var vm = await ConnectedAsync();
+        _remote.TransferGate = new TaskCompletionSource();
+        var opening = vm.EditRemoteAsync(Item(vm, "nginx.conf"));
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        // Quelqu'un enregistre sur le serveur pendant que le téléchargement se termine.
+        _remote.ChangeOnServer("/home/alice/nginx.conf", "worker_processes 8;");
+        _remote.TransferGate.SetResult();
+        _remote.TransferGate = null;
+        await opening;
+        var edit = Assert.Single(vm.Edits);
+        File.WriteAllText(edit.LocalPath, "worker_processes 2;");
+        _dialogs.ConfirmResult = false;
+
+        await vm.UploadEditAsync(edit);
+
+        Assert.Equal("Sftp_EditConflictMessage(nginx.conf)", Assert.Single(_dialogs.Confirmations));
+        Assert.Equal("worker_processes 8;", _remote.ReadText("/home/alice/nginx.conf"));
+    }
+
+    [Fact]
+    public async Task Stopping_sends_a_fresh_save_first_and_asks_nothing()
+    {
+        var (vm, edit) = await EditingAsync();
+        File.WriteAllText(edit.LocalPath, "worker_processes 9;");
+
+        await vm.StopEditsCommand.ExecuteAsync(null);
+
+        Assert.Equal("worker_processes 9;", _remote.ReadText("/home/alice/nginx.conf"));
+        Assert.Empty(_dialogs.Confirmations);
+        Assert.False(vm.HasEdits);
+    }
+
+    [Fact]
+    public async Task Stopping_with_changes_that_cannot_be_sent_asks_first()
+    {
+        var (vm, edit) = await EditingAsync();
+        _remote.Drop(new IOException("réseau"));
+        File.WriteAllText(edit.LocalPath, "worker_processes 9;");
+        _dialogs.ConfirmResult = false;
+
+        await vm.StopEditsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Sftp_UnsentEditsOne(nginx.conf)", Assert.Single(_dialogs.Confirmations));
+        Assert.True(vm.HasEdits);
+        Assert.True(File.Exists(edit.LocalPath));
+
+        _dialogs.ConfirmResult = true;
+        await vm.StopEditsCommand.ExecuteAsync(null);
+
+        Assert.False(vm.HasEdits);
+        Assert.False(File.Exists(edit.LocalPath));
+    }
+
+    [Fact]
+    public async Task Closing_a_tab_with_unsent_changes_asks_and_can_be_cancelled()
+    {
+        _factory.SftpSessions.Enqueue(() => _remote);
+        var sessions = new SftpSessionsViewModel(
+            _factory, _dialogs, new KeyStrings(), new ImmediateDispatcher(), launcher: _launcher, editFiles: _files);
+        var vm = sessions.Open(_profile);
+        for (var i = 0; i < 100 && !vm.IsConnected; i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        await vm.EditRemoteAsync(Item(vm, "nginx.conf"));
+        var edit = Assert.Single(vm.Edits);
+        _remote.Drop(new IOException("réseau"));
+        File.WriteAllText(edit.LocalPath, "worker_processes 9;");
+        _dialogs.ConfirmResult = false;
+
+        Assert.False(await sessions.RequestCloseAsync(vm));
+        Assert.Single(sessions.Tabs);
+        Assert.Equal(1, new AppShutdown(new TerminalsViewModel(_factory, new KeyStrings(), new ImmediateDispatcher()), sessions, new KeyStrings())
+            .Inventory().UnsentEdits);
+
+        _dialogs.ConfirmResult = true;
+        Assert.True(await sessions.RequestCloseAsync(vm));
+        Assert.Empty(sessions.Tabs);
     }
 
     [Fact]

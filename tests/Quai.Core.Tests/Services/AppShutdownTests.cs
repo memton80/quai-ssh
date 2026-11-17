@@ -70,6 +70,19 @@ public sealed class AppShutdownTests : IDisposable
         Assert.Equal(expected.Replace("|", Environment.NewLine + Environment.NewLine, StringComparison.Ordinal), text);
     }
 
+    [Theory]
+    [InlineData(1, "Shutdown_OneUnsentEdit")]
+    [InlineData(3, "Shutdown_UnsentEdits(3)")]
+    public void Unsent_edits_are_announced_and_count_as_lost_work(int edits, string expected)
+    {
+        var open = new OpenSessions(0, 0, 0, edits);
+
+        Assert.Equal(expected, _shutdown.Describe(open));
+        Assert.False(open.IsEmpty);
+        Assert.True(open.LosesWork);
+        Assert.False(new OpenSessions(1, 1, 0).LosesWork);
+    }
+
     [Fact]
     public async Task Closing_everything_disconnects_each_session_and_cleans_up_transfers()
     {

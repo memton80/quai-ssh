@@ -216,7 +216,7 @@ public sealed partial class MainWindow : Window
                 Loc.Get("Shutdown_Title"),
                 shutdown.Describe(open),
                 Loc.Get("Shutdown_Confirm"),
-                isDestructive: open.ActiveTransfers > 0);
+                isDestructive: open.LosesWork);
             if (!confirmed)
             {
                 return;

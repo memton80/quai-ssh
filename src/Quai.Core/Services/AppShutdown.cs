@@ -4,9 +4,13 @@ using Quai.Core.ViewModels;
 namespace Quai.Core.Services;
 
 /// <summary>Connexions encore actives au moment de quitter l'application.</summary>
-public sealed record OpenSessions(int Terminals, int SftpSessions, int ActiveTransfers)
+/// <param name="UnsentEdits">Fichiers distants modifiés dans un éditeur dont la dernière version n'est pas sur le serveur.</param>
+public sealed record OpenSessions(int Terminals, int SftpSessions, int ActiveTransfers, int UnsentEdits = 0)
 {
-    public bool IsEmpty => Terminals == 0 && SftpSessions == 0 && ActiveTransfers == 0;
+    public bool IsEmpty => Terminals == 0 && SftpSessions == 0 && ActiveTransfers == 0 && UnsentEdits == 0;
+
+    /// <summary>Quitter ferait perdre quelque chose (transfert interrompu, modification jamais renvoyée).</summary>
+    public bool LosesWork => ActiveTransfers > 0 || UnsentEdits > 0;
 }
 
 /// <summary>
@@ -30,7 +34,8 @@ public sealed class AppShutdown
     public OpenSessions Inventory() => new(
         _terminals.Tabs.Count(t => t.IsConnected || t.IsConnecting),
         _sftp.Tabs.Count(t => t.IsConnected || t.IsConnecting),
-        _sftp.Tabs.Sum(t => t.Transfers.Count(transfer => transfer.IsActive)));
+        _sftp.Tabs.Sum(t => t.Transfers.Count(transfer => transfer.IsActive)),
+        _sftp.Tabs.Sum(t => t.UnsentEdits.Count));
 
     /// <summary>Texte de la confirmation : ce qui sera fermé, et ce qui sera interrompu.</summary>
     public string Describe(OpenSessions open)
@@ -58,6 +63,13 @@ public sealed class AppShutdown
             lines.Add(open.ActiveTransfers == 1
                 ? _strings.Get("Shutdown_OneTransfer")
                 : _strings.Format("Shutdown_Transfers", open.ActiveTransfers));
+        }
+
+        if (open.UnsentEdits > 0)
+        {
+            lines.Add(open.UnsentEdits == 1
+                ? _strings.Get("Shutdown_OneUnsentEdit")
+                : _strings.Format("Shutdown_UnsentEdits", open.UnsentEdits));
         }
 
         return string.Join(Environment.NewLine + Environment.NewLine, lines);

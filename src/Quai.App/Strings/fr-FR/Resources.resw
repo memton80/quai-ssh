@@ -945,4 +945,25 @@
   <data name="Sftp_StopEdits" xml:space="preserve">
     <value>Arrêter le suivi</value>
   </data>
+  <data name="Sftp_UnsentEditsTitle" xml:space="preserve">
+    <value>Modifications non renvoyées</value>
+  </data>
+  <data name="Sftp_UnsentEditsOne" xml:space="preserve">
+    <value>La dernière version de « {0} » n'a pas pu être renvoyée sur le serveur (connexion perdue, fichier modifié sur le serveur ou envoi en échec). Sa copie locale sera effacée et ces modifications perdues.</value>
+  </data>
+  <data name="Sftp_UnsentEditsMany" xml:space="preserve">
+    <value>{0} fichiers modifiés n'ont pas pu être renvoyés sur le serveur ({1}). Leurs copies locales seront effacées et ces modifications perdues.</value>
+  </data>
+  <data name="Sftp_StopEditsConfirm" xml:space="preserve">
+    <value>Arrêter quand même</value>
+  </data>
+  <data name="Sftp_CloseWithEditsConfirm" xml:space="preserve">
+    <value>Fermer quand même</value>
+  </data>
+  <data name="Shutdown_OneUnsentEdit" xml:space="preserve">
+    <value>Un fichier modifié dans un éditeur n'a pas été renvoyé sur le serveur : ses modifications seront perdues.</value>
+  </data>
+  <data name="Shutdown_UnsentEdits" xml:space="preserve">
+    <value>{0} fichiers modifiés dans un éditeur n'ont pas été renvoyés sur le serveur : leurs modifications seront perdues.</value>
+  </data>
 </root>

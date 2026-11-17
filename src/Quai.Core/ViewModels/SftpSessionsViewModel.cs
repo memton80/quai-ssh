@@ -95,6 +95,21 @@ public sealed partial class SftpSessionsViewModel : ObservableObject
         return existing;
     }
 
+    /// <summary>
+    /// Fermeture d'un onglet demandée par l'utilisateur : des fichiers modifiés pas encore renvoyés sont d'abord
+    /// envoyés, ou leur perte confirmée. Retourne faux si l'onglet reste ouvert.
+    /// </summary>
+    public async Task<bool> RequestCloseAsync(SftpBrowserViewModel? tab)
+    {
+        if (tab is null || !await tab.PrepareCloseAsync())
+        {
+            return false;
+        }
+
+        await CloseAsync(tab);
+        return true;
+    }
+
     public async Task CloseAsync(SftpBrowserViewModel? tab)
     {
         if (tab is null || !Tabs.Remove(tab))

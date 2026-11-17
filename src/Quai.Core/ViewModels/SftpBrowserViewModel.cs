@@ -440,9 +440,11 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         IsRemoteLoading = true;
         try
         {
+            // État relevé avant le téléchargement : un changement fait sur le serveur pendant ou juste après le
+            // téléchargement sera vu comme un conflit au premier renvoi, jamais écrasé sans question.
+            stamp = await session.GetStampAsync(entry.FullPath);
             local = files.NewLocalPath(entry.Name);
             await session.DownloadFileAsync(entry.FullPath, local);
-            stamp = await session.GetStampAsync(entry.FullPath);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -463,9 +465,57 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         await LaunchAsync(launcher, edit, chooseApplication);
     }
 
-    /// <summary>Arrête de suivre les fichiers ouverts : les prochains enregistrements ne sont plus renvoyés.</summary>
+    /// <summary>Fichiers ouverts dont la dernière version enregistrée n'est pas (encore) sur le serveur.</summary>
+    public IReadOnlyList<RemoteEdit> UnsentEdits => [.. _edits.Where(e => e.Pending || e.Uploading || e.HasLocalChanges())];
+
+    /// <summary>
+    /// « Arrêter le suivi » : les prochains enregistrements ne sont plus renvoyés et les copies locales sont effacées.
+    /// Des modifications pas encore renvoyées sont d'abord envoyées si possible ; sinon l'utilisateur confirme leur perte.
+    /// </summary>
     [RelayCommand]
-    public void StopEdits()
+    public async Task StopEditsAsync()
+    {
+        if (await ConfirmDiscardUnsentEditsAsync("Sftp_StopEditsConfirm"))
+        {
+            StopEdits();
+        }
+    }
+
+    /// <summary>
+    /// Avant de fermer l'onglet : renvoie ce qui peut l'être, puis demande confirmation s'il reste des modifications
+    /// qui seraient perdues. Retourne faux si l'utilisateur garde l'onglet ouvert.
+    /// </summary>
+    public Task<bool> PrepareCloseAsync() => ConfirmDiscardUnsentEditsAsync("Sftp_CloseWithEditsConfirm");
+
+    private async Task<bool> ConfirmDiscardUnsentEditsAsync(string confirmKey)
+    {
+        // Enregistrement tout juste fait (encore dans le délai de regroupement) ou envoi en échec : on tente l'envoi.
+        if (IsConnected)
+        {
+            foreach (var edit in _edits.Where(e => !e.Uploading && (e.Pending || e.HasLocalChanges())).ToList())
+            {
+                await UploadEditAsync(edit);
+            }
+        }
+
+        await Task.WhenAll([.. _editUploads]);
+        var unsent = UnsentEdits;
+        if (unsent.Count == 0)
+        {
+            return true;
+        }
+
+        return await _dialogs.ConfirmAsync(
+            _strings.Get("Sftp_UnsentEditsTitle"),
+            unsent.Count == 1
+                ? _strings.Format("Sftp_UnsentEditsOne", unsent[0].Name)
+                : _strings.Format("Sftp_UnsentEditsMany", unsent.Count, string.Join(", ", unsent.Take(5).Select(e => e.Name))),
+            _strings.Get(confirmKey),
+            isDestructive: true);
+    }
+
+    /// <summary>Fin du suivi sans question (fermeture de l'onglet déjà confirmée).</summary>
+    internal void StopEdits()
     {
         foreach (var edit in _edits)
         {
