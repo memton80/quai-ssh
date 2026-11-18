@@ -1,0 +1,23 @@
+# Formulaire ouvert par le bouton « Idée ou bug » de Quai : les identifiants des champs (id) sont remplis par
+# l'adresse (src/Quai.Core/ViewModels/FeedbackViewModel.cs). Ne pas les renommer sans changer l'application.
+name: Proposer une idée
+description: Une fonction qui vous manque dans Quai.
+labels: ["enhancement"]
+body:
+  - type: input
+    id: domaine
+    attributes:
+      label: Partie de Quai concernée
+      placeholder: "Carnet de connexions, terminal, fichiers (SFTP), snippets, réglages…"
+  - type: textarea
+    id: description
+    attributes:
+      label: Ce que vous aimeriez pouvoir faire, et pourquoi
+      description: Décrivez la situation où cette fonction vous servirait.
+    validations:
+      required: true
+  - type: textarea
+    id: systeme
+    attributes:
+      label: Version de Quai et de Windows
+      render: text
