@@ -966,4 +966,112 @@
   <data name="Shutdown_UnsentEdits" xml:space="preserve">
     <value>{0} fichiers modifiés dans un éditeur n'ont pas été renvoyés sur le serveur : leurs modifications seront perdues.</value>
   </data>
+  <data name="Nav_Feedback" xml:space="preserve">
+    <value>Idée ou bug</value>
+  </data>
+  <data name="Nav_FeedbackTooltip" xml:space="preserve">
+    <value>Proposer une idée ou signaler un bug</value>
+  </data>
+  <data name="Feedback_DialogTitle" xml:space="preserve">
+    <value>Proposer une idée ou signaler un bug</value>
+  </data>
+  <data name="Feedback_KindName" xml:space="preserve">
+    <value>Type de retour</value>
+  </data>
+  <data name="Feedback_KindIdea" xml:space="preserve">
+    <value>Proposer une idée</value>
+  </data>
+  <data name="Feedback_KindBug" xml:space="preserve">
+    <value>Signaler un bug</value>
+  </data>
+  <data name="Feedback_IdeaTitle" xml:space="preserve">
+    <value>Votre idée en une phrase</value>
+  </data>
+  <data name="Feedback_IdeaTitlePlaceholder" xml:space="preserve">
+    <value>Ex. : ouvrir deux terminaux côte à côte</value>
+  </data>
+  <data name="Feedback_IdeaDescription" xml:space="preserve">
+    <value>Ce que vous aimeriez pouvoir faire, et pourquoi</value>
+  </data>
+  <data name="Feedback_IdeaDescriptionPlaceholder" xml:space="preserve">
+    <value>Décrivez la situation où cette fonction vous servirait.</value>
+  </data>
+  <data name="Feedback_IdeaArea" xml:space="preserve">
+    <value>Partie de Quai concernée</value>
+  </data>
+  <data name="Feedback_AreaPlaceholder" xml:space="preserve">
+    <value>Facultatif</value>
+  </data>
+  <data name="Feedback_AreaConnections" xml:space="preserve">
+    <value>Carnet de connexions</value>
+  </data>
+  <data name="Feedback_AreaTerminal" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="Feedback_AreaFiles" xml:space="preserve">
+    <value>Fichiers (SFTP)</value>
+  </data>
+  <data name="Feedback_AreaSnippets" xml:space="preserve">
+    <value>Snippets</value>
+  </data>
+  <data name="Feedback_AreaSettings" xml:space="preserve">
+    <value>Réglages</value>
+  </data>
+  <data name="Feedback_AreaOther" xml:space="preserve">
+    <value>Autre</value>
+  </data>
+  <data name="Feedback_BugTitle" xml:space="preserve">
+    <value>Le problème en une phrase</value>
+  </data>
+  <data name="Feedback_BugTitlePlaceholder" xml:space="preserve">
+    <value>Ex. : le transfert s'arrête à 99 %</value>
+  </data>
+  <data name="Feedback_BugDescription" xml:space="preserve">
+    <value>Ce qui s'est passé, et ce que vous attendiez</value>
+  </data>
+  <data name="Feedback_BugDescriptionPlaceholder" xml:space="preserve">
+    <value>Message d'erreur, comportement inattendu…</value>
+  </data>
+  <data name="Feedback_BugSteps" xml:space="preserve">
+    <value>Comment le reproduire</value>
+  </data>
+  <data name="Feedback_BugStepsPlaceholder" xml:space="preserve">
+    <value>Facultatif : les étapes, dans l'ordre.</value>
+  </data>
+  <data name="Feedback_LogsHint" xml:space="preserve">
+    <value>Pour aider au diagnostic, vous pouvez joindre le journal du jour sur GitHub. Relisez-le avant : il contient les noms de vos serveurs (jamais de mot de passe).</value>
+  </data>
+  <data name="Feedback_OpenLogs" xml:space="preserve">
+    <value>Ouvrir le dossier des journaux</value>
+  </data>
+  <data name="Feedback_IncludeSystem" xml:space="preserve">
+    <value>Joindre la version de Quai et de Windows</value>
+  </data>
+  <data name="Feedback_SystemHeading" xml:space="preserve">
+    <value>Version de Quai et de Windows</value>
+  </data>
+  <data name="Feedback_GitHubHint" xml:space="preserve">
+    <value>Votre navigateur s'ouvre sur GitHub avec tout déjà rempli : il ne reste qu'à valider. Un compte GitHub (gratuit) est nécessaire ; Quai n'envoie rien lui-même.</value>
+  </data>
+  <data name="Feedback_Continue" xml:space="preserve">
+    <value>Continuer sur GitHub</value>
+  </data>
+  <data name="Feedback_TitleRequired" xml:space="preserve">
+    <value>Indiquez un titre en une phrase.</value>
+  </data>
+  <data name="Feedback_DescriptionRequired" xml:space="preserve">
+    <value>Ajoutez une description.</value>
+  </data>
+  <data name="Feedback_ShortenedTitle" xml:space="preserve">
+    <value>Texte raccourci</value>
+  </data>
+  <data name="Feedback_ShortenedMessage" xml:space="preserve">
+    <value>Votre texte était trop long pour être transmis en entier à GitHub : sa fin a été coupée. Le texte complet est dans le presse-papiers ; collez-le dans la page GitHub à la place du texte coupé.</value>
+  </data>
+  <data name="Feedback_BrowserFailedTitle" xml:space="preserve">
+    <value>Navigateur introuvable</value>
+  </data>
+  <data name="Feedback_BrowserFailedMessage" xml:space="preserve">
+    <value>Quai n'a pas pu ouvrir votre navigateur. Votre texte est dans le presse-papiers : ouvrez {0} pour le publier.</value>
+  </data>
 </root>

@@ -39,11 +39,15 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 - Fermer la fenêtre avec des sessions ouvertes demande confirmation (sessions et transferts en cours listés), puis chaque connexion est fermée proprement : déconnexion SSH, transferts interrompus, fichiers incomplets supprimés.
 - Au démarrage, un bandeau signale qu'une nouvelle version est publiée dans les Releases GitHub (désactivable dans les réglages). **« Mettre à jour »** fait tout, comme un navigateur : téléchargement de l'installateur (progression, annulable), vérification de son empreinte SHA-256, puis Quai se ferme (en demandant confirmation s'il reste des sessions ouvertes), s'installe en silencieux et redémarre tout seul. Version portable (zip) : le bouton ouvre la page de la release.
 
+**Une idée, un bug ?**
+- Le bouton **« Idée ou bug »** (ampoule, en bas de la barre de gauche, au-dessus des réglages) ouvre un petit formulaire : proposer une idée (avec la partie de Quai concernée) ou signaler un bug (avec les étapes pour le reproduire, et un lien vers le dossier des journaux pour joindre celui du jour). La version de Quai et de Windows est jointe si vous le souhaitez (case cochée par défaut, texte affiché tel quel).
+- « Continuer sur GitHub » ouvre votre navigateur sur une nouvelle issue du dépôt, déjà remplie : il ne reste qu'à relire et valider (compte GitHub gratuit nécessaire). Quai n'envoie rien lui-même. Un texte très long est coupé dans l'adresse (limite de Windows) : le texte complet est alors copié dans le presse-papiers, prêt à coller.
+
 ## Sécurité
 
 - **Secrets** (mots de passe, passphrases) : uniquement dans le coffre Windows (Gestionnaire d'identification). Jamais dans un fichier, un journal ou un message d'erreur.
 - **Clé d'hôte** toujours vérifiée : confiance au premier contact (l'empreinte SHA-256 vous est montrée avant toute saisie de mot de passe), puis alerte explicite si elle change. La vérification ne se désactive pas.
-- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages. L'installateur d'une mise à jour n'est téléchargé (depuis GitHub) que si vous cliquez sur « Mettre à jour », et il n'est exécuté que si son empreinte correspond à celle publiée avec la release.
+- **Aucune télémétrie**, aucun navigateur embarqué : le terminal est un composant natif. Seule connexion en dehors de vos serveurs : au démarrage, la lecture du numéro de la dernière version sur l'API publique de GitHub (sans compte, rien sur vous ni sur vos connexions) ; désactivable dans les réglages. Le bouton « Idée ou bug » ne fait qu'ouvrir une page GitHub dans votre navigateur. L'installateur d'une mise à jour n'est téléchargé (depuis GitHub) que si vous cliquez sur « Mettre à jour », et il n'est exécuté que si son empreinte correspond à celle publiée avec la release.
 
 ## Télécharger et installer
 

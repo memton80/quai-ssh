@@ -69,6 +69,7 @@ internal static class AppServices
         services.AddSingleton<IDialogService>(provider => provider.GetRequiredService<DialogService>());
         services.AddSingleton<IHostKeyPrompt>(provider => provider.GetRequiredService<DialogService>());
         services.AddSingleton<ICredentialPrompt>(provider => provider.GetRequiredService<DialogService>());
+        services.AddSingleton<FeedbackSender>();
 
         // SSH et port série
         services.AddSingleton<IKnownHostsStore, KnownHostsStore>();

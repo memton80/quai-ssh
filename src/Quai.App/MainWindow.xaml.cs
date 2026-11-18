@@ -23,6 +23,9 @@ public sealed partial class MainWindow : Window
     public const string SnippetsTag = "snippets";
     public const string SettingsTag = "settings";
 
+    /// <summary>Bouton « Idée ou bug » (pas une page : il ouvre un formulaire).</summary>
+    public const string FeedbackTag = "feedback";
+
     /// <summary>Toutes les pages, dans l'ordre de la navigation.</summary>
     public static readonly IReadOnlyList<string> PageTags = [ConnectionsTag, TerminalsTag, SftpTag, SnippetsTag, SettingsTag];
 
@@ -165,6 +168,29 @@ public sealed partial class MainWindow : Window
         if (tag is not null)
         {
             ShowPage(tag);
+        }
+    }
+
+    /// <summary>Bouton « Idée ou bug » : formulaire, puis GitHub dans le navigateur ; la page affichée ne change pas.</summary>
+    private async void OnNavigationItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        if (args.InvokedItemContainer?.Tag as string != FeedbackTag)
+        {
+            return;
+        }
+
+        if (sender.DisplayMode != NavigationViewDisplayMode.Expanded)
+        {
+            sender.IsPaneOpen = false;
+        }
+
+        try
+        {
+            await App.Current.Services.GetRequiredService<FeedbackSender>().RunAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Formulaire « idée ou bug » interrompu");
         }
     }
 

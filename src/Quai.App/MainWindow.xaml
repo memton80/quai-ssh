@@ -69,6 +69,7 @@
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
             OpenPaneLength="240"
+            ItemInvoked="OnNavigationItemInvoked"
             PaneDisplayMode="Auto"
             SelectionChanged="OnNavigationSelectionChanged">
             <NavigationView.MenuItems>
@@ -93,6 +94,19 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
+
+            <!-- Au-dessus de « Réglages » : ouvre un formulaire, sans changer de page. -->
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem
+                    Content="{l:Str Key=Nav_Feedback}"
+                    SelectsOnInvoked="False"
+                    Tag="feedback"
+                    ToolTipService.ToolTip="{l:Str Key=Nav_FeedbackTooltip}">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE82F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
 
             <Grid x:Name="PageHost" />
         </NavigationView>

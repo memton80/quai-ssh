@@ -115,6 +115,18 @@
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
     </Style>
 
+    <!-- Texte libre sur plusieurs lignes (description d'une idée, d'un bug). -->
+    <Style
+        x:Key="ProseTextBoxStyle"
+        BasedOn="{StaticResource DefaultTextBoxStyle}"
+        TargetType="TextBox">
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="MinHeight" Value="96" />
+        <Setter Property="MaxHeight" Value="200" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    </Style>
+
     <!-- État vide centré (icône, titre, explication). -->
     <Style x:Key="EmptyStatePanelStyle" TargetType="StackPanel">
         <Setter Property="HorizontalAlignment" Value="Center" />

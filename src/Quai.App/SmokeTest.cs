@@ -176,6 +176,7 @@ internal static class SmokeTest
             await SftpAsync(window, services, directory, report);
             await SessionFeaturesAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
+            await FeedbackAsync(services, directory, report);
             await SettingsAsync(window, services, directory, report);
             await UpdateBannerAsync(window, services, directory, report);
             await CloseConfirmationAsync(window, services, directory, report);
@@ -821,6 +822,40 @@ internal static class SmokeTest
         await ShowAndCaptureAsync(dialogs, () => dialogs.ConfirmChangedHostAsync(presented, [known]), Path.Combine(directory, "hostkey-changed.png"));
         await ShowAndCaptureAsync(dialogs, () => dialogs.PromptSecretAsync(profile, SecretKind.Password, isRetry: true), Path.Combine(directory, "secret-prompt.png"));
         report.Add("dialogues SSH (clé d'hôte, mot de passe) : OK");
+    }
+
+    /// <summary>Formulaire « idée ou bug » (les deux variantes) et adresse GitHub construite ; aucun navigateur n'est ouvert.</summary>
+    private static async Task FeedbackAsync(IServiceProvider services, string directory, List<string> report)
+    {
+        var dialogs = services.GetRequiredService<DialogService>();
+        var strings = services.GetRequiredService<IStrings>();
+        var logs = services.GetRequiredService<AppPaths>().LogsDirectory;
+        var system = Core.Feedback.FeedbackIssue.DescribeSystem();
+
+        var idea = new FeedbackViewModel(strings, system)
+        {
+            Title = "Ouvrir deux terminaux côte à côte",
+            Description = "Pour surveiller deux serveurs en même temps.",
+            AreaIndex = 1,
+        };
+        await ShowAndCaptureAsync(dialogs, () => dialogs.ShowFeedbackAsync(idea, logs), Path.Combine(directory, "feedback-idea.png"));
+
+        var bug = new FeedbackViewModel(strings, system, Core.Feedback.FeedbackKind.Bug)
+        {
+            Title = "Le transfert s'arrête à 99 %",
+            Description = "Le fichier reste incomplet sur le serveur.",
+            Steps = "1. Ouvrir une session SFTP\r2. Envoyer un gros fichier",
+        };
+        await ShowAndCaptureAsync(dialogs, () => dialogs.ShowFeedbackAsync(bug, logs), Path.Combine(directory, "feedback-bug.png"));
+
+        var address = bug.BuildLink().Address.OriginalString;
+        if (!address.StartsWith("https://github.com/memton80/quai-ssh/issues/new?template=bug.yml&title=", StringComparison.Ordinal)
+            || !address.Contains("&etapes=1.%20Ouvrir%20une%20session%20SFTP%0A2.", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Adresse GitHub inattendue pour un bug : {address}");
+        }
+
+        report.Add("formulaire « idée ou bug » : OK");
     }
 
     private static async Task ShowAndCaptureAsync(DialogService dialogs, Func<Task> show, string path)

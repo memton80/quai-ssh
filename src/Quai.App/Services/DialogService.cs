@@ -58,6 +58,13 @@ internal sealed class DialogService : IDialogService, IHostKeyPrompt, ICredentia
             return true;
         });
 
+    /// <summary>Message d'information (titre, texte sélectionnable, bouton « Fermer »).</summary>
+    public Task ShowInfoAsync(string title, string message) => ShowErrorAsync(title, message);
+
+    /// <summary>Formulaire « idée ou bug » ; retourne vrai si l'utilisateur continue vers GitHub (formulaire valide).</summary>
+    public Task<bool> ShowFeedbackAsync(FeedbackViewModel feedback, string logsDirectory) =>
+        OnUiAsync(async () => await ShowAsync(new FeedbackDialog(feedback, logsDirectory)) == ContentDialogResult.Primary);
+
     public Task<bool> EditConnectionAsync(ConnectionEditorViewModel editor) =>
         OnUiAsync(async () =>
             await ShowAsync(new ConnectionEditorDialog(editor, PickPrivateKeyAsync)) == ContentDialogResult.Primary);
