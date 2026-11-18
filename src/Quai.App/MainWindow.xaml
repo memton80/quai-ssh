@@ -68,8 +68,8 @@
             ExpandedModeThresholdWidth="1400"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
-            OpenPaneLength="240"
             ItemInvoked="OnNavigationItemInvoked"
+            OpenPaneLength="240"
             PaneDisplayMode="Auto"
             SelectionChanged="OnNavigationSelectionChanged">
             <NavigationView.MenuItems>
