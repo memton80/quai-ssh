@@ -60,6 +60,9 @@ public sealed partial class TerminalView : UserControl
     private bool _restoreFocus;
     private (int Top, int Height, int Size) _scroll;
 
+    /// <summary><c>Ctrl+Maj+T</c> tapé dans le terminal : la page ouvre un terminal local.</summary>
+    public event Action? NewLocalTerminalRequested;
+
     public TerminalView(TerminalTabViewModel viewModel)
     {
         ViewModel = viewModel;
@@ -281,6 +284,7 @@ public sealed partial class TerminalView : UserControl
 
         // Raccourci reçu dans la procédure de fenêtre du moteur : le dialogue s'ouvre juste après.
         native.SnippetsRequested += () => DispatcherQueue.TryEnqueue(() => _ = RunSnippetAsync());
+        native.NewLocalTerminalRequested += () => DispatcherQueue.TryEnqueue(() => NewLocalTerminalRequested?.Invoke());
         native.FocusChanged += OnTerminalFocusChanged;
         _native = native;
         ApplyAppearance();

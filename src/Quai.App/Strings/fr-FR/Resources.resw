@@ -277,7 +277,7 @@
     <value>Aucun terminal ouvert</value>
   </data>
   <data name="Terminals_EmptyHint" xml:space="preserve">
-    <value>Double-cliquez sur une connexion du carnet pour ouvrir un terminal (SSH ou port série) dans un onglet.</value>
+    <value>Double-cliquez sur une connexion du carnet pour ouvrir un terminal (SSH ou port série) dans un onglet, ou ouvrez un terminal local sur cet ordinateur (PowerShell, invite de commandes, WSL…).</value>
   </data>
   <data name="Terminals_OpenConnections" xml:space="preserve">
     <value>Ouvrir le carnet de connexions</value>
@@ -287,6 +287,42 @@
   </data>
   <data name="Terminal_ScrollBarName" xml:space="preserve">
     <value>Historique du terminal</value>
+  </data>
+  <data name="Terminal_Restart" xml:space="preserve">
+    <value>Relancer</value>
+  </data>
+  <data name="Terminal_LocalStarting" xml:space="preserve">
+    <value>Lancement de {0}…</value>
+  </data>
+  <data name="Terminal_LocalExited" xml:space="preserve">
+    <value>{0} s'est terminé.</value>
+  </data>
+  <data name="Terminal_LocalExitedWithCode" xml:space="preserve">
+    <value>{0} s'est terminé (code de sortie {1}).</value>
+  </data>
+  <data name="Terminal_LocalLost" xml:space="preserve">
+    <value>{0} s'est arrêté : {1}</value>
+  </data>
+  <data name="Terminal_LocalUnavailable" xml:space="preserve">
+    <value>Impossible de lancer {0} : {1}</value>
+  </data>
+  <data name="LocalShell_CommandPrompt" xml:space="preserve">
+    <value>Invite de commandes</value>
+  </data>
+  <data name="Terminals_NewLocal" xml:space="preserve">
+    <value>Terminal local</value>
+  </data>
+  <data name="Terminals_NewLocalTooltip" xml:space="preserve">
+    <value>Nouveau terminal local (Ctrl+Maj+T)</value>
+  </data>
+  <data name="Terminals_NoLocalShell" xml:space="preserve">
+    <value>Aucun shell trouvé sur cet ordinateur.</value>
+  </data>
+  <data name="Settings_LocalShell" xml:space="preserve">
+    <value>Shell du terminal local</value>
+  </data>
+  <data name="Settings_LocalShellDescription" xml:space="preserve">
+    <value>Ouvert par le bouton « Terminal local ». Les autres shells installés restent proposés dans le menu de ce bouton.</value>
   </data>
   <data name="Terminal_Reconnect" xml:space="preserve">
     <value>Reconnecter</value>

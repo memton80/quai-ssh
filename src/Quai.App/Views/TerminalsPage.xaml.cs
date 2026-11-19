@@ -4,13 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Quai.App.Localization;
 using Quai.Core.Services;
 using Quai.Core.ViewModels;
 
 namespace Quai.App.Views;
 
-/// <summary>Terminaux ouverts (SSH ou port série), un onglet par session.</summary>
+/// <summary>Terminaux ouverts (SSH, port série ou shell local), un onglet par session.</summary>
 public sealed partial class TerminalsPage : UserControl
 {
     private const string TerminalGlyph = "";
@@ -18,6 +19,7 @@ public sealed partial class TerminalsPage : UserControl
     private const string WarningGlyph = "";
     private const string BreakGlyph = "";
     private const string SnippetGlyph = "\uE943";
+    private const string LocalGlyph = "\uE977";
     private const string FolderGlyph = "\uE8B7";
 
     private readonly IShellNavigator _navigator;
@@ -48,7 +50,7 @@ public sealed partial class TerminalsPage : UserControl
     private static FontIconSource Icon(string glyph) => new() { Glyph = glyph };
 
     private static string GlyphOf(TerminalTabViewModel tab) =>
-        tab.CanReconnect ? WarningGlyph : tab.IsSerial ? SerialGlyph : TerminalGlyph;
+        tab.CanReconnect ? WarningGlyph : tab.IsSerial ? SerialGlyph : tab.IsLocal ? LocalGlyph : TerminalGlyph;
 
     private void OnTabsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -79,11 +81,13 @@ public sealed partial class TerminalsPage : UserControl
 
     private void AddTab(TerminalTabViewModel tab)
     {
+        var view = new TerminalView(tab);
+        view.NewLocalTerminalRequested += () => OpenLocalTerminal();
         var item = new TabViewItem
         {
             Header = tab.Title,
             IconSource = Icon(GlyphOf(tab)),
-            Content = new TerminalView(tab),
+            Content = view,
             Tag = tab,
         };
         ToolTipService.SetToolTip(item, tab.Endpoint);
@@ -93,13 +97,13 @@ public sealed partial class TerminalsPage : UserControl
         var snippets = new MenuFlyoutItem { Text = Loc.Get("Terminal_Snippets"), Icon = new FontIcon { Glyph = SnippetGlyph } };
         snippets.Click += async (_, _) => await RunSnippetAsync(item);
         menu.Items.Add(snippets);
-        if (!tab.IsSerial)
+        if (tab.IsSsh)
         {
             var sftp = new MenuFlyoutItem { Text = Loc.Get("Terminal_SftpHere"), Icon = new FontIcon { Glyph = FolderGlyph } };
             sftp.Click += async (_, _) => await OpenSftpHereAsync(tab);
             menu.Items.Add(sftp);
         }
-        else
+        else if (tab.IsSerial)
         {
             menu.Items.Add(new MenuFlyoutItem
             {
@@ -170,7 +174,7 @@ public sealed partial class TerminalsPage : UserControl
         if (Tabs.SelectedItem is TabViewItem { Tag: TerminalTabViewModel tab } item)
         {
             ViewModel.SelectedTab = tab;
-            SftpHereButton.IsEnabled = !tab.IsSerial;
+            SftpHereButton.IsEnabled = tab.IsSsh;
             (item.Content as TerminalView)?.FocusTerminal();
         }
     }
@@ -191,7 +195,7 @@ public sealed partial class TerminalsPage : UserControl
     /// <summary>Explorateur SFTP de la connexion de l'onglet, ouvert dans le dossier courant de son shell.</summary>
     internal async Task OpenSftpHereAsync(TerminalTabViewModel? tab)
     {
-        if (tab is null || tab.IsSerial)
+        if (tab is null || !tab.IsSsh)
         {
             return;
         }
@@ -207,6 +211,45 @@ public sealed partial class TerminalsPage : UserControl
     }
 
     private async void OnSftpHereClick(object sender, RoutedEventArgs e) => await OpenSftpHereAsync(ViewModel.SelectedTab);
+
+    /// <summary>Terminal local : shell <paramref name="shellId"/>, sinon celui des réglages (premier shell détecté par défaut).</summary>
+    internal void OpenLocalTerminal(string? shellId = null) => _launcher.OpenLocalTerminal(shellId);
+
+    private void OnLocalTerminalClick(SplitButton sender, SplitButtonClickEventArgs args) => OpenLocalTerminal();
+
+    private void OnEmptyLocalTerminalClick(object sender, RoutedEventArgs e) => OpenLocalTerminal();
+
+    private void OnLocalTerminalAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        OpenLocalTerminal();
+    }
+
+    /// <summary>Menu de la flèche : les shells installés, relus à chaque ouverture (un shell a pu être installé entre-temps).</summary>
+    private void OnShellMenuOpening(object? sender, object e)
+    {
+        if (sender is not MenuFlyout menu)
+        {
+            return;
+        }
+
+        menu.Items.Clear();
+        var shells = ViewModel.GetLocalShells();
+        if (shells.Count == 0)
+        {
+            menu.Items.Add(new MenuFlyoutItem { Text = Loc.Get("Terminals_NoLocalShell"), IsEnabled = false });
+            return;
+        }
+
+        foreach (var shell in shells)
+        {
+            var item = new MenuFlyoutItem { Text = shell.Name, Icon = new FontIcon { Glyph = LocalGlyph } };
+            ToolTipService.SetToolTip(item, shell.CommandLine);
+            var id = shell.Id;
+            item.Click += (_, _) => OpenLocalTerminal(id);
+            menu.Items.Add(item);
+        }
+    }
 
     private void OnAddTabClick(TabView sender, object args) => _navigator.NavigateTo(AppPage.Connections);
 

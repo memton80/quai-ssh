@@ -71,6 +71,9 @@ internal sealed class NativeTerminal : IDisposable
     /// <summary><c>Ctrl+Maj+P</c> : choisir un snippet à envoyer.</summary>
     public event Action? SnippetsRequested;
 
+    /// <summary><c>Ctrl+Maj+T</c> : ouvrir un terminal local (shell par défaut).</summary>
+    public event Action? NewLocalTerminalRequested;
+
     /// <summary>Focus clavier gagné ou perdu ; le second argument indique une perte au profit d'une autre application.</summary>
     public event Action<bool, bool>? FocusChanged;
 
@@ -666,6 +669,12 @@ internal sealed class NativeTerminal : IDisposable
                 // Ctrl+Maj+P (comme la palette de commandes de Windows Terminal) ; Ctrl+P seul reste au shell.
                 case 'P' when shift:
                     SnippetsRequested?.Invoke();
+                    _swallowChar = true;
+                    return true;
+
+                // Ctrl+Maj+T : nouvel onglet de terminal local, comme dans Windows Terminal ; Ctrl+T seul reste au shell.
+                case 'T' when shift:
+                    NewLocalTerminalRequested?.Invoke();
                     _swallowChar = true;
                     return true;
 

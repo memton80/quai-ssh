@@ -120,6 +120,18 @@
   </ItemGroup>
 
   <!--
+    Terminal local : ConPTY de Windows Terminal (conpty.dll + OpenConsole.exe), apporté par Porta.Pty, qui copie
+    l'hôte x64 et l'hôte ARM64 (x64\OpenConsole.exe, arm64\OpenConsole.exe). Une application x64 a besoin des deux
+    (sur un PC ARM, conpty.dll lance l'hôte natif) ; une application ARM64 du seul hôte ARM64 : l'autre est retiré.
+  -->
+  <Target Name="QuaiKeepNativeConPtyHost" AfterTargets="PortaPtyStageConPtyHost" Condition="'$(RuntimeIdentifier)' == 'win-arm64'">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
+                               Condition="'%(Filename)%(Extension)' == 'OpenConsole.exe' and '%(DestinationSubDirectory)' == 'x64\'" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     Allègement de la publication : rien de ce qui suit n'est utilisé par Quai.
     - WebView2 (dépendance de WinUI) : la projection C# reste pour la compilation de WinUI, mais ni la DLL native
       Microsoft.Web.WebView2.Core.dll ni WebView2Loader.dll ne sont copiées (aucun contrôle WebView2 dans Quai,

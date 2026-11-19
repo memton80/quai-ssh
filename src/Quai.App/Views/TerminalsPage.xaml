@@ -7,6 +7,14 @@
     xmlns:ui="using:Quai.App">
 
     <Grid>
+        <!-- Ctrl+Maj+T hors du terminal (dans le terminal, le moteur natif reçoit les touches : voir NativeTerminal). -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator
+                Key="T"
+                Invoked="OnLocalTerminalAccelerator"
+                Modifiers="Control,Shift" />
+        </Grid.KeyboardAccelerators>
+
         <TabView
             x:Name="Tabs"
             VerticalAlignment="Stretch"
@@ -23,6 +31,20 @@
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
                     Spacing="2">
+                    <!-- Terminal local : shell par défaut (réglages) ; la flèche liste les shells installés. -->
+                    <SplitButton
+                        AutomationProperties.Name="{l:Str Key=Terminals_NewLocal}"
+                        Click="OnLocalTerminalClick"
+                        Style="{StaticResource TabStripSplitButtonStyle}"
+                        ToolTipService.ToolTip="{l:Str Key=Terminals_NewLocalTooltip}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE977;" />
+                            <TextBlock Text="{l:Str Key=Terminals_NewLocal}" />
+                        </StackPanel>
+                        <SplitButton.Flyout>
+                            <MenuFlyout Opening="OnShellMenuOpening" Placement="BottomEdgeAlignedRight" />
+                        </SplitButton.Flyout>
+                    </SplitButton>
                     <Button
                         AutomationProperties.Name="{l:Str Key=Terminal_Snippets}"
                         Click="OnSnippetsClick"
@@ -56,11 +78,22 @@
                 HorizontalTextAlignment="Center"
                 Style="{StaticResource PageHintStyle}"
                 Text="{l:Str Key=Terminals_EmptyHint}" />
-            <Button
+            <StackPanel
                 Margin="0,8,0,0"
                 HorizontalAlignment="Center"
-                Click="OnOpenConnectionsClick"
-                Content="{l:Str Key=Terminals_OpenConnections}" />
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Click="OnEmptyLocalTerminalClick"
+                    Style="{StaticResource AccentButtonStyle}"
+                    ToolTipService.ToolTip="{l:Str Key=Terminals_NewLocalTooltip}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE977;" />
+                        <TextBlock Text="{l:Str Key=Terminals_NewLocal}" />
+                    </StackPanel>
+                </Button>
+                <Button Click="OnOpenConnectionsClick" Content="{l:Str Key=Terminals_OpenConnections}" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

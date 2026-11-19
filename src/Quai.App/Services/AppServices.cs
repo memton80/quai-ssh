@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Quai.Core.Local;
 using Quai.Core.Localization;
 using Quai.Core.Security;
 using Quai.Core.Serial;
@@ -87,6 +88,10 @@ internal static class AppServices
             services.AddSingleton<ISerialSessionFactory, SerialSessionFactory>();
             services.AddSingleton<ISerialPortCatalog, SerialPortCatalog>();
         }
+
+        // Terminal local : de vrais shells de l'ordinateur, aussi pendant le test de fumée (invite de commandes réelle).
+        services.AddSingleton<ILocalShellCatalog, LocalShellCatalog>();
+        services.AddSingleton<ILocalTerminalFactory, LocalTerminalFactory>();
 
         services.AddSingleton<ITerminalSessionFactory, TerminalSessionFactory>();
 

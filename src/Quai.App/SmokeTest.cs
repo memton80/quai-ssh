@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Quai.App.Localization;
 using Quai.App.Services;
 using Quai.App.Terminal;
 using Quai.Core.Localization;
@@ -173,6 +174,7 @@ internal static class SmokeTest
             await TerminalAsync(window, services, directory, "terminal", report);
             report.Add("terminal (moteur Windows Terminal) : OK");
             await SerialTerminalAsync(window, services, directory, report);
+            await LocalTerminalAsync(window, services, directory, report);
             await SftpAsync(window, services, directory, report);
             await SessionFeaturesAsync(window, services, directory, report);
             await SshDialogsAsync(services, directory, report);
@@ -356,6 +358,80 @@ internal static class SmokeTest
         }
 
         report.Add("terminal série (écho, signal break) : OK");
+    }
+
+    /// <summary>
+    /// Vrai terminal local, ouvert comme par le bouton « Terminal local » : invite de commandes de la machine dans le
+    /// ConPTY embarqué (OpenConsole.exe livré avec Quai, pas celui de Windows), commande exécutée, « exit » qui ferme
+    /// la session et propose de relancer le shell.
+    /// </summary>
+    private static async Task LocalTerminalAsync(MainWindow window, IServiceProvider services, string directory, List<string> report)
+    {
+        var terminals = services.GetRequiredService<TerminalsViewModel>();
+        window.NavigateTo(MainWindow.TerminalsTag);
+        var page = window.FindPage(MainWindow.TerminalsTag) as Views.TerminalsPage
+            ?? throw new InvalidOperationException("Page des terminaux introuvable.");
+        if (!terminals.GetLocalShells().Any(s => s.Id == Quai.Core.Local.LocalShellCatalog.CommandPromptId))
+        {
+            throw new InvalidOperationException("L'invite de commandes n'est pas proposée comme shell local.");
+        }
+
+        page.OpenLocalTerminal(Quai.Core.Local.LocalShellCatalog.CommandPromptId);
+        var tab = terminals.SelectedTab is { IsLocal: true } selected
+            ? selected
+            : throw new InvalidOperationException("Aucun onglet de terminal local n'a été créé.");
+        await WaitUntilAsync(() => Task.FromResult(tab.IsConnected), TimeSpan.FromSeconds(60), "Le terminal local ne s'est pas ouvert.");
+        var view = page.SelectedTerminal ?? throw new InvalidOperationException("Vue du terminal local introuvable.");
+
+        // L'échappement « ^ » reste dans la commande affichée : seul le résultat contient le marqueur complet.
+        view.TypeForTest("echo QUAI-LOCAL-^OK\r");
+        var screen = string.Empty;
+        await WaitUntilAsync(
+            () => Task.FromResult((screen = view.ReadScreenText()).Contains("QUAI-LOCAL-OK", StringComparison.Ordinal)),
+            TimeSpan.FromSeconds(30),
+            "La commande tapée dans l'invite de commandes locale n'a rien affiché.");
+        await File.WriteAllTextAsync(Path.Combine(directory, "terminal-local-text.txt"), screen);
+
+        var hosts = System.Diagnostics.Process.GetProcessesByName("OpenConsole")
+            .Select(p =>
+            {
+                try
+                {
+                    return p.MainModule?.FileName;
+                }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+                {
+                    return null;
+                }
+            })
+            .OfType<string>()
+            .ToList();
+        if (!hosts.Any(h => h.StartsWith(AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException(
+                $"Le ConPTY embarqué (OpenConsole.exe de Quai) n'est pas utilisé ; hôtes trouvés : {string.Join(", ", hosts)}");
+        }
+
+        await Task.Delay(500);
+        await ScreenCapture.SaveAsync(WinRT.Interop.WindowNative.GetWindowHandle(window), Path.Combine(directory, "terminal-local-tab.png"));
+
+        view.TypeForTest("exit\r");
+        await WaitUntilAsync(() => Task.FromResult(tab.CanReconnect), TimeSpan.FromSeconds(20), "« exit » n'a pas fermé le terminal local.");
+        if (tab.IsAutoReconnecting || tab.ReconnectText != Loc.Get("Terminal_Restart"))
+        {
+            throw new InvalidOperationException("Un terminal local fermé doit proposer « Relancer », sans reconnexion automatique.");
+        }
+
+        await tab.ReconnectCommand.ExecuteAsync(null);
+        await WaitUntilAsync(() => Task.FromResult(tab.IsConnected), TimeSpan.FromSeconds(30), "« Relancer » n'a pas rouvert le shell local.");
+
+        await terminals.CloseAsync(tab);
+        if (!terminals.IsEmpty)
+        {
+            throw new InvalidOperationException("L'onglet du terminal local ne s'est pas fermé.");
+        }
+
+        report.Add($"terminal local (invite de commandes réelle, ConPTY embarqué {Path.GetRelativePath(AppContext.BaseDirectory, hosts.First(h => h.StartsWith(AppContext.BaseDirectory, StringComparison.OrdinalIgnoreCase)))}, exit, relance) : OK");
     }
 
     /// <summary>

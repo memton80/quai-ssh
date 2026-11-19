@@ -79,6 +79,14 @@
         <Setter Property="Padding" Value="0" />
     </Style>
 
+    <!-- « Terminal local » dans la barre d'onglets : discret comme les boutons icônes voisins, flèche du menu des shells. -->
+    <Style x:Key="TabStripSplitButtonStyle" TargetType="SplitButton">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+    </Style>
+
     <!-- Chevron replier / déplier d'un dossier du carnet (dans une colonne de 24 px : les compteurs restent alignés). -->
     <Style
         x:Key="FolderToggleButtonStyle"

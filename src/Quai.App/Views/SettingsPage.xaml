@@ -33,6 +33,19 @@
 
             <!-- Terminal -->
             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="{l:Str Key=Settings_Terminal}" />
+            <tk:SettingsCard
+                Description="{l:Str Key=Settings_LocalShellDescription}"
+                Header="{l:Str Key=Settings_LocalShell}"
+                IsEnabled="{x:Bind ViewModel.HasLocalShells}">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE977;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ComboBox
+                    MinWidth="200"
+                    AutomationProperties.Name="{l:Str Key=Settings_LocalShell}"
+                    ItemsSource="{x:Bind ViewModel.LocalShellNames}"
+                    SelectedIndex="{x:Bind ViewModel.LocalShellIndex, Mode=TwoWay}" />
+            </tk:SettingsCard>
             <tk:SettingsCard Description="{l:Str Key=Settings_FluentBackgroundDescription}" Header="{l:Str Key=Settings_FluentBackground}">
                 <tk:SettingsCard.HeaderIcon>
                     <FontIcon Glyph="&#xE771;" />
