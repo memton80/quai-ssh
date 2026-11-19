@@ -126,8 +126,10 @@
   -->
   <Target Name="QuaiKeepNativeConPtyHost" AfterTargets="PortaPtyStageConPtyHost" Condition="'$(RuntimeIdentifier)' == 'win-arm64'">
     <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
-                               Condition="'%(Filename)%(Extension)' == 'OpenConsole.exe' and '%(DestinationSubDirectory)' == 'x64\'" />
+      <_QuaiX64ConPtyHost Include="@(ReferenceCopyLocalPaths)"
+                          Condition="'%(ReferenceCopyLocalPaths.Filename)%(ReferenceCopyLocalPaths.Extension)' == 'OpenConsole.exe'
+                                     and '%(ReferenceCopyLocalPaths.DestinationSubDirectory)' == 'x64\'" />
+      <ReferenceCopyLocalPaths Remove="@(_QuaiX64ConPtyHost)" />
     </ItemGroup>
   </Target>
 
