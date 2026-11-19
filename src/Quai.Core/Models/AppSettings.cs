@@ -44,6 +44,12 @@ public sealed class AppSettings
     /// <summary>Connexion SSH perdue (réseau, mise en veille) : nouvelles tentatives automatiques, espacées.</summary>
     public bool AutoReconnect { get; set; } = true;
 
+    /// <summary>
+    /// Shell ouvert par le bouton « Terminal local » (identifiant de <see cref="Local.LocalShellCatalog"/> : « pwsh »,
+    /// « cmd », « wsl:Ubuntu »…). Vide, ou shell désinstallé : le premier shell détecté (PowerShell en priorité).
+    /// </summary>
+    public string LocalShell { get; set; } = string.Empty;
+
     /// <summary>Au démarrage, demander à GitHub si une version plus récente est publiée.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
@@ -60,6 +66,7 @@ public sealed class AppSettings
         TerminalFontFamily = string.IsNullOrWhiteSpace(TerminalFontFamily)
             ? DefaultTerminalFontFamily
             : TerminalFontFamily.Trim();
+        LocalShell = LocalShell?.Trim() ?? string.Empty;
         TerminalFontSize = Math.Clamp(TerminalFontSize, MinTerminalFontSize, MaxTerminalFontSize);
         KeepAliveSeconds = KeepAliveSeconds <= 0 ? 0 : Math.Clamp(KeepAliveSeconds, MinKeepAliveSeconds, MaxKeepAliveSeconds);
     }

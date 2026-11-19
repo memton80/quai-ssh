@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
+using Quai.Core.Local;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Services;
@@ -9,7 +10,7 @@ using Quai.Core.Terminal;
 
 namespace Quai.Core.ViewModels;
 
-/// <summary>Les terminaux ouverts (un onglet par session SSH ou série).</summary>
+/// <summary>Les terminaux ouverts (un onglet par session SSH, série ou locale).</summary>
 public sealed partial class TerminalsViewModel : ObservableObject
 {
     private readonly ITerminalSessionFactory _factory;
@@ -17,20 +18,36 @@ public sealed partial class TerminalsViewModel : ObservableObject
     private readonly IUiDispatcher _dispatcher;
     private readonly ILoggerFactory? _loggerFactory;
     private readonly ISettingsService? _settings;
+    private readonly ILocalShellCatalog? _shells;
 
     public TerminalsViewModel(
         ITerminalSessionFactory factory,
         IStrings strings,
         IUiDispatcher dispatcher,
         ILoggerFactory? loggerFactory = null,
-        ISettingsService? settings = null)
+        ISettingsService? settings = null,
+        ILocalShellCatalog? shells = null)
     {
         _factory = factory;
         _strings = strings;
         _dispatcher = dispatcher;
         _loggerFactory = loggerFactory;
         _settings = settings;
+        _shells = shells;
         IsEmpty = true;
+    }
+
+    /// <summary>Shells installés, proposés pour un terminal local (relus à chaque appel : un shell a pu être installé).</summary>
+    public IReadOnlyList<LocalShell> GetLocalShells() => _shells?.GetShells() ?? [];
+
+    /// <summary>
+    /// Ouvre un terminal local avec le shell <paramref name="shellId"/>, sinon celui des réglages, sinon le premier
+    /// détecté. <c>null</c> si aucun shell n'est disponible.
+    /// </summary>
+    public TerminalTabViewModel? OpenLocal(string? shellId = null)
+    {
+        var shell = LocalShellCatalog.Resolve(GetLocalShells(), shellId ?? _settings?.Current.LocalShell);
+        return shell is null ? null : Open(ConnectionProfile.ForLocalShell(shell));
     }
 
     public ObservableCollection<TerminalTabViewModel> Tabs { get; } = [];

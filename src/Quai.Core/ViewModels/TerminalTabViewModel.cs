@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Quai.Core.Local;
 using Quai.Core.Localization;
 using Quai.Core.Models;
 using Quai.Core.Serial;
@@ -24,7 +25,8 @@ public enum TerminalStatus
 }
 
 /// <summary>
-/// Un onglet de terminal : cycle de vie de la session (shell SSH ou port série) et échange d'octets avec l'émulateur.
+/// Un onglet de terminal : cycle de vie de la session (shell SSH, port série ou shell local) et échange d'octets avec
+/// l'émulateur.
 /// </summary>
 public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
 {
@@ -105,8 +107,17 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     public bool IsSerial => Profile.IsSerial;
 
+    /// <summary>Shell de cet ordinateur (pseudo-console), et non une connexion.</summary>
+    public bool IsLocal => Profile.IsLocal;
+
+    /// <summary>Session SSH : explorateur SFTP « ici », reconnexion automatique, ajout au carnet.</summary>
+    public bool IsSsh => Profile.IsSsh;
+
+    /// <summary>Texte du bouton du bandeau « session fermée » : on relance un shell local, on se reconnecte ailleurs.</summary>
+    public string ReconnectText => _strings.Get(IsLocal ? "Terminal_Restart" : "Terminal_Reconnect");
+
     /// <summary>Connexion rapide : l'onglet n'est relié à aucune fiche du carnet.</summary>
-    public bool IsQuickConnect => Profile.IsTransient;
+    public bool IsQuickConnect => Profile.IsTransient && IsSsh;
 
     /// <summary>Connexion rapide établie : proposer de l'ajouter au carnet (tant que l'utilisateur n'a pas refusé).</summary>
     public bool ShowSaveOffer => IsQuickConnect && IsConnected && !SaveOfferDismissed;
@@ -199,9 +210,20 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
             return ConnectOutcome.Final;
         }
 
+        var restarting = Status != TerminalStatus.Idle;
         Status = TerminalStatus.Connecting;
-        StatusText = _strings.Format(IsSerial ? "Terminal_SerialOpening" : "Terminal_Connecting", Endpoint);
-        WriteNotice(StatusText);
+        StatusText = Profile.Protocol switch
+        {
+            ConnectionProtocol.Serial => _strings.Format("Terminal_SerialOpening", Endpoint),
+            ConnectionProtocol.Local => _strings.Format("Terminal_LocalStarting", Title),
+            _ => _strings.Format("Terminal_Connecting", Endpoint),
+        };
+
+        // Un shell local s'ouvre sans délai : pas de message avant sa première invite, sauf pour séparer une relance.
+        if (!IsLocal || restarting)
+        {
+            WriteNotice(StatusText);
+        }
 
         var cancellation = new CancellationTokenSource();
         _connectCancellation = cancellation;
@@ -246,6 +268,10 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         {
             Fail(TerminalStatus.Failed, _strings.Format("Terminal_KeyUnavailable", ex.Path));
         }
+        catch (LocalShellUnavailableException ex)
+        {
+            Fail(TerminalStatus.Failed, _strings.Format("Terminal_LocalUnavailable", ex.ShellName, ex.Message));
+        }
         catch (SerialPortUnavailableException ex)
         {
             var key = ex.Problem switch
@@ -271,7 +297,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
         return ConnectOutcome.Final;
     }
 
-    private bool AutoReconnectEnabled => !IsSerial && _settings?.Current.AutoReconnect == true;
+    private bool AutoReconnectEnabled => IsSsh && _settings?.Current.AutoReconnect == true;
 
     /// <summary>Connexion perdue : tentatives espacées (<see cref="ReconnectDelays"/>), compte à rebours affiché.</summary>
     private void StartAutoReconnect()
@@ -426,7 +452,7 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
     /// </summary>
     public async Task<string?> GetWorkingDirectoryAsync(CancellationToken cancellationToken = default)
     {
-        if (_session is not { } session || !IsConnected || IsSerial)
+        if (_session is not { } session || !IsConnected || !IsSsh)
         {
             return null;
         }
@@ -476,10 +502,15 @@ public sealed partial class TerminalTabViewModel : ObservableObject, IAsyncDispo
 
     private string PortName => Profile.Serial?.PortName ?? string.Empty;
 
-    private string ClosedMessage(Exception? error) =>
-        error is null ? _strings.Get("Terminal_Closed")
-        : IsSerial ? _strings.Format("Terminal_SerialLost", PortName)
-        : _strings.Format("Terminal_ConnectionLost", error.Message);
+    private string ClosedMessage(Exception? error) => error switch
+    {
+        null when IsLocal => _strings.Format("Terminal_LocalExited", Title),
+        null => _strings.Get("Terminal_Closed"),
+        LocalShellExitedException exited => _strings.Format("Terminal_LocalExitedWithCode", Title, exited.ExitCode),
+        _ when IsLocal => _strings.Format("Terminal_LocalLost", Title, error.Message),
+        _ when IsSerial => _strings.Format("Terminal_SerialLost", PortName),
+        _ => _strings.Format("Terminal_ConnectionLost", error.Message),
+    };
 
     private void Fail(TerminalStatus status, string message)
     {

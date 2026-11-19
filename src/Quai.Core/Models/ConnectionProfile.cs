@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Quai.Core.Models;
 
 /// <summary>
-/// Une entrée du carnet de connexions : serveur SSH ou port série. Ne contient volontairement aucun secret :
+/// Une entrée du carnet de connexions : serveur SSH ou port série (ou, hors carnet, l'onglet d'un terminal local). Ne contient volontairement aucun secret :
 /// mots de passe et passphrases vivent dans le coffre Windows (<see cref="Security.ISecretStore"/>).
 /// </summary>
 public sealed class ConnectionProfile
@@ -19,6 +19,13 @@ public sealed class ConnectionProfile
 
     /// <summary>Paramètres de la liaison ; renseignés pour une connexion série uniquement.</summary>
     public SerialSettings? Serial { get; set; }
+
+    /// <summary>
+    /// Shell lancé par un terminal local. Jamais enregistré : un terminal local n'entre pas dans le carnet
+    /// (le format du fichier reste celui des versions précédentes).
+    /// </summary>
+    [JsonIgnore]
+    public LocalShell? LocalShell { get; set; }
 
     public string Host { get; set; } = string.Empty;
 
@@ -45,6 +52,13 @@ public sealed class ConnectionProfile
     [JsonIgnore]
     public bool IsSerial => Protocol == ConnectionProtocol.Serial;
 
+    [JsonIgnore]
+    public bool IsLocal => Protocol == ConnectionProtocol.Local;
+
+    /// <summary>Serveur SSH : seul type qui a un explorateur SFTP, une reconnexion automatique, une place dans le carnet.</summary>
+    [JsonIgnore]
+    public bool IsSsh => Protocol == ConnectionProtocol.Ssh;
+
     /// <summary>
     /// Connexion rapide, absente du carnet : jamais enregistrée telle quelle, et aucun secret n'est mémorisé
     /// dans le coffre pour elle (il resterait orphelin si elle n'est pas ajoutée au carnet).
@@ -54,12 +68,17 @@ public sealed class ConnectionProfile
 
     /// <summary>
     /// « utilisateur@hôte », suivi du port s'il n'est pas standard ; pour une connexion série,
-    /// « COM3 · 9600 8N1 » (voir <see cref="SerialSettings.Summary"/>).
+    /// « COM3 · 9600 8N1 » (voir <see cref="SerialSettings.Summary"/>) ; pour un terminal local, la ligne de commande du shell.
     /// </summary>
     public string Endpoint
     {
         get
         {
+            if (IsLocal)
+            {
+                return LocalShell?.CommandLine ?? string.Empty;
+            }
+
             if (IsSerial)
             {
                 return (Serial ?? new SerialSettings()).Summary;
@@ -72,8 +91,26 @@ public sealed class ConnectionProfile
 
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? DefaultName : Name;
 
-    /// <summary>Nom par défaut : l'adresse SSH, ou le seul nom du port (sa vitesse peut changer).</summary>
-    private string DefaultName => IsSerial ? Serial?.PortName ?? string.Empty : Endpoint;
+    /// <summary>Nom par défaut : l'adresse SSH, le seul nom du port (sa vitesse peut changer), ou le nom du shell.</summary>
+    private string DefaultName => Protocol switch
+    {
+        ConnectionProtocol.Serial => Serial?.PortName ?? string.Empty,
+        ConnectionProtocol.Local => LocalShell?.Name ?? string.Empty,
+        _ => Endpoint,
+    };
+
+    /// <summary>Onglet de terminal local : hors carnet, jamais enregistré.</summary>
+    public static ConnectionProfile ForLocalShell(LocalShell shell)
+    {
+        ArgumentNullException.ThrowIfNull(shell);
+        return new ConnectionProfile
+        {
+            Name = shell.Name,
+            Protocol = ConnectionProtocol.Local,
+            LocalShell = shell,
+            IsTransient = true,
+        };
+    }
 
     public ConnectionProfile Clone() => new()
     {
@@ -81,6 +118,7 @@ public sealed class ConnectionProfile
         Name = Name,
         Protocol = Protocol,
         Serial = Serial?.Clone(),
+        LocalShell = LocalShell,
         Host = Host,
         Port = Port,
         Username = Username,
@@ -95,8 +133,8 @@ public sealed class ConnectionProfile
     };
 
     /// <summary>
-    /// Nettoie les champs saisis (espaces, dossier, tags en double). Une connexion série ne garde aucun champ
-    /// SSH, une connexion SSH aucun paramètre série.
+    /// Nettoie les champs saisis (espaces, dossier, tags en double). Une connexion série ou locale ne garde aucun
+    /// champ SSH, une connexion SSH aucun paramètre série.
     /// </summary>
     public void Normalize()
     {
@@ -106,10 +144,24 @@ public sealed class ConnectionProfile
         }
 
         Name = Name.Trim();
-        if (IsSerial)
+        if (!IsSerial)
         {
-            Serial ??= new SerialSettings();
-            Serial.Normalize();
+            Serial = null;
+        }
+
+        if (!IsLocal)
+        {
+            LocalShell = null;
+        }
+
+        if (IsSerial || IsLocal)
+        {
+            if (IsSerial)
+            {
+                Serial ??= new SerialSettings();
+                Serial.Normalize();
+            }
+
             Host = string.Empty;
             Port = DefaultPort;
             Username = string.Empty;
@@ -118,7 +170,6 @@ public sealed class ConnectionProfile
         }
         else
         {
-            Serial = null;
             Host = Host.Trim();
             Username = Username.Trim();
             PrivateKeyPath = string.IsNullOrWhiteSpace(PrivateKeyPath) ? null : PrivateKeyPath.Trim().Trim('"');

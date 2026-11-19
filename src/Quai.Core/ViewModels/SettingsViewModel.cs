@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Quai.Core.Local;
 using Quai.Core.Models;
 using Quai.Core.Storage;
 
@@ -11,14 +12,28 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private bool _loading;
 
-    public SettingsViewModel(ISettingsService settings, AppPaths paths)
+    public SettingsViewModel(ISettingsService settings, AppPaths paths, ILocalShellCatalog? shells = null)
     {
         _settings = settings;
         DataDirectory = paths.Root;
         LogsDirectory = paths.LogsDirectory;
         TerminalFontFamily = string.Empty;
+        LocalShells = shells?.GetShells() ?? [];
+        LocalShellNames = LocalShells.Select(s => s.Name).ToList();
         Load();
     }
+
+    /// <summary>Shells détectés au démarrage, proposés comme shell du terminal local.</summary>
+    public IReadOnlyList<LocalShell> LocalShells { get; }
+
+    /// <summary>Noms des <see cref="LocalShells"/>, pour la liste déroulante.</summary>
+    public IReadOnlyList<string> LocalShellNames { get; }
+
+    public bool HasLocalShells => LocalShells.Count > 0;
+
+    /// <summary>Index dans <see cref="LocalShells"/> du shell ouvert par le bouton « Terminal local ».</summary>
+    [ObservableProperty]
+    public partial int LocalShellIndex { get; set; }
 
     /// <summary>Polices à chasse fixe courantes, proposées à la saisie (toute police installée est acceptée).</summary>
     public IReadOnlyList<string> SuggestedFonts { get; } =
@@ -145,6 +160,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    partial void OnLocalShellIndexChanged(int value)
+    {
+        if (!_loading && value >= 0 && value < LocalShells.Count)
+        {
+            _settings.Update(s => s.LocalShell = LocalShells[value].Id);
+        }
+    }
+
     partial void OnAutoReconnectChanged(bool value)
     {
         if (!_loading)
@@ -166,10 +189,25 @@ public sealed partial class SettingsViewModel : ObservableObject
             CheckForUpdates = current.CheckForUpdates;
             KeepAliveSeconds = current.KeepAliveSeconds;
             AutoReconnect = current.AutoReconnect;
+            var shell = LocalShellCatalog.Resolve(LocalShells, current.LocalShell);
+            LocalShellIndex = shell is null ? -1 : IndexOf(shell);
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private int IndexOf(LocalShell shell)
+    {
+        for (var i = 0; i < LocalShells.Count; i++)
+        {
+            if (ReferenceEquals(LocalShells[i], shell))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }

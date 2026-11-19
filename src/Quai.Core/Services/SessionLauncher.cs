@@ -23,9 +23,17 @@ public sealed class SessionLauncher : ISessionLauncher
         _navigator.NavigateTo(AppPage.Terminals);
     }
 
+    public void OpenLocalTerminal(string? shellId = null)
+    {
+        if (_terminals.OpenLocal(shellId) is not null)
+        {
+            _navigator.NavigateTo(AppPage.Terminals);
+        }
+    }
+
     public void OpenSftp(ConnectionProfile profile)
     {
-        if (profile.IsSerial)
+        if (!profile.IsSsh)
         {
             return;
         }
@@ -36,7 +44,7 @@ public sealed class SessionLauncher : ISessionLauncher
 
     public async Task OpenSftpHereAsync(TerminalTabViewModel tab)
     {
-        if (tab.IsSerial)
+        if (!tab.IsSsh)
         {
             return;
         }

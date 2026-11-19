@@ -177,6 +177,10 @@ public sealed class QuickConnectTests : IDisposable
 
         public void OpenTerminal(ConnectionProfile profile) => Terminals.Add(profile);
 
+        public void OpenLocalTerminal(string? shellId = null)
+        {
+        }
+
         public void OpenSftp(ConnectionProfile profile)
         {
         }

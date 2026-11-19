@@ -8,6 +8,9 @@ public interface ISessionLauncher
 {
     void OpenTerminal(ConnectionProfile profile);
 
+    /// <summary>Terminal local (shell de cet ordinateur) ; <paramref name="shellId"/> nul = shell par défaut des réglages.</summary>
+    void OpenLocalTerminal(string? shellId = null);
+
     void OpenSftp(ConnectionProfile profile);
 
     /// <summary>Explorateur SFTP de la connexion d'un terminal, ouvert dans le dossier courant de son shell.</summary>
