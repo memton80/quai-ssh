@@ -9,6 +9,12 @@ public interface ILocalShellCatalog
 {
     /// <summary>Shells présents, dans l'ordre de préférence (le premier est le shell par défaut).</summary>
     IReadOnlyList<LocalShell> GetShells();
+
+    /// <summary>
+    /// Shells proposés en administrateur : uniquement des exécutables de dossiers protégés par Windows, sans script de
+    /// démarrage modifiable sans droits (voir <see cref="LocalShellCatalog.GetAdminShells"/>).
+    /// </summary>
+    IReadOnlyList<LocalShell> GetAdminShells() => [];
 }
 
 /// <summary>Ce dont la détection a besoin du système : remplacé dans les tests.</summary>
@@ -21,6 +27,12 @@ public sealed class LocalShellEnvironment
     /// <summary>Dossier système (<c>C:\Windows\System32</c>).</summary>
     public required string SystemDirectory { get; init; }
 
+    /// <summary>
+    /// Dossier « Program Files » de Windows, lu comme dossier connu (registre de la machine) et non dans une variable
+    /// d'environnement : il sert à choisir ce qui sera lancé en administrateur.
+    /// </summary>
+    public string? ProgramFilesDirectory { get; init; }
+
     /// <summary>Distributions WSL installées (noms), dans l'ordre du registre.</summary>
     public required Func<IReadOnlyList<string>> WslDistributions { get; init; }
 
@@ -31,6 +43,7 @@ public sealed class LocalShellEnvironment
         FileExists = File.Exists,
         GetVariable = Environment.GetEnvironmentVariable,
         SystemDirectory = Environment.SystemDirectory,
+        ProgramFilesDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
         WslDistributions = ReadWslDistributions,
         IsWindows = OperatingSystem.IsWindows(),
     };
@@ -86,6 +99,9 @@ public sealed class LocalShellCatalog : ILocalShellCatalog
     public const string CommandPromptId = "cmd";
     public const string GitBashId = "gitbash";
     public const string WslPrefix = "wsl:";
+
+    /// <summary>Préfixe des identifiants des shells administrateur (jamais mémorisés comme shell par défaut).</summary>
+    public const string AdminPrefix = "admin:";
 
     private readonly LocalShellEnvironment _environment;
     private readonly IStrings? _strings;
@@ -150,6 +166,62 @@ public sealed class LocalShellCatalog : ILocalShellCatalog
 
         return shells;
     }
+
+    /// <summary>
+    /// Shells lancés en administrateur, dans leur propre fenêtre, par Windows (UAC) : PowerShell 7 de « Program Files »,
+    /// Windows PowerShell et l'invite de commandes de System32 — des dossiers où seul un administrateur peut écrire.
+    /// Écartés : tout ce qui vient du PATH ou d'un dossier de l'utilisateur (un programme sans droits pourrait y déposer
+    /// un faux shell et obtenir les droits d'administrateur à la confirmation suivante), WSL et Git Bash. Aucun script
+    /// de démarrage modifiable sans droits n'est exécuté : profils PowerShell (<c>-NoProfile</c>) et AutoRun de
+    /// l'invite de commandes (<c>/D</c>).
+    /// </summary>
+    public IReadOnlyList<LocalShell> GetAdminShells()
+    {
+        if (!_environment.IsWindows)
+        {
+            return [];
+        }
+
+        var shells = new List<LocalShell>();
+        if (_environment.ProgramFilesDirectory is { } programFiles && IsLocalDrivePath(programFiles))
+        {
+            var pwsh = Path.Combine(programFiles, "PowerShell", "7", "pwsh.exe");
+            if (_environment.FileExists(pwsh))
+            {
+                shells.Add(Admin(PowerShellId, "PowerShell", pwsh, ["-NoLogo", "-NoProfile"]));
+            }
+        }
+
+        var system = _environment.SystemDirectory;
+        if (!IsLocalDrivePath(system))
+        {
+            return shells;
+        }
+
+        var windowsPowerShell = Path.Combine(system, "WindowsPowerShell", "v1.0", "powershell.exe");
+        if (_environment.FileExists(windowsPowerShell))
+        {
+            shells.Add(Admin(WindowsPowerShellId, "Windows PowerShell", windowsPowerShell, ["-NoLogo", "-NoProfile"]));
+        }
+
+        var cmd = Path.Combine(system, "cmd.exe");
+        if (_environment.FileExists(cmd))
+        {
+            shells.Add(Admin(CommandPromptId, _strings?.Get("LocalShell_CommandPrompt") ?? "cmd", cmd, ["/D"]));
+        }
+
+        return shells;
+    }
+
+    /// <summary>
+    /// Chemin absolu sur un lecteur local (<c>C:\…</c>) : ni relatif (résolu ailleurs que prévu), ni réseau
+    /// (<c>\\serveur\…</c>), seules formes acceptées pour un exécutable lancé en administrateur.
+    /// </summary>
+    public static bool IsLocalDrivePath(string? path) =>
+        path is { Length: >= 3 } && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] == '\\' && !path.Contains("..", StringComparison.Ordinal);
+
+    private static LocalShell Admin(string id, string name, string path, IReadOnlyList<string> arguments) =>
+        new(AdminPrefix + id, name, path, arguments);
 
     /// <summary>PowerShell 7 : installation classique (MSI, winget) puis tout <c>pwsh.exe</c> du PATH (Microsoft Store).</summary>
     private string? FindPowerShell7()

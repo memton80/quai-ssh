@@ -23,6 +23,7 @@ public sealed class LocalShellCatalogTests
             FileExists = _files.Contains,
             GetVariable = name => _variables.GetValueOrDefault(name),
             SystemDirectory = System32,
+            ProgramFilesDirectory = ProgramFiles,
             WslDistributions = () => _distributions,
         },
         new KeyStrings());
@@ -124,4 +125,63 @@ public sealed class LocalShellCatalogTests
 
         Assert.Equal(@"C:\Windows\System32\wsl.exe -d ""Ubuntu 24.04""", shell.CommandLine);
     }
+
+    [Fact]
+    public void Admin_shells_come_only_from_protected_folders_and_skip_startup_scripts()
+    {
+        AddWindowsDefaults();
+        _files.Add(Path.Combine(ProgramFiles, "PowerShell", "7", "pwsh.exe"));
+        _files.Add(Path.Combine(System32, "wsl.exe"));
+        _distributions.Add("Ubuntu");
+        _files.Add(Path.Combine(ProgramFiles, "Git", "bin", "bash.exe"));
+
+        var shells = Catalog().GetAdminShells();
+
+        Assert.Equal(["admin:pwsh", "admin:powershell", "admin:cmd"], shells.Select(s => s.Id));
+        Assert.All(shells, s => Assert.True(
+            s.Path.StartsWith(ProgramFiles, StringComparison.Ordinal) || s.Path.StartsWith(System32, StringComparison.Ordinal)));
+        Assert.Equal(["-NoLogo", "-NoProfile"], shells[0].Arguments);
+        Assert.Equal(["-NoLogo", "-NoProfile"], shells[1].Arguments);
+        Assert.Equal(["/D"], shells[2].Arguments);
+    }
+
+    [Fact]
+    public void A_powershell_found_only_on_the_path_or_in_a_user_folder_is_never_run_as_administrator()
+    {
+        AddWindowsDefaults();
+        var apps = @"C:\Users\alex\AppData\Local\Microsoft\WindowsApps";
+        _variables["PATH"] = apps;
+        _files.Add(Path.Combine(apps, "pwsh.exe"));
+
+        Assert.Equal("pwsh", Catalog().GetShells()[0].Id);
+        Assert.DoesNotContain(Catalog().GetAdminShells(), s => s.Id == "admin:pwsh");
+    }
+
+    [Fact]
+    public void Without_a_rooted_program_files_folder_only_system_shells_are_offered()
+    {
+        AddWindowsDefaults();
+        _files.Add(Path.Combine(ProgramFiles, "PowerShell", "7", "pwsh.exe"));
+        var catalog = new LocalShellCatalog(new LocalShellEnvironment
+        {
+            FileExists = _files.Contains,
+            GetVariable = _ => null,
+            SystemDirectory = System32,
+            ProgramFilesDirectory = "PowerShell",
+            WslDistributions = () => [],
+        });
+
+        Assert.Equal(["admin:powershell", "admin:cmd"], catalog.GetAdminShells().Select(s => s.Id));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Windows\System32\cmd.exe", true)]
+    [InlineData(@"d:\Program Files\PowerShell\7\pwsh.exe", true)]
+    [InlineData(@"\\serveur\partage\cmd.exe", false)]
+    [InlineData(@"cmd.exe", false)]
+    [InlineData(@"C:cmd.exe", false)]
+    [InlineData(@"C:\Windows\..\Users\alex\cmd.exe", false)]
+    [InlineData(null, false)]
+    public void Only_absolute_local_drive_paths_can_be_elevated(string? path, bool expected) =>
+        Assert.Equal(expected, LocalShellCatalog.IsLocalDrivePath(path));
 }

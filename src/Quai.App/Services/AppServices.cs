@@ -92,6 +92,7 @@ internal static class AppServices
         // Terminal local : de vrais shells de l'ordinateur, aussi pendant le test de fumée (invite de commandes réelle).
         services.AddSingleton<ILocalShellCatalog, LocalShellCatalog>();
         services.AddSingleton<ILocalTerminalFactory, LocalTerminalFactory>();
+        services.AddSingleton<IElevatedShellLauncher, ElevatedShellLauncher>();
 
         services.AddSingleton<ITerminalSessionFactory, TerminalSessionFactory>();
 

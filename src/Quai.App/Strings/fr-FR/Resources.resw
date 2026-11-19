@@ -324,6 +324,18 @@
   <data name="Settings_LocalShellDescription" xml:space="preserve">
     <value>Ouvert par le bouton « Terminal local ». Les autres shells installés restent proposés dans le menu de ce bouton.</value>
   </data>
+  <data name="Terminals_AsAdmin" xml:space="preserve">
+    <value>{0} (administrateur)</value>
+  </data>
+  <data name="Terminals_AdminTooltip" xml:space="preserve">
+    <value>Ouvre {0} en administrateur dans une fenêtre Windows séparée, après confirmation de Windows. Profils et scripts de démarrage ne sont pas chargés.</value>
+  </data>
+  <data name="Terminal_AdminFailedTitle" xml:space="preserve">
+    <value>Terminal administrateur</value>
+  </data>
+  <data name="Terminal_AdminUnavailable" xml:space="preserve">
+    <value>Ce shell n'est plus disponible en administrateur.</value>
+  </data>
   <data name="Terminal_Reconnect" xml:space="preserve">
     <value>Reconnecter</value>
   </data>

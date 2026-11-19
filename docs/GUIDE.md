@@ -23,6 +23,7 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 - La flèche du bouton liste les shells installés : **PowerShell 7**, **Windows PowerShell**, **invite de commandes**, chaque distribution **WSL** (Ubuntu, Debian…) et **Git Bash**. Rien n'est lancé pour les détecter.
 - Un vrai terminal Windows, pas une page web : la pseudo-console **ConPTY** de Windows Terminal (`conpty.dll` + `OpenConsole.exe`, livrés avec Quai), dans le même moteur d'affichage que le SSH. Couleurs, `vim`, `htop` sous WSL, copier / coller, historique, snippets : tout fonctionne pareil.
 - `exit` ferme le shell : l'onglet indique son code de sortie s'il n'est pas 0 et propose **« Relancer »**. Fermer l'onglet arrête le shell et tout ce qu'il a lancé.
+- **En administrateur** : en bas du menu de la flèche, « PowerShell (administrateur) », « Windows PowerShell (administrateur) », « Invite de commandes (administrateur) ». Windows demande confirmation (l'UAC présente le shell de Microsoft, éditeur vérifié) puis l'ouvre dans **sa propre fenêtre** (Windows Terminal sous Windows 11), pas dans un onglet de Quai : aucun code de Quai ne tourne avec les droits d'administrateur. Par sécurité, seuls des shells des dossiers protégés de Windows sont proposés (PowerShell 7 de « Program Files », Windows PowerShell et l'invite de commandes de System32 ; pas WSL ni Git Bash), et ni les profils PowerShell ni l'AutoRun de l'invite de commandes ne sont chargés (fichiers modifiables sans droits d'administrateur).
 
 **Port série** (console de routeur ou de switch, carte Arduino / ESP32 / Raspberry Pi, modem…)
 - Port choisi parmi ceux que Windows détecte (bouton « Actualiser » après avoir branché l'adaptateur) ou saisi (`COM3`).
@@ -91,7 +92,7 @@ Dans `%LOCALAPPDATA%\Quai` :
 
 ## Limites connues
 
-- Terminal local : pas encore de profils personnalisés (autre dossier de départ, arguments, shell absent de la liste), ni d'ouverture en administrateur.
+- Terminal local : pas encore de profils personnalisés (autre dossier de départ, arguments, shell absent de la liste). En administrateur : fenêtre Windows séparée, sans profil PowerShell (voir plus haut).
 - Pas encore de tunnels / redirection de ports, de rebond (jump host), d'agent OpenSSH, ni d'import `ssh_config` / PuTTY.
 - Port série : noms `COMn` uniquement, pas de nom « parlant » de l'adaptateur dans la liste, ni écho local, ni conversion des fins de ligne (Entrée envoie CR, comme PuTTY), ni journal de session.
 - Un seul transfert à la fois par onglet SFTP, sans reprise après interruption.

@@ -19,6 +19,7 @@ public sealed partial class TerminalsViewModel : ObservableObject
     private readonly ILoggerFactory? _loggerFactory;
     private readonly ISettingsService? _settings;
     private readonly ILocalShellCatalog? _shells;
+    private readonly IElevatedShellLauncher? _elevated;
 
     public TerminalsViewModel(
         ITerminalSessionFactory factory,
@@ -26,7 +27,8 @@ public sealed partial class TerminalsViewModel : ObservableObject
         IUiDispatcher dispatcher,
         ILoggerFactory? loggerFactory = null,
         ISettingsService? settings = null,
-        ILocalShellCatalog? shells = null)
+        ILocalShellCatalog? shells = null,
+        IElevatedShellLauncher? elevated = null)
     {
         _factory = factory;
         _strings = strings;
@@ -34,11 +36,32 @@ public sealed partial class TerminalsViewModel : ObservableObject
         _loggerFactory = loggerFactory;
         _settings = settings;
         _shells = shells;
+        _elevated = elevated;
         IsEmpty = true;
     }
 
     /// <summary>Shells installés, proposés pour un terminal local (relus à chaque appel : un shell a pu être installé).</summary>
     public IReadOnlyList<LocalShell> GetLocalShells() => _shells?.GetShells() ?? [];
+
+    /// <summary>Shells proposés en administrateur (dossiers protégés uniquement), relus à chaque appel.</summary>
+    public IReadOnlyList<LocalShell> GetAdminShells() => _elevated is null ? [] : _shells?.GetAdminShells() ?? [];
+
+    /// <summary>
+    /// Shell administrateur dans sa propre fenêtre, après confirmation de Windows. Seul un identifiant de
+    /// <see cref="GetAdminShells"/> est accepté, sans repli sur un autre shell.
+    /// </summary>
+    public ElevatedLaunchResult OpenAdmin(string shellId, out string error)
+    {
+        error = string.Empty;
+        var shell = GetAdminShells().FirstOrDefault(s => s.Id == shellId);
+        if (shell is null || _elevated is null)
+        {
+            error = _strings.Get("Terminal_AdminUnavailable");
+            return ElevatedLaunchResult.Failed;
+        }
+
+        return _elevated.Launch(shell, out error);
+    }
 
     /// <summary>
     /// Ouvre un terminal local avec le shell <paramref name="shellId"/>, sinon celui des réglages, sinon le premier

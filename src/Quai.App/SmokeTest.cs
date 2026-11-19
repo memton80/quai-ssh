@@ -376,6 +376,20 @@ internal static class SmokeTest
             throw new InvalidOperationException("L'invite de commandes n'est pas proposée comme shell local.");
         }
 
+        // Shells administrateur (non lancés : l'UAC ne se valide pas en CI) : dossiers protégés, sans script de démarrage.
+        var admins = terminals.GetAdminShells();
+        var system = Environment.SystemDirectory;
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (admins.SingleOrDefault(s => s.Id == "admin:cmd") is not { Arguments: ["/D"] } adminCmd
+            || !string.Equals(adminCmd.Path, Path.Combine(system, "cmd.exe"), StringComparison.OrdinalIgnoreCase)
+            || admins.SingleOrDefault(s => s.Id == "admin:powershell") is not { Arguments: ["-NoLogo", "-NoProfile"] }
+            || admins.Any(s => !s.Path.StartsWith(system + "\\", StringComparison.OrdinalIgnoreCase)
+                && !s.Path.StartsWith(programFiles + "\\", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException(
+                $"Shells administrateur inattendus : {string.Join(" ; ", admins.Select(s => s.Id + " = " + s.CommandLine))}");
+        }
+
         page.OpenLocalTerminal(Quai.Core.Local.LocalShellCatalog.CommandPromptId);
         var tab = terminals.SelectedTab is { IsLocal: true } selected
             ? selected

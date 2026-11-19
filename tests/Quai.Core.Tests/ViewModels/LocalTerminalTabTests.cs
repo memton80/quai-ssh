@@ -176,8 +176,48 @@ public sealed class LocalTerminalTabTests
         Assert.Equal(1, new SettingsViewModel(_settings, new Quai.Core.Storage.AppPaths(temp.Path), _shells).LocalShellIndex);
     }
 
-    private sealed class FakeShells(IReadOnlyList<LocalShell> shells) : ILocalShellCatalog
+    [Fact]
+    public void An_admin_shell_is_launched_only_from_the_administrator_list_never_as_a_tab()
+    {
+        var admin = new LocalShell("admin:cmd", "Invite de commandes", Cmd.Path, ["/D"]);
+        var elevated = new RecordingElevated();
+        var terminals = new TerminalsViewModel(
+            _factory, new KeyStrings(), new ImmediateDispatcher(), settings: _settings, shells: new FakeShells([Cmd], [admin]), elevated: elevated);
+
+        Assert.Equal([admin], terminals.GetAdminShells());
+        Assert.Equal(ElevatedLaunchResult.Started, terminals.OpenAdmin("admin:cmd", out _));
+        Assert.Equal(ElevatedLaunchResult.Failed, terminals.OpenAdmin("cmd", out var error));
+
+        Assert.Equal("Terminal_AdminUnavailable", error);
+        Assert.Equal([admin], elevated.Launched);
+        Assert.True(terminals.IsEmpty);
+    }
+
+    [Fact]
+    public void Without_an_elevation_launcher_no_admin_shell_is_offered()
+    {
+        var admin = new LocalShell("admin:cmd", "Invite de commandes", Cmd.Path, ["/D"]);
+        var terminals = new TerminalsViewModel(_factory, new KeyStrings(), new ImmediateDispatcher(), shells: new FakeShells([Cmd], [admin]));
+
+        Assert.Empty(terminals.GetAdminShells());
+    }
+
+    private sealed class FakeShells(IReadOnlyList<LocalShell> shells, IReadOnlyList<LocalShell>? admins = null) : ILocalShellCatalog
     {
         public IReadOnlyList<LocalShell> GetShells() => shells;
+
+        public IReadOnlyList<LocalShell> GetAdminShells() => admins ?? [];
+    }
+
+    private sealed class RecordingElevated : IElevatedShellLauncher
+    {
+        public List<LocalShell> Launched { get; } = [];
+
+        public ElevatedLaunchResult Launch(LocalShell shell, out string error)
+        {
+            Launched.Add(shell);
+            error = string.Empty;
+            return ElevatedLaunchResult.Started;
+        }
     }
 }

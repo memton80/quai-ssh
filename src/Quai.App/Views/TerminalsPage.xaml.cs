@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Quai.App.Localization;
+using Quai.Core.Local;
 using Quai.Core.Services;
 using Quai.Core.ViewModels;
 
@@ -20,16 +21,19 @@ public sealed partial class TerminalsPage : UserControl
     private const string BreakGlyph = "";
     private const string SnippetGlyph = "\uE943";
     private const string LocalGlyph = "\uE977";
+    private const string AdminGlyph = "\uEA18";
     private const string FolderGlyph = "\uE8B7";
 
     private readonly IShellNavigator _navigator;
     private readonly ISessionLauncher _launcher;
+    private readonly IDialogService _dialogs;
 
     public TerminalsPage()
     {
         ViewModel = App.Current.Services.GetRequiredService<TerminalsViewModel>();
         _navigator = App.Current.Services.GetRequiredService<IShellNavigator>();
         _launcher = App.Current.Services.GetRequiredService<ISessionLauncher>();
+        _dialogs = App.Current.Services.GetRequiredService<IDialogService>();
         InitializeComponent();
 
         foreach (var tab in ViewModel.Tabs)
@@ -248,6 +252,36 @@ public sealed partial class TerminalsPage : UserControl
             var id = shell.Id;
             item.Click += (_, _) => OpenLocalTerminal(id);
             menu.Items.Add(item);
+        }
+
+        // En administrateur : fenêtre Windows séparée (voir ElevatedShellLauncher), jamais un onglet de Quai.
+        var admins = ViewModel.GetAdminShells();
+        if (admins.Count > 0)
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+        }
+
+        foreach (var shell in admins)
+        {
+            var item = new MenuFlyoutItem
+            {
+                Text = Loc.Format("Terminals_AsAdmin", shell.Name),
+                Icon = new FontIcon { Glyph = AdminGlyph },
+            };
+            ToolTipService.SetToolTip(item, Loc.Format("Terminals_AdminTooltip", shell.Name));
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(item, Loc.Format("Terminals_AdminTooltip", shell.Name));
+            var id = shell.Id;
+            item.Click += async (_, _) => await OpenAdminTerminalAsync(id);
+            menu.Items.Add(item);
+        }
+    }
+
+    /// <summary>Shell administrateur : Windows demande confirmation puis l'ouvre dans sa propre fenêtre.</summary>
+    internal async Task OpenAdminTerminalAsync(string shellId)
+    {
+        if (ViewModel.OpenAdmin(shellId, out var error) == ElevatedLaunchResult.Failed)
+        {
+            await _dialogs.ShowErrorAsync(Loc.Get("Terminal_AdminFailedTitle"), error);
         }
     }
 
