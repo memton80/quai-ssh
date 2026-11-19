@@ -43,6 +43,23 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <!-- Explication d'une saisie refusée, sous le champ concerné. -->
+    <Style
+        x:Key="FieldErrorStyle"
+        BasedOn="{StaticResource FieldHintStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+    </Style>
+
+    <!-- Raccourci clavier affiché dans une liste (« Ctrl+Maj+1 »). -->
+    <Style
+        x:Key="ShortcutCaptionStyle"
+        BasedOn="{StaticResource CaptionTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
     <!-- Titre de section de la page des réglages. -->
     <Style
         x:Key="SettingsSectionHeaderStyle"

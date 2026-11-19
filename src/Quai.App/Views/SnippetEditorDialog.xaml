@@ -47,5 +47,39 @@
         </ComboBox>
 
         <CheckBox Content="{l:Str Key=Snippets_Run}" IsChecked="{x:Bind ViewModel.Run, Mode=TwoWay}" />
+
+        <!-- Raccourci : le champ enregistre la combinaison appuyée (Retour arrière ou Suppr l'efface). -->
+        <StackPanel Spacing="4">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox
+                    x:Name="ShortcutBox"
+                    AutomationProperties.HelpText="{l:Str Key=Snippets_ShortcutHint}"
+                    Header="{l:Str Key=Snippets_Shortcut}"
+                    IsReadOnly="True"
+                    IsSpellCheckEnabled="False"
+                    PlaceholderText="{l:Str Key=Snippets_ShortcutPlaceholder}"
+                    PreviewKeyDown="OnShortcutPreviewKeyDown"
+                    Text="{x:Bind ViewModel.ShortcutText, Mode=OneWay}" />
+                <Button
+                    Grid.Column="1"
+                    VerticalAlignment="Bottom"
+                    AutomationProperties.Name="{l:Str Key=Snippets_ShortcutClear}"
+                    Click="OnClearShortcutClick"
+                    IsEnabled="{x:Bind ViewModel.HasShortcut, Mode=OneWay}"
+                    Style="{StaticResource RowIconButtonStyle}"
+                    ToolTipService.ToolTip="{l:Str Key=Snippets_ShortcutClear}">
+                    <FontIcon FontSize="14" Glyph="&#xE894;" />
+                </Button>
+            </Grid>
+            <TextBlock
+                Style="{StaticResource FieldErrorStyle}"
+                Text="{x:Bind ViewModel.ShortcutError, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.HasShortcutError, Mode=OneWay}" />
+            <TextBlock Style="{StaticResource FieldHintStyle}" Text="{l:Str Key=Snippets_ShortcutHint}" />
+        </StackPanel>
     </StackPanel>
 </ContentDialog>

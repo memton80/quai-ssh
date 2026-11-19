@@ -168,6 +168,93 @@ public sealed class SnippetsTests : IDisposable
 
     // ---- Envoi dans un terminal --------------------------------------------------------------
 
+    // ---- Raccourcis ---------------------------------------------------------------------------
+
+    private static readonly KeyGesture CtrlShift1 = new(Control: true, Shift: true, Alt: false, Key: '1');
+
+    [Fact]
+    public async Task A_shortcut_sends_its_snippet_and_the_connection_specific_one_wins()
+    {
+        _snippets.Save(new Snippet { Name = "Partout", Command = "uptime", Shortcut = "Ctrl+Shift+1" });
+        _snippets.Save(new Snippet { Name = "Web", Command = "systemctl reload nginx", ConnectionId = _web.Id, Shortcut = "Ctrl+Shift+2" });
+        _snippets.Save(new Snippet { Name = "Base", Command = "psql", ConnectionId = _db.Id, Shortcut = "Ctrl+Shift+2" });
+        var (tab, session) = await TerminalOnAsync(_web);
+        var page = CreateViewModel();
+
+        Assert.True(page.TryRunShortcut(tab, CtrlShift1));
+        Assert.True(page.TryRunShortcut(tab, CtrlShift1 with { Key = '2' }));
+        Assert.False(page.TryRunShortcut(tab, CtrlShift1 with { Key = '3' }));
+
+        Assert.Equal(["uptime\r", "systemctl reload nginx\r"], session.Sent.Select(b => Encoding.UTF8.GetString(b)));
+    }
+
+    [Fact]
+    public async Task A_shortcut_does_nothing_in_a_closed_tab_or_for_a_forbidden_combination()
+    {
+        _snippets.Save(new Snippet { Command = "uptime", Shortcut = "Ctrl+Shift+1" });
+        var (tab, session) = await TerminalOnAsync(_web);
+        var page = CreateViewModel();
+
+        Assert.False(page.TryRunShortcut(tab, new KeyGesture(true, false, false, 'C')));
+        session.Close();
+        Assert.False(page.TryRunShortcut(tab, CtrlShift1));
+        Assert.False(page.TryRunShortcut(null, CtrlShift1));
+        Assert.Empty(session.Sent);
+    }
+
+    [Fact]
+    public void The_editor_explains_a_refused_combination_and_keeps_the_dialog_open()
+    {
+        var editor = new SnippetEditorViewModel(new KeyStrings(), null, [_web]) { Command = "uptime" };
+
+        editor.CaptureShortcut(control: true, shift: false, alt: false, key: 'R');
+
+        Assert.Equal("Snippets_ShortcutShellKey(Key_Ctrl+R)", editor.ShortcutError);
+        Assert.False(editor.Validate());
+
+        editor.CaptureShortcut(control: false, shift: false, alt: false, key: 0x0D);
+        Assert.Equal("Snippets_ShortcutUnsupported", editor.ShortcutError);
+        Assert.Equal("Key_Ctrl+R", editor.ShortcutText);
+
+        editor.CaptureShortcut(control: true, shift: true, alt: false, key: '1');
+        Assert.True(editor.Validate());
+        Assert.Equal("Key_Ctrl+Key_Shift+1", editor.ShortcutText);
+        Assert.Equal("Ctrl+Shift+1", editor.BuildSnippet().Shortcut);
+
+        editor.ClearShortcut();
+        Assert.Null(editor.BuildSnippet().Shortcut);
+    }
+
+    [Fact]
+    public void A_shortcut_already_used_where_the_snippet_applies_is_refused_but_free_for_another_connection()
+    {
+        var existing = new Snippet { Name = "Recharger", Command = "nginx -s reload", ConnectionId = _web.Id, Shortcut = "Ctrl+Shift+1" };
+        var editor = new SnippetEditorViewModel(new KeyStrings(), null, [_web, _db], [existing]) { Command = "psql" };
+
+        editor.CaptureShortcut(control: true, shift: true, alt: false, key: '1');
+        Assert.Equal("Snippets_ShortcutTaken(Key_Ctrl+Key_Shift+1,Recharger)", editor.ShortcutError);
+
+        editor.ScopeIndex = editor.Scopes.ToList().FindIndex(s => s.ConnectionId == _db.Id);
+        Assert.Empty(editor.ShortcutError);
+        Assert.True(editor.Validate());
+
+        // Le snippet modifié ne se gêne pas lui-même.
+        var self = new SnippetEditorViewModel(new KeyStrings(), existing, [_web, _db], [existing]);
+        Assert.True(self.Validate());
+        Assert.Equal("Key_Ctrl+Key_Shift+1", self.ShortcutText);
+    }
+
+    [Fact]
+    public void The_page_shows_each_shortcut_and_it_survives_a_reload()
+    {
+        _snippets.Save(new Snippet { Name = "Disque", Command = "df -h", Shortcut = "Alt+Shift+F5" });
+
+        var item = Assert.Single(CreateViewModel().Items);
+        Assert.Equal("Key_Shift+Key_Alt+F5", item.ShortcutText);
+        Assert.True(item.HasShortcut);
+        Assert.Equal("Shift+Alt+F5", new JsonSnippetRepository(_temp.File("snippets.json")).GetAll().Single().Shortcut);
+    }
+
     private async Task<(TerminalTabViewModel Tab, FakeTerminalSession Session)> TerminalOnAsync(ConnectionProfile profile)
     {
         var factory = new FakeSessionFactory();

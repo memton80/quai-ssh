@@ -687,10 +687,12 @@ internal static class SmokeTest
         var snippets = services.GetRequiredService<ISnippetRepository>();
         snippets.Save(new Snippet { Name = "Espace disque", Command = "df -h" });
         snippets.Save(new Snippet { Name = "Derniers journaux", Command = "journalctl -n 50 --no-pager\nuptime", Run = false });
+        snippets.Save(new Snippet { Name = "Charge", Command = "echo quai-raccourci", Shortcut = "Ctrl+Shift+1" });
         window.NavigateTo(MainWindow.SnippetsTag);
         await Task.Delay(800);
         await CaptureAsync(window.Root, Path.Combine(directory, "snippets.png"));
-        if (services.GetRequiredService<SnippetsViewModel>().Items.Count != 2)
+        if (services.GetRequiredService<SnippetsViewModel>().Items.Count != 3
+            || services.GetRequiredService<SnippetsViewModel>().Items.Single(i => i.Name == "Charge").ShortcutText != "Ctrl+Maj+1")
         {
             throw new InvalidOperationException("La page des snippets n'affiche pas les snippets enregistrés.");
         }
@@ -699,8 +701,9 @@ internal static class SmokeTest
             dialogs,
             () => dialogs.EditSnippetAsync(new SnippetEditorViewModel(
                 services.GetRequiredService<IStrings>(),
-                snippets.GetAll()[0],
-                services.GetRequiredService<IConnectionRepository>().GetAll())),
+                snippets.GetAll().Single(s => s.Name == "Charge"),
+                services.GetRequiredService<IConnectionRepository>().GetAll(),
+                snippets.GetAll())),
             Path.Combine(directory, "snippet-editor.png"));
 
         window.NavigateTo(MainWindow.TerminalsTag);
@@ -725,7 +728,23 @@ internal static class SmokeTest
             () => Task.FromResult(view.ReadScreenText().Contains("df -h", StringComparison.Ordinal)),
             TimeSpan.FromSeconds(20),
             "Le snippet envoyé n'apparaît pas dans le terminal.");
-        report.Add("snippets (page, fiche, sélecteur, envoi dans le terminal) : OK");
+
+        // Raccourci propre au snippet, appuyé dans le terminal ; une combinaison du shell (Ctrl+R) n'est jamais prise.
+        if (!view.PressForTest(control: true, shift: true, alt: false, key: '1'))
+        {
+            throw new InvalidOperationException("Ctrl+Maj+1 n'a pas été pris par le terminal.");
+        }
+
+        await WaitUntilAsync(
+            () => Task.FromResult(view.ReadScreenText().Contains("echo quai-raccourci", StringComparison.Ordinal)),
+            TimeSpan.FromSeconds(20),
+            "Le snippet du raccourci Ctrl+Maj+1 n'apparaît pas dans le terminal.");
+        if (services.GetRequiredService<SnippetsViewModel>().TryRunShortcut(tab, new KeyGesture(true, false, false, 'R')))
+        {
+            throw new InvalidOperationException("Ctrl+R a été pris pour un snippet au lieu d'aller au shell.");
+        }
+
+        report.Add("snippets (page, fiche, sélecteur, raccourci par snippet, envoi dans le terminal) : OK");
 
         // Explorateur SFTP ouvert dans le dossier courant du shell.
         var sftp = services.GetRequiredService<SftpSessionsViewModel>();

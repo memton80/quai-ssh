@@ -15,6 +15,12 @@ public static class UiHelpers
 
     public static Visibility CollapsedIf(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
 
+    /// <summary>Raccourci d'un snippet tel qu'affiché (« Ctrl+Maj+1 ») ; vide s'il n'en a pas ou s'il est invalide.</summary>
+    public static string SnippetShortcut(string? shortcut) =>
+        KeyGesture.TryParse(shortcut, out var gesture) && gesture.IsValid
+            ? gesture.Format(Localization.Loc.Get("Key_Ctrl"), Localization.Loc.Get("Key_Shift"), Localization.Loc.Get("Key_Alt"))
+            : string.Empty;
+
     public static InfoBarSeverity WarningIf(bool value) => value ? InfoBarSeverity.Warning : InfoBarSeverity.Informational;
 
     /// <summary>Texte d'accessibilité et info-bulle du bouton replier / déplier d'un dossier.</summary>

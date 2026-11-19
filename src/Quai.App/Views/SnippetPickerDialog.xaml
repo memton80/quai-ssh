@@ -34,13 +34,23 @@
                 SelectionMode="Single">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="m:Snippet">
-                        <StackPanel Padding="0,6" Spacing="2">
+                        <Grid Padding="0,6" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="{x:Bind DisplayName}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource CodeCaptionStyle}" Text="{x:Bind FirstLine}" />
+                            </StackPanel>
                             <TextBlock
-                                Style="{StaticResource BodyStrongTextBlockStyle}"
-                                Text="{x:Bind DisplayName}"
-                                TextTrimming="CharacterEllipsis" />
-                            <TextBlock Style="{StaticResource CodeCaptionStyle}" Text="{x:Bind FirstLine}" />
-                        </StackPanel>
+                                Grid.Column="1"
+                                Style="{StaticResource ShortcutCaptionStyle}"
+                                Text="{x:Bind ui:UiHelpers.SnippetShortcut(Shortcut)}" />
+                        </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

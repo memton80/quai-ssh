@@ -336,6 +336,45 @@
   <data name="Terminal_AdminUnavailable" xml:space="preserve">
     <value>Ce shell n'est plus disponible en administrateur.</value>
   </data>
+  <data name="Key_Ctrl" xml:space="preserve">
+    <value>Ctrl</value>
+  </data>
+  <data name="Key_Shift" xml:space="preserve">
+    <value>Maj</value>
+  </data>
+  <data name="Key_Alt" xml:space="preserve">
+    <value>Alt</value>
+  </data>
+  <data name="Snippets_Shortcut" xml:space="preserve">
+    <value>Raccourci clavier (facultatif)</value>
+  </data>
+  <data name="Snippets_ShortcutPlaceholder" xml:space="preserve">
+    <value>Cliquez ici puis appuyez sur la combinaison</value>
+  </data>
+  <data name="Snippets_ShortcutHint" xml:space="preserve">
+    <value>Envoie ce snippet depuis un terminal, sans passer par Ctrl+Maj+P. Ctrl+Maj ou Alt+Maj avec une lettre ou un chiffre (Ctrl+Maj+1), ou une touche F1 à F24 avec Ctrl, Alt ou Maj. Retour arrière efface le raccourci.</value>
+  </data>
+  <data name="Snippets_ShortcutClear" xml:space="preserve">
+    <value>Retirer le raccourci</value>
+  </data>
+  <data name="Snippets_ShortcutUnsupported" xml:space="preserve">
+    <value>Touche non prise en charge : choisissez une lettre, un chiffre ou une touche F1 à F24.</value>
+  </data>
+  <data name="Snippets_ShortcutNeedsModifier" xml:space="preserve">
+    <value>{0} seule serait tapée dans le terminal : ajoutez Ctrl, Alt ou Maj.</value>
+  </data>
+  <data name="Snippets_ShortcutAltGr" xml:space="preserve">
+    <value>{0} est la touche AltGr des claviers européens (@, #, €…) : utilisez Ctrl+Maj ou Alt+Maj.</value>
+  </data>
+  <data name="Snippets_ShortcutShellKey" xml:space="preserve">
+    <value>{0} sert au shell ou à la saisie (Ctrl+C, Ctrl+R, majuscules…) : utilisez Ctrl+Maj ou Alt+Maj avec une lettre ou un chiffre.</value>
+  </data>
+  <data name="Snippets_ShortcutReserved" xml:space="preserve">
+    <value>{0} est déjà un raccourci de Quai (copier, coller, snippets, terminal local ou fermeture).</value>
+  </data>
+  <data name="Snippets_ShortcutTaken" xml:space="preserve">
+    <value>{0} est déjà le raccourci de « {1} ».</value>
+  </data>
   <data name="Terminal_Reconnect" xml:space="preserve">
     <value>Reconnecter</value>
   </data>

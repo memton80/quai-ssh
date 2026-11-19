@@ -33,7 +33,7 @@ Se connecter à un serveur ne devrait pas demander trois logiciels et un post-it
 
 **Connexion rapide.** Tapez `alice@serveur` dans le champ en haut du carnet et appuyez sur Entrée : le terminal s'ouvre, sans fiche à remplir. Si la connexion vous plaît, un bouton l'ajoute au carnet.
 
-**Vos commandes favorites en deux touches.** Enregistrez une fois les commandes que vous tapez souvent, puis envoyez-les dans le terminal avec `Ctrl+Maj+P`.
+**Vos commandes favorites en deux touches.** Enregistrez une fois les commandes que vous tapez souvent, puis envoyez-les dans le terminal avec `Ctrl+Maj+P`, ou donnez à chacune son propre raccourci (`Ctrl+Maj+1`…).
 
 ![Le choix d'une commande enregistrée, ouvert avec Ctrl+Maj+P](docs/images/snippets.png)
 

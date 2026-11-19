@@ -130,6 +130,9 @@ public sealed partial class TerminalView : UserControl
     /// <summary>Test de fumée : frappe du texte comme au clavier.</summary>
     internal void TypeForTest(string text) => _native?.TypeForTest(text);
 
+    /// <summary>Test de fumée : combinaison de touches reçue par le terminal comme au clavier.</summary>
+    internal bool PressForTest(bool control, bool shift, bool alt, ushort key) => _native?.PressForTest(control, shift, alt, key) == true;
+
     /// <summary>Test de fumée : texte actuellement affiché par le terminal.</summary>
     internal string ReadScreenText() => _native?.ReadVisibleTextForTest() ?? string.Empty;
 
@@ -285,6 +288,19 @@ public sealed partial class TerminalView : UserControl
         // Raccourci reçu dans la procédure de fenêtre du moteur : le dialogue s'ouvre juste après.
         native.SnippetsRequested += () => DispatcherQueue.TryEnqueue(() => _ = RunSnippetAsync());
         native.NewLocalTerminalRequested += () => DispatcherQueue.TryEnqueue(() => NewLocalTerminalRequested?.Invoke());
+
+        // Raccourcis des snippets : traités dans la procédure de fenêtre du moteur (fil d'interface), envoi immédiat.
+        var snippets = App.Current.Services.GetRequiredService<SnippetsViewModel>();
+        native.ShortcutHandler = gesture =>
+        {
+            if (_closed || !snippets.TryRunShortcut(ViewModel, gesture))
+            {
+                return false;
+            }
+
+            native.ScrollTo(int.MaxValue);
+            return true;
+        };
         native.FocusChanged += OnTerminalFocusChanged;
         _native = native;
         ApplyAppearance();

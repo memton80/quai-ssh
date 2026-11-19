@@ -25,6 +25,11 @@ public sealed class SnippetItemViewModel
 
     public string Preview => Snippet.FirstLine;
 
+    /// <summary>Raccourci affiché (« Ctrl+Maj+1 »), vide s'il n'y en a pas.</summary>
+    public string ShortcutText { get; init; } = string.Empty;
+
+    public bool HasShortcut => ShortcutText.Length > 0;
+
     /// <summary>« Toutes les connexions » ou le nom de la connexion réservée.</summary>
     public string Scope { get; }
 
@@ -91,7 +96,10 @@ public sealed partial class SnippetsViewModel : ObservableObject
                 || snippet.Command.Contains(w, StringComparison.CurrentCultureIgnoreCase)
                 || scope.Contains(w, StringComparison.CurrentCultureIgnoreCase)))
             {
-                Items.Add(new SnippetItemViewModel(snippet, scope, this));
+                Items.Add(new SnippetItemViewModel(snippet, scope, this)
+                {
+                    ShortcutText = snippet.Gesture is { } gesture ? SnippetEditorViewModel.FormatGesture(_strings, gesture) : string.Empty,
+                });
             }
         }
 
@@ -102,7 +110,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
     [RelayCommand]
     public async Task NewAsync()
     {
-        var editor = new SnippetEditorViewModel(_strings, null, _connections.GetAll());
+        var editor = new SnippetEditorViewModel(_strings, null, _connections.GetAll(), _snippets.GetAll());
         if (await _dialogs.EditSnippetAsync(editor))
         {
             _snippets.Save(editor.BuildSnippet());
@@ -116,7 +124,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
             return;
         }
 
-        var editor = new SnippetEditorViewModel(_strings, item.Snippet, _connections.GetAll());
+        var editor = new SnippetEditorViewModel(_strings, item.Snippet, _connections.GetAll(), _snippets.GetAll());
         if (await _dialogs.EditSnippetAsync(editor))
         {
             _snippets.Save(editor.BuildSnippet());
@@ -161,6 +169,30 @@ public sealed partial class SnippetsViewModel : ObservableObject
         }
 
         if (choice != SnippetPickerResult.Send || picker.Selected is not { } snippet || !tab.IsConnected)
+        {
+            return false;
+        }
+
+        tab.SendInput(snippet.ToTerminalInput());
+        return true;
+    }
+
+    /// <summary>
+    /// Combinaison appuyée dans un terminal : envoie le snippet qui porte ce raccourci et vaut pour l'onglet (celui
+    /// réservé à sa connexion d'abord). Vrai si un snippet a été envoyé : la touche ne va alors pas au shell.
+    /// </summary>
+    public bool TryRunShortcut(TerminalTabViewModel? tab, KeyGesture gesture)
+    {
+        if (tab is not { IsConnected: true } || !gesture.IsValid)
+        {
+            return false;
+        }
+
+        var snippet = _snippets.GetAll()
+            .Where(s => s.AppliesTo(tab.Profile.Id) && s.Gesture == gesture)
+            .OrderBy(s => s.ConnectionId is null)
+            .FirstOrDefault();
+        if (snippet is null)
         {
             return false;
         }

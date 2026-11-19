@@ -21,6 +21,17 @@ public sealed class Snippet
     /// <summary>Appuyer sur Entrée après la dernière ligne (sinon, la commande attend d'être complétée ou validée).</summary>
     public bool Run { get; set; } = true;
 
+    /// <summary>
+    /// Raccourci clavier qui envoie ce snippet dans le terminal (forme de <see cref="KeyGesture.ToString"/>,
+    /// « Ctrl+Shift+1 ») ; <c>null</c> = aucun.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Shortcut { get; set; }
+
+    /// <summary>Raccourci lu et valide ; <c>null</c> si aucun, ou s'il ne respecte pas les règles (fichier modifié à la main).</summary>
+    [JsonIgnore]
+    public KeyGesture? Gesture => KeyGesture.TryParse(Shortcut, out var gesture) && gesture.IsValid ? gesture : null;
+
     [JsonIgnore]
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? FirstLine : Name;
 
@@ -38,6 +49,13 @@ public sealed class Snippet
 
     public bool AppliesTo(Guid connectionId) => ConnectionId is null || ConnectionId == connectionId;
 
+    /// <summary>
+    /// Les deux snippets peuvent servir dans un même onglet (l'un des deux vaut pour toutes les connexions, ou ils
+    /// visent la même) : ils ne peuvent pas partager un raccourci. Deux connexions différentes, si.
+    /// </summary>
+    public bool OverlapsWith(Snippet other) =>
+        ConnectionId is null || other.ConnectionId is null || ConnectionId == other.ConnectionId;
+
     public Snippet Clone() => (Snippet)MemberwiseClone();
 
     public void Normalize()
@@ -48,6 +66,9 @@ public sealed class Snippet
         {
             ConnectionId = null;
         }
+
+        // Forme canonique, ou rien : un raccourci illisible ou interdit ne doit jamais voler une touche au shell.
+        Shortcut = Gesture?.ToString();
     }
 
     /// <summary>

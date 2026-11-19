@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using Quai.Core.Models;
 using static Quai.App.NativeMethods;
 
 namespace Quai.App.Terminal;
@@ -73,6 +74,12 @@ internal sealed class NativeTerminal : IDisposable
 
     /// <summary><c>Ctrl+Maj+T</c> : ouvrir un terminal local (shell par défaut).</summary>
     public event Action? NewLocalTerminalRequested;
+
+    /// <summary>
+    /// Raccourci de snippet : appelé pour toute combinaison valide (voir <see cref="KeyGesture.Problem"/>) qui n'est
+    /// pas un raccourci du terminal ; vrai si un snippet a été envoyé, la touche ne va alors pas au shell.
+    /// </summary>
+    public Func<KeyGesture, bool>? ShortcutHandler { get; set; }
 
     /// <summary>Focus clavier gagné ou perdu ; le second argument indique une perte au profit d'une autre application.</summary>
     public event Action<bool, bool>? FocusChanged;
@@ -636,13 +643,16 @@ internal sealed class NativeTerminal : IDisposable
 
     private bool MouseTracking => IsMouseTrackingActive?.Invoke() == true;
 
-    private bool OnKeyDown(uint message, IntPtr wParam, IntPtr lParam)
+    private bool OnKeyDown(uint message, IntPtr wParam, IntPtr lParam) =>
+        HandleKeyDown(message, (ushort)wParam, lParam, IsKeyDown(VK_CONTROL), IsKeyDown(VK_SHIFT), IsKeyDown(VK_MENU));
+
+    /// <summary>Test de fumée : combinaison de touches traitée comme si elle venait du clavier.</summary>
+    public bool PressForTest(bool control, bool shift, bool alt, ushort key) =>
+        HandleKeyDown(alt ? WM_SYSKEYDOWN : WM_KEYDOWN, key, 1, control, shift, alt);
+
+    private bool HandleKeyDown(uint message, ushort key, IntPtr lParam, bool control, bool shift, bool alt)
     {
-        var key = (ushort)wParam;
         _swallowChar = false;
-        var control = IsKeyDown(VK_CONTROL);
-        var shift = IsKeyDown(VK_SHIFT);
-        var alt = IsKeyDown(VK_MENU);
 
         // Ctrl+Alt = AltGr sur les claviers européens : jamais un raccourci de l'application.
         if (control && !alt)
@@ -715,6 +725,18 @@ internal sealed class NativeTerminal : IDisposable
         {
             _passSystemChar = key == VK_SPACE;
             return false;
+        }
+
+        // Raccourci d'un snippet : jamais une combinaison dont le shell a besoin (règles de KeyGesture).
+        if ((control || shift || alt) && KeyGesture.IsSupportedKey(key) && ShortcutHandler is { } handler)
+        {
+            var gesture = new KeyGesture(control, shift, alt, key);
+            if (gesture.IsValid && handler(gesture))
+            {
+                // Le caractère de contrôle produit par Ctrl+Maj+touche ne doit pas suivre jusqu'au shell.
+                _swallowChar = true;
+                return true;
+            }
         }
 
         Unpack(lParam, out var scanCode, out var flags);
