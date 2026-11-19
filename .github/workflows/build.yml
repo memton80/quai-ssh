@@ -149,7 +149,10 @@ jobs:
           $required = @(
             'Quai.exe', 'Quai.dll', 'Quai.Core.dll', 'Quai.pri', 'Microsoft.WinUI.dll', 'Renci.SshNet.dll', 'System.IO.Ports.dll',
             'Microsoft.Terminal.Control.dll', 'Assets/Quai.ico', 'Assets/AppIcon.png', 'Assets/Licenses/Windows-Terminal-LICENSE.txt',
-            'fr-FR/Microsoft.ui.xaml.dll.mui', 'en-US/Microsoft.ui.xaml.dll.mui')
+            'fr-FR/Microsoft.ui.xaml.dll.mui', 'en-US/Microsoft.ui.xaml.dll.mui',
+            'Porta.Pty.dll', 'conpty.dll', '${{ matrix.platform }}/OpenConsole.exe')
+          # Terminal local : une application x64 embarque aussi l'hôte ARM64 (lancé par conpty.dll sur un PC ARM).
+          if ('${{ matrix.platform }}' -eq 'x64') { $required += 'arm64/OpenConsole.exe' }
           $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
           if ($missing) { throw "Fichiers manquants dans la publication : $($missing -join ', ')" }
 
@@ -161,7 +164,7 @@ jobs:
             'onnxruntime.dll', 'DirectML.dll', 'Microsoft.Windows.AI.Text.dll', 'Microsoft.Windows.Search.dll', 'Microsoft.Windows.Widgets.dll', 'DWriteCore.dll',
             'Microsoft.Web.WebView2.Core.dll', 'WebView2Loader.dll', 'Microsoft.UI.Xaml/Assets/map.html',
             'createdump.exe', 'mscordbi.dll', 'mscordaccore.dll',
-            'de-DE', 'ja-JP') | Where-Object { Test-Path (Join-Path $dir $_) }
+            'de-DE', 'ja-JP') + @(if ('${{ matrix.platform }}' -eq 'arm64') { 'x64/OpenConsole.exe' }) | Where-Object { Test-Path (Join-Path $dir $_) }
           if ($forbidden) { throw "Fichiers inattendus dans la publication : $($forbidden -join ', ')" }
 
           # DLL du moteur : signature Microsoft valide et architecture de la publication.
@@ -175,6 +178,15 @@ jobs:
           $expected = @{ x64 = 0x8664; arm64 = 0xAA64 }['${{ matrix.platform }}']
           if ($machine -ne $expected) { throw ("Microsoft.Terminal.Control.dll : architecture 0x{0:X4}, attendu 0x{1:X4}" -f $machine, $expected) }
           "Moteur de terminal : signé par $($signature.SignerCertificate.Subject), architecture 0x$('{0:X4}' -f $machine)"
+
+          # ConPTY du terminal local (conpty.dll + OpenConsole.exe de Windows Terminal) : signés par Microsoft.
+          foreach ($file in @('conpty.dll', '${{ matrix.platform }}/OpenConsole.exe')) {
+            $signature = Get-AuthenticodeSignature (Join-Path $dir $file)
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw "Signature inattendue pour ${file} : $($signature.Status) / $($signature.SignerCertificate.Subject)"
+            }
+            "${file} : signé par $($signature.SignerCertificate.Subject)"
+          }
 
       - name: Zip (version portable)
         shell: pwsh

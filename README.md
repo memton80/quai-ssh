@@ -22,6 +22,7 @@ Se connecter à un serveur ne devrait pas demander trois logiciels et un post-it
 
 - **Tous vos serveurs, bien rangés.** Ajoutez une connexion une fois, retrouvez-la en un clic : dossiers, étiquettes et recherche instantanée.
 - **Un vrai terminal, rapide et net.** Quai utilise le moteur de Windows Terminal, celui de Microsoft. Plusieurs onglets, copier-coller comme d'habitude.
+- **Votre PC aussi.** Le bouton « Terminal local » ouvre PowerShell, l'invite de commandes ou WSL dans un onglet, à côté de vos serveurs (`Ctrl+Maj+T`).
 - **Vos fichiers par glisser-déposer.** Votre PC à gauche, le serveur à droite : faites glisser, c'est envoyé.
 - **Aussi pour vos petits appareils.** Routeur, switch, Arduino, Raspberry Pi : branchez le câble, choisissez le port, c'est parti.
 - **Toujours à jour, en un clic.** Quand une nouvelle version sort, un bouton suffit : Quai se met à jour et redémarre tout seul.

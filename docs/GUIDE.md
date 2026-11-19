@@ -18,6 +18,12 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 - Copier / coller à la Windows Terminal : `Ctrl+C` copie s'il y a une sélection (sinon envoie `^C`), `Ctrl+Maj+C` copie, `Ctrl+V` ou `Maj+Inser` colle, clic droit copie ou colle. Collage multiligne protégé quand le shell le permet (« bracketed paste »).
 - Historique : molette, barre de défilement, `Ctrl+Maj+↑ / ↓ / Pg.Préc / Pg.Suiv / Début / Fin`.
 
+**Terminal local** (un shell de votre PC, dans le même terminal que le SSH)
+- Bouton **« Terminal local »** de la barre d'onglets (ou de la page Terminaux vide), ou **`Ctrl+Maj+T`** depuis la page Terminaux, y compris dans un terminal : ouvre le shell choisi dans les réglages, dans le dossier personnel.
+- La flèche du bouton liste les shells installés : **PowerShell 7**, **Windows PowerShell**, **invite de commandes**, chaque distribution **WSL** (Ubuntu, Debian…) et **Git Bash**. Rien n'est lancé pour les détecter.
+- Un vrai terminal Windows, pas une page web : la pseudo-console **ConPTY** de Windows Terminal (`conpty.dll` + `OpenConsole.exe`, livrés avec Quai), dans le même moteur d'affichage que le SSH. Couleurs, `vim`, `htop` sous WSL, copier / coller, historique, snippets : tout fonctionne pareil.
+- `exit` ferme le shell : l'onglet indique son code de sortie s'il n'est pas 0 et propose **« Relancer »**. Fermer l'onglet arrête le shell et tout ce qu'il a lancé.
+
 **Port série** (console de routeur ou de switch, carte Arduino / ESP32 / Raspberry Pi, modem…)
 - Port choisi parmi ceux que Windows détecte (bouton « Actualiser » après avoir branché l'adaptateur) ou saisi (`COM3`).
 - Vitesse (de 300 à 921 600 bauds, ou toute autre valeur), bits de données, parité, bits d'arrêt, contrôle de flux XON / XOFF ou RTS / CTS. Par défaut, comme PuTTY : 9600 bauds, 8N1, sans contrôle de flux.
@@ -33,6 +39,7 @@ Tout ce que Quai sait faire, en détail. Pour une présentation rapide, voir le 
 
 **Réglages**
 - Thème clair / sombre / identique à Windows (fond Mica sous Windows 11), fond « Fluent » du terminal (couleur de surface de Windows 11, comme l'onglet actif) ou fond classique de Windows Terminal, police et taille du terminal, appliqués immédiatement.
+- Shell du terminal local (PowerShell 7 s'il est installé, sinon Windows PowerShell, par défaut).
 - Connexions SSH : reconnexion automatique (activée par défaut) et intervalle du maintien de connexion (keepalive, 5 à 600 s, 0 = désactivé ; s'applique aux nouvelles connexions).
 
 **Fermeture et mises à jour**
@@ -84,6 +91,7 @@ Dans `%LOCALAPPDATA%\Quai` :
 
 ## Limites connues
 
+- Terminal local : pas encore de profils personnalisés (autre dossier de départ, arguments, shell absent de la liste), ni d'ouverture en administrateur.
 - Pas encore de tunnels / redirection de ports, de rebond (jump host), d'agent OpenSSH, ni d'import `ssh_config` / PuTTY.
 - Port série : noms `COMn` uniquement, pas de nom « parlant » de l'adaptateur dans la liste, ni écho local, ni conversion des fins de ligne (Entrée envoie CR, comme PuTTY), ni journal de session.
 - Un seul transfert à la fois par onglet SFTP, sans reprise après interruption.
