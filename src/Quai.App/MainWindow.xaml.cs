@@ -7,6 +7,7 @@ using Quai.App.Localization;
 using Quai.App.Services;
 using Quai.App.Terminal;
 using Quai.App.Views;
+using Quai.Core;
 using Quai.Core.Services;
 using Quai.Core.ViewModels;
 using Windows.Foundation;
@@ -53,7 +54,7 @@ public sealed partial class MainWindow : Window
         _logger = App.Current.Services.GetRequiredService<ILogger<MainWindow>>();
         InitializeComponent();
 
-        Title = "Quai";
+        Title = AppInfo.DisplayName;
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;

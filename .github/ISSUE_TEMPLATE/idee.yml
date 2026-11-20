@@ -1,4 +1,4 @@
-# Formulaire ouvert par le bouton « Idée ou bug » de Quai : les identifiants des champs (id) sont remplis par
+# Formulaire ouvert par le bouton « Idée ou bug » de Quai SSH : les identifiants des champs (id) sont remplis par
 # l'adresse (src/Quai.Core/ViewModels/FeedbackViewModel.cs). Ne pas les renommer sans changer l'application.
 name: Proposer une idée
 description: Une fonction qui vous manque dans Quai.
@@ -7,7 +7,7 @@ body:
   - type: input
     id: domaine
     attributes:
-      label: Partie de Quai concernée
+      label: Partie de Quai SSH concernée
       placeholder: "Carnet de connexions, terminal, fichiers (SFTP), snippets, réglages…"
   - type: textarea
     id: description
@@ -19,5 +19,5 @@ body:
   - type: textarea
     id: systeme
     attributes:
-      label: Version de Quai et de Windows
+      label: Version de Quai SSH et de Windows
       render: text

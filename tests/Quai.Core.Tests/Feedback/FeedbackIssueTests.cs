@@ -100,7 +100,7 @@ public class FeedbackIssueTests
     [Fact]
     public void System_description_names_Quai_and_its_version()
     {
-        Assert.StartsWith($"Quai {AppInfo.Version} · ", FeedbackIssue.DescribeSystem());
+        Assert.StartsWith($"Quai SSH {AppInfo.Version} · ", FeedbackIssue.DescribeSystem());
     }
 
     [Fact]

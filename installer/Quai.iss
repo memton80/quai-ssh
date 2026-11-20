@@ -1,4 +1,4 @@
-﻿; Installateur de Quai (Inno Setup 6) : un seul exécutable, installation par utilisateur (sans droits
+﻿; Installateur de Quai SSH (Inno Setup 6) : un seul exécutable, installation par utilisateur (sans droits
 ; administrateur), désinstallation depuis « Applications installées » de Windows.
 ;
 ; Compilé par le CI (.github/workflows/build.yml) :
@@ -20,7 +20,9 @@
   #define OutputDir "..\dist"
 #endif
 
-#define AppName "Quai"
+#define AppName "Quai SSH"
+; Nom technique, figé : dossier d'installation, données (%LOCALAPPDATA%\Quai) et ancien raccourci.
+#define AppDirName "Quai"
 #define AppExe "Quai.exe"
 #define AppUrl "https://github.com/memton80/quai-ssh"
 
@@ -40,7 +42,7 @@ VersionInfoDescription=Installation de {#AppName}
 
 ; Par utilisateur : %LOCALAPPDATA%\Programs\Quai, aucune élévation.
 PrivilegesRequired=lowest
-DefaultDirName={autopf}\{#AppName}
+DefaultDirName={autopf}\{#AppDirName}
 DisableProgramGroupPage=yes
 DisableDirPage=auto
 DisableReadyPage=no
@@ -64,7 +66,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 LZMAUseSeparateProcess=yes
 
-; Mise à jour par-dessus une version ouverte : l'installateur propose de fermer Quai.
+; Mise à jour par-dessus une version ouverte : l'installateur propose de fermer Quai SSH.
 CloseApplications=yes
 RestartApplications=no
 
@@ -75,14 +77,19 @@ UninstallDisplayIcon={app}\{#AppExe}
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [CustomMessages]
-french.PreparingApp=Préparation de Quai…
-french.RemoveUserData=Supprimer aussi vos données Quai ?%n%nOui : les connexions enregistrées, les réglages, les hôtes connus et les secrets conservés dans le coffre Windows sont effacés.%n%nNon : ils sont conservés pour une réinstallation ultérieure.
+french.PreparingApp=Préparation de Quai SSH…
+french.RemoveUserData=Supprimer aussi vos données Quai SSH ?%n%nOui : les connexions enregistrées, les réglages, les hôtes connus et les secrets conservés dans le coffre Windows sont effacés.%n%nNon : ils sont conservés pour une réinstallation ultérieure.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[InstallDelete]
+; Raccourcis de l'époque où l'application s'appelait « Quai » : remplacés par « Quai SSH ».
+Type: files; Name: "{autoprograms}\{#AppDirName}.lnk"
+Type: files; Name: "{autodesktop}\{#AppDirName}.lnk"
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
@@ -93,22 +100,22 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 ; qui sinon met 10 s à s'afficher puis ne répond plus pendant une minute. Rien n'est exécuté ni affiché.
 Filename: "{app}\{#AppExe}"; Parameters: "--warmup"; WorkingDir: "{app}"; StatusMsg: "{cm:PreparingApp}"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
-; Mise à jour lancée par Quai lui-même (/SILENT /RELAUNCH=1) : la nouvelle version redémarre une fois installée.
+; Mise à jour lancée par Quai SSH lui-même (/SILENT /RELAUNCH=1) : la nouvelle version redémarre une fois installée.
 Filename: "{app}\{#AppExe}"; Parameters: "--after-update"; WorkingDir: "{app}"; Flags: nowait; Check: RelaunchRequested
 
 [UninstallDelete]
 ; Journaux (et cache de l'ancien terminal WebView2 des premières versions de développement) :
 ; jamais conservés, ce ne sont pas des données de l'utilisateur.
-Type: filesandordirs; Name: "{localappdata}\{#AppName}\WebView2"
-Type: filesandordirs; Name: "{localappdata}\{#AppName}\logs"
-Type: filesandordirs; Name: "{localappdata}\{#AppName}\updates"
-Type: dirifempty; Name: "{localappdata}\{#AppName}"
+Type: filesandordirs; Name: "{localappdata}\{#AppDirName}\WebView2"
+Type: filesandordirs; Name: "{localappdata}\{#AppDirName}\logs"
+Type: filesandordirs; Name: "{localappdata}\{#AppDirName}\updates"
+Type: dirifempty; Name: "{localappdata}\{#AppDirName}"
 
 [Code]
 var
   RemoveUserData: Boolean;
 
-// Installation demandée par le bouton « Mettre à jour » de Quai : relancer l'application à la fin.
+// Installation demandée par le bouton « Mettre à jour » de Quai SSH : relancer l'application à la fin.
 function RelaunchRequested(): Boolean;
 begin
   Result := ExpandConstant('{param:RELAUNCH|0}') = '1';
@@ -134,5 +141,5 @@ begin
     Exec(ExpandConstant('{app}\{#AppExe}'), '--purge-secrets', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
   if (CurUninstallStep = usPostUninstall) and RemoveUserData then
-    DelTree(ExpandConstant('{localappdata}\{#AppName}'), True, True, True);
+    DelTree(ExpandConstant('{localappdata}\{#AppDirName}'), True, True, True);
 end;

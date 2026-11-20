@@ -53,7 +53,7 @@ public static class FeedbackIssue
 
     /// <summary>Version de Quai, de Windows et architecture (« Quai 1.1.0 · Microsoft Windows 10.0.26100 · x64 »).</summary>
     public static string DescribeSystem() =>
-        $"{AppInfo.Name} {AppInfo.Version} · {RuntimeInformation.OSDescription.Trim()} · {RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}";
+        $"{AppInfo.DisplayName} {AppInfo.Version} · {RuntimeInformation.OSDescription.Trim()} · {RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}";
 
     public static FeedbackLink Build(FeedbackKind kind, string title, IReadOnlyList<FeedbackField> fields, int maxLength = MaxAddressLength)
     {

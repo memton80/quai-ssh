@@ -370,7 +370,7 @@
     <value>{0} sert au shell ou à la saisie (Ctrl+C, Ctrl+R, majuscules…) : utilisez Ctrl+Maj ou Alt+Maj avec une lettre ou un chiffre.</value>
   </data>
   <data name="Snippets_ShortcutReserved" xml:space="preserve">
-    <value>{0} est déjà un raccourci de Quai (copier, coller, snippets, terminal local ou fermeture).</value>
+    <value>{0} est déjà un raccourci de Quai SSH (copier, coller, snippets, terminal local ou fermeture).</value>
   </data>
   <data name="Snippets_ShortcutTaken" xml:space="preserve">
     <value>{0} est déjà le raccourci de « {1} ».</value>
@@ -427,13 +427,13 @@
     <value>Terminal indisponible</value>
   </data>
   <data name="Terminal_EngineErrorMessage" xml:space="preserve">
-    <value>Le moteur de terminal (Microsoft.Terminal.Control.dll) n'a pas pu démarrer. Réinstallez Quai. Détail : {0}</value>
+    <value>Le moteur de terminal (Microsoft.Terminal.Control.dll) n'a pas pu démarrer. Réinstallez Quai SSH. Détail : {0}</value>
   </data>
   <data name="HostKey_UnknownTitle" xml:space="preserve">
     <value>Premier contact avec cet hôte</value>
   </data>
   <data name="HostKey_UnknownMessage" xml:space="preserve">
-    <value>Quai ne connaît pas encore « {0} » et ne peut donc pas garantir que vous parlez au bon serveur.</value>
+    <value>Quai SSH ne connaît pas encore « {0} » et ne peut donc pas garantir que vous parlez au bon serveur.</value>
   </data>
   <data name="HostKey_UnknownAdvice" xml:space="preserve">
     <value>Si l'empreinte correspond à celle fournie par l'administrateur du serveur, faites confiance : elle sera enregistrée et vérifiée à chaque connexion.</value>
@@ -748,10 +748,10 @@
     <value>Ouvrir le dossier</value>
   </data>
   <data name="Shutdown_Title" xml:space="preserve">
-    <value>Fermer Quai ?</value>
+    <value>Fermer Quai SSH ?</value>
   </data>
   <data name="Shutdown_Confirm" xml:space="preserve">
-    <value>Fermer Quai</value>
+    <value>Fermer Quai SSH</value>
   </data>
   <data name="Shutdown_SessionsOpen" xml:space="preserve">
     <value>Ces connexions seront fermées : {0}.</value>
@@ -781,7 +781,7 @@
     <value>Mise à jour disponible</value>
   </data>
   <data name="Update_Message" xml:space="preserve">
-    <value>Quai {0} est disponible (vous avez la version {1}).</value>
+    <value>Quai SSH {0} est disponible (vous avez la version {1}).</value>
   </data>
   <data name="Update_Download" xml:space="preserve">
     <value>Télécharger</value>
@@ -790,7 +790,7 @@
     <value>Rechercher les mises à jour</value>
   </data>
   <data name="Settings_UpdatesDescription" xml:space="preserve">
-    <value>Au démarrage, Quai demande à GitHub le numéro de la dernière version publiée (rien sur vous ni sur vos connexions).</value>
+    <value>Au démarrage, Quai SSH demande à GitHub le numéro de la dernière version publiée (rien sur vous ni sur vos connexions).</value>
   </data>
   <data name="Update_Install" xml:space="preserve">
     <value>Mettre à jour</value>
@@ -802,16 +802,16 @@
     <value>Réessayer</value>
   </data>
   <data name="Update_Downloading" xml:space="preserve">
-    <value>Téléchargement de Quai {0}…</value>
+    <value>Téléchargement de Quai SSH {0}…</value>
   </data>
   <data name="Update_Installing" xml:space="preserve">
-    <value>Quai {0} est téléchargé et vérifié : Quai se ferme pour l'installer, puis redémarre tout seul.</value>
+    <value>Quai SSH {0} est téléchargé et vérifié : Quai SSH se ferme pour l'installer, puis redémarre tout seul.</value>
   </data>
   <data name="Update_Ready" xml:space="preserve">
-    <value>Quai {0} est téléchargé. Cliquez sur « Mettre à jour » quand vous pourrez fermer vos sessions.</value>
+    <value>Quai SSH {0} est téléchargé. Cliquez sur « Mettre à jour » quand vous pourrez fermer vos sessions.</value>
   </data>
   <data name="Update_Failed" xml:space="preserve">
-    <value>La mise à jour vers Quai {0} a échoué. {1}</value>
+    <value>La mise à jour vers Quai SSH {0} a échoué. {1}</value>
   </data>
   <data name="Update_FailedDownload" xml:space="preserve">
     <value>Le téléchargement n'a pas abouti : vérifiez la connexion, puis réessayez.</value>
@@ -826,7 +826,7 @@
     <value>Mettre à jour maintenant ?</value>
   </data>
   <data name="Update_ConfirmRestart" xml:space="preserve">
-    <value>Quai va se fermer pour installer la mise à jour, puis redémarrer tout seul.</value>
+    <value>Quai SSH va se fermer pour installer la mise à jour, puis redémarrer tout seul.</value>
   </data>
   <data name="Update_ConfirmButton" xml:space="preserve">
     <value>Mettre à jour et redémarrer</value>
@@ -1084,7 +1084,7 @@
     <value>Décrivez la situation où cette fonction vous servirait.</value>
   </data>
   <data name="Feedback_IdeaArea" xml:space="preserve">
-    <value>Partie de Quai concernée</value>
+    <value>Partie de Quai SSH concernée</value>
   </data>
   <data name="Feedback_AreaPlaceholder" xml:space="preserve">
     <value>Facultatif</value>
@@ -1132,13 +1132,13 @@
     <value>Ouvrir le dossier des journaux</value>
   </data>
   <data name="Feedback_IncludeSystem" xml:space="preserve">
-    <value>Joindre la version de Quai et de Windows</value>
+    <value>Joindre la version de Quai SSH et de Windows</value>
   </data>
   <data name="Feedback_SystemHeading" xml:space="preserve">
-    <value>Version de Quai et de Windows</value>
+    <value>Version de Quai SSH et de Windows</value>
   </data>
   <data name="Feedback_GitHubHint" xml:space="preserve">
-    <value>Votre navigateur s'ouvre sur GitHub avec tout déjà rempli : il ne reste qu'à valider. Un compte GitHub (gratuit) est nécessaire ; Quai n'envoie rien lui-même.</value>
+    <value>Votre navigateur s'ouvre sur GitHub avec tout déjà rempli : il ne reste qu'à valider. Un compte GitHub (gratuit) est nécessaire ; Quai SSH n'envoie rien lui-même.</value>
   </data>
   <data name="Feedback_Continue" xml:space="preserve">
     <value>Continuer sur GitHub</value>
@@ -1159,6 +1159,6 @@
     <value>Navigateur introuvable</value>
   </data>
   <data name="Feedback_BrowserFailedMessage" xml:space="preserve">
-    <value>Quai n'a pas pu ouvrir votre navigateur. Votre texte est dans le presse-papiers : ouvrez {0} pour le publier.</value>
+    <value>Quai SSH n'a pas pu ouvrir votre navigateur. Votre texte est dans le presse-papiers : ouvrez {0} pour le publier.</value>
   </data>
 </root>

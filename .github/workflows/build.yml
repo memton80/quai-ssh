@@ -261,7 +261,7 @@ jobs:
           if (-not (Test-Path $key)) { throw "Entrée de désinstallation absente du registre." }
           Get-ItemProperty $key | Select-Object DisplayName, DisplayVersion, InstallLocation, UninstallString | Format-List | Out-String
 
-          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai.lnk'
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai SSH.lnk'
           if (-not (Test-Path $shortcut)) { throw 'Raccourci du menu Démarrer absent.' }
           "QUAI_INSTALL_DIR=$dir" >> $env:GITHUB_ENV
 
@@ -446,7 +446,7 @@ jobs:
           while ((Test-Path $dir) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
 
           $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F6C1C0E-5B0E-4F0B-9E57-3C7F2A9D51A4}_is1'
-          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai.lnk'
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Quai SSH.lnk'
           $left = @()
           if (Test-Path $dir) { $left += "dossier d'installation ($((Get-ChildItem $dir -Recurse -File | Select-Object -First 5).FullName -join ', '))" }
           if (Test-Path $key) { $left += 'entrée du registre' }
@@ -560,7 +560,7 @@ jobs:
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: Quai ${{ needs.version.outputs.version }}
+          name: Quai SSH ${{ needs.version.outputs.version }}
           body: ${{ steps.notes.outputs.body }}
           files: |
             dist/*.exe

@@ -1,4 +1,4 @@
-# Développement de Quai
+# Développement de Quai SSH
 
 [![Build](https://github.com/memton80/quai-ssh/actions/workflows/build.yml/badge.svg)](https://github.com/memton80/quai-ssh/actions/workflows/build.yml)
 
@@ -38,7 +38,7 @@ dotnet publish src/Quai.App/Quai.App.csproj -c Release -r win-x64 --self-contain
 
 - installation silencieuse ;
 - **test de fumée de l'application installée** (lancement réel, parcours de chaque écran avec captures, animations de Windows activées comme sur un poste) ;
-- **mise à jour en place de bout en bout** (Quai télécharge et vérifie l'installateur du run, s'installe en silencieux et redémarre) ;
+- **mise à jour en place de bout en bout** (Quai SSH télécharge et vérifie l'installateur du run, s'installe en silencieux et redémarre) ;
 - désinstallation vérifiée.
 
 Un job Linux exécute les tests d'intégration contre OpenSSH et sur des ports série virtuels (`socat`).

@@ -1,8 +1,10 @@
-# Quai — consignes pour Claude Code
+# Quai SSH — consignes pour Claude Code
 
 Lis ce fichier en entier avant de toucher au code. Le propriétaire (Alexandre) parle un français décontracté : réponds-lui en français, direct et pratique. Le code, les noms de classes et les commits conventionnels restent en anglais ou en français selon ce qui est le plus clair, mais sois cohérent.
 
 ## Objectif
+
+Le logiciel s'appelle **Quai SSH** (à ne pas confondre avec Quai PDF, autre projet). Ce nom est celui affiché partout (fenêtre, textes, installateur, docs) ; les identifiants techniques restent `Quai` (projets `Quai.*`, `Quai.exe`, dossier `%LOCALAPPDATA%\Quai`, ressource du coffre, fichiers `Quai-Setup-*.exe` attendus par la mise à jour en place des versions déjà installées) : ne pas les renommer sans migration.
 
 Application Windows native de gestion de connexions SSH et de transferts SFTP (dans l'esprit de Termius / WinSCP / MobaXterm, en plus léger), avec une interface WinUI 3 au look Windows 11.
 

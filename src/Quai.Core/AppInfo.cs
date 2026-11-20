@@ -5,7 +5,14 @@ namespace Quai.Core;
 /// <summary>Constantes d'identité de l'application.</summary>
 public static class AppInfo
 {
+    /// <summary>
+    /// Nom technique, figé : dossier <c>%LOCALAPPDATA%\Quai</c>, ressource du coffre Windows, exécutable.
+    /// Le changer ferait perdre leurs données aux installations existantes.
+    /// </summary>
     public const string Name = "Quai";
+
+    /// <summary>Nom affiché à l'utilisateur.</summary>
+    public const string DisplayName = "Quai SSH";
 
     /// <summary>Version lisible (« 1.0.0 »), sans le suffixe de commit ajouté par le SDK.</summary>
     public static string Version { get; } = ReadVersion();

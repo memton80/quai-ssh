@@ -31,7 +31,7 @@
                 <TextBlock
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="Quai" />
+                    Text="Quai SSH" />
             </StackPanel>
         </Grid>
 

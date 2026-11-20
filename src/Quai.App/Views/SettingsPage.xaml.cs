@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Quai.App.Localization;
+using Quai.Core;
 using Quai.Core.ViewModels;
 
 namespace Quai.App.Views;
@@ -17,7 +18,7 @@ public sealed partial class SettingsPage : UserControl
 
     public SettingsViewModel ViewModel { get; }
 
-    public string VersionText => "Quai — " + Loc.Format("Settings_Version", ViewModel.Version);
+    public string VersionText => AppInfo.DisplayName + " — " + Loc.Format("Settings_Version", ViewModel.Version);
 
     private void OnFontGotFocus(object sender, RoutedEventArgs e) => UpdateFontSuggestions(string.Empty);
 

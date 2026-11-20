@@ -97,7 +97,7 @@ internal static class SmokeTest
             if (!banner.CanInstallInPlace)
             {
                 throw new InvalidOperationException(
-                    "Quai, lancé depuis son installation, ne propose pas la mise à jour en place (installation non reconnue ?).");
+                    "Quai SSH, lancé depuis son installation, ne propose pas la mise à jour en place (installation non reconnue ?).");
             }
 
             await Task.Delay(500);
@@ -582,7 +582,7 @@ internal static class SmokeTest
         Directory.CreateDirectory(Path.Combine(local, "photos"));
         Directory.CreateDirectory(Path.Combine(local, "site"));
         File.WriteAllText(Path.Combine(local, "rapport.txt"), new string('r', 48_000));
-        File.WriteAllText(Path.Combine(local, "todo.md"), "- tester Quai\n");
+        File.WriteAllText(Path.Combine(local, "todo.md"), "- tester Quai SSH\n");
 
         var sessions = services.GetRequiredService<SftpSessionsViewModel>();
         services.GetRequiredService<ISessionLauncher>().OpenSftp(

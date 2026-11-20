@@ -97,7 +97,7 @@ public sealed partial class UpdateBannerViewModel : ObservableObject
             var update = await _checker.CheckAsync(cancellationToken);
             if (update is null)
             {
-                _logger.LogInformation("Quai {Version} est à jour", AppInfo.Version);
+                _logger.LogInformation("Quai SSH {Version} est à jour", AppInfo.Version);
                 return;
             }
 
